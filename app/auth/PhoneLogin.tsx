@@ -1,38 +1,113 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Alert, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import React, { useState, useRef } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Phone } from '../../components/Icons';
-import { translator } from '../../services/translator';
 import { COLORS } from '../../constants/styles';
+import { translator } from '../../services/translator';
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
+import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
+import { auth } from '../../config/firebase';
+import { getApp } from 'firebase/app';
 
 export default function PhoneLogin() {
   const router = useRouter();
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+91');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const recaptchaVerifier = useRef<any>(null);
+  const [verificationId, setVerificationId] = useState<string | null>(null);
+  const firebaseApp = getApp();
 
+  // Validate phone number in E.164 format (+91XXXXXXXXXX)
   const validatePhone = (number: string) => {
-    return /^[0-9]{10}$/.test(number);
+    const phoneRegex = /^\+91[0-9]{10}$/;
+    return phoneRegex.test(number);
   };
 
-  const handleSendOTP = () => {
+  // Format phone number input
+  const handlePhoneChange = (text: string) => {
+    if (!text.startsWith('+91')) {
+      text = '+91' + text.replace(/[^0-9]/g, '');
+    }
+    const cleaned = '+91' + text.slice(3).replace(/[^0-9]/g, '');
+    const limited = cleaned.slice(0, 13);
+    setPhone(limited);
+    setError('');
+  };
+
+  const handleSendOTP = async () => {
     setError('');
     
     if (!validatePhone(phone)) {
-      setError('Please enter a valid 10-digit phone number');
+      setError('Please enter a valid phone number (+91 followed by 10 digits)');
       return;
     }
 
-    // Simulate OTP sending
-    Alert.alert(
-      'OTP Sent',
-      `Verification code sent to ${phone}`,
-      [{ text: 'OK', onPress: () => router.push('/auth/OTPVerification') }]
-    );
+    setLoading(true);
+
+    try {
+      console.log('📱 Sending OTP to:', phone);
+      
+      // Use PhoneAuthProvider.verifyPhoneNumber (matching your working flow)
+      const phoneProvider = new PhoneAuthProvider(auth);
+      const verificationIdResult = await phoneProvider.verifyPhoneNumber(
+        phone,
+        recaptchaVerifier.current
+      );
+      
+      setVerificationId(verificationIdResult);
+      
+      console.log('✅ OTP sent successfully!');
+      console.log('📧 Check your phone for the verification code');
+      
+      Alert.alert(
+        'OTP Sent',
+        `A verification code has been sent to ${phone}.\n\nPlease check your SMS messages.`,
+        [
+          { 
+            text: 'OK', 
+            onPress: () => {
+              router.push({
+                pathname: '/auth/OTPVerification',
+                params: { 
+                  phoneNumber: phone,
+                  verificationId: verificationIdResult
+                }
+              });
+            }
+          }
+        ]
+      );
+    } catch (err: any) {
+      console.error('❌ Error sending OTP:', err);
+      
+      let errorMessage = 'Failed to send OTP. Please try again.';
+      
+      if (err.code === 'auth/invalid-phone-number') {
+        errorMessage = 'Invalid phone number format.';
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many attempts. Please try again later.';
+      } else if (err.code === 'auth/quota-exceeded') {
+        errorMessage = 'SMS quota exceeded.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={firebaseApp.options}
+        attemptInvisibleVerification={true}
+      />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Phone size={80} color={COLORS.primary} />
@@ -46,24 +121,36 @@ export default function PhoneLogin() {
 
         <View style={styles.form}>
           <Text style={styles.label}>{translator.translate('enterPhone')}</Text>
-          <TextInput
-            style={[styles.input, error ? styles.inputError : null]}
-            value={phone}
-            onChangeText={(text) => {
-              setPhone(text);
-              setError('');
-            }}
-            keyboardType="phone-pad"
-            maxLength={10}
-            placeholder="9876543210"
-            placeholderTextColor={COLORS.textMuted}
-          />
+          <View style={styles.phoneInputContainer}>
+            <Text style={styles.countryCode}>+91</Text>
+            <TextInput
+              style={[styles.phoneInput, error ? styles.inputError : null]}
+              value={phone.slice(3)} // Show only the digits after +91
+              onChangeText={(text) => {
+                // Only allow numbers and limit to 10 digits
+                const cleaned = text.replace(/[^0-9]/g, '').slice(0, 10);
+                handlePhoneChange('+91' + cleaned);
+              }}
+              keyboardType="phone-pad"
+              maxLength={10}
+              placeholder="9876543210"
+              placeholderTextColor={COLORS.textMuted}
+            />
+          </View>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          <TouchableOpacity style={styles.button} onPress={handleSendOTP}>
-            <Text style={styles.buttonText}>
-              {translator.translate('sendOTP')}
-            </Text>
+          <TouchableOpacity 
+            style={[styles.button, loading && styles.buttonDisabled]} 
+            onPress={handleSendOTP}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.buttonText}>
+                {translator.translate('sendOTP')}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -114,6 +201,27 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 8,
   },
+  phoneInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+  },
+  countryCode: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginRight: 8,
+  },
+  phoneInput: {
+    flex: 1,
+    padding: 16,
+    fontSize: 16,
+    color: COLORS.text,
+  },
   input: {
     backgroundColor: COLORS.card,
     borderWidth: 1,
@@ -137,6 +245,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 16,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: '#FFFFFF',

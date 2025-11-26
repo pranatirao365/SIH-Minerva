@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter, useRootNavigationState } from 'expo-router';
 import { useRoleStore } from '../hooks/useRoleStore';
 import { COLORS } from '../constants/styles';
+import { testFirebaseSetup } from '../services/testFirebaseSetup';
 
 export default function Index() {
   const router = useRouter();
@@ -10,6 +11,16 @@ export default function Index() {
   const { isAuthenticated, user } = useRoleStore();
 
   useEffect(() => {
+    // Test Firebase connection on app start (development only)
+    if (__DEV__) {
+      console.log('\n🚀 Starting Firebase connection test...');
+      testFirebaseSetup().then(results => {
+        console.log('\n✅ Firebase test completed\n');
+      }).catch(err => {
+        console.error('❌ Firebase test failed:', err);
+      });
+    }
+
     // Wait for navigation to be ready
     if (!rootNavigationState?.key) return;
 

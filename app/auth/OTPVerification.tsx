@@ -1,15 +1,24 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, ScrollView, Alert, TouchableOpacity, StyleSheet } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { doc, getDoc } from 'firebase/firestore';
+import React, { useRef, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { ShieldCheck } from '../../components/Icons';
-import { translator } from '../../services/translator';
+import { db, auth } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
+import { useRoleStore } from '../../hooks/useRoleStore';
+import { translator } from '../../services/translator';
+import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
 
 export default function OTPVerification() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const phoneNumber = params.phoneNumber as string;
+  const verificationId = params.verificationId as string;
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [loading, setLoading] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
+  const { setRole } = useRoleStore();
 
   const handleOtpChange = (value: string, index: number) => {
     if (!/^\d*$/.test(value)) return;
@@ -30,7 +39,7 @@ export default function OTPVerification() {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const otpCode = otp.join('');
     
     if (otpCode.length !== 6) {
@@ -38,12 +47,96 @@ export default function OTPVerification() {
       return;
     }
 
-    // Simulate OTP verification (accept any 6-digit code)
-    Alert.alert(
-      'Verification Successful',
-      'Phone number verified successfully',
-      [{ text: 'OK', onPress: () => router.push('/auth/RoleSelection') }]
-    );
+    setLoading(true);
+
+    try {
+      console.log('🔐 Verifying OTP for phone:', phoneNumber);
+      console.log('📱 OTP Code:', otpCode);
+      console.log('🆔 Verification ID:', verificationId);
+      
+      // Create credential with verification ID and OTP code
+      const credential = PhoneAuthProvider.credential(verificationId, otpCode);
+      
+      console.log('✅ Credential created, signing in...');
+      
+      // Sign in with the credential
+      const userCredential = await signInWithCredential(auth, credential);
+      
+      console.log('✅ Firebase authentication successful!');
+      console.log('👤 User UID:', userCredential.user.uid);
+      console.log('📞 Phone:', userCredential.user.phoneNumber);
+      
+      // Get phone from authenticated user (already in format +917416013923)
+      // Remove + to match Firestore document ID (917416013923)
+      const phone = userCredential.user.phoneNumber?.replace('+', '') || phoneNumber.replace('+', '');
+      
+      console.log('📊 Fetching user data from Firestore for phone:', phone);
+      
+      // Fetch user role from Firestore
+      const userDoc = await getDoc(doc(db, 'users', phone));
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const userRole = userData.role;
+        
+        console.log('✅ User found with role:', userRole);
+        
+        // Set the role in the store
+        setRole(userRole);
+        
+        // Navigate based on role
+        switch (userRole) {
+          case 'miner':
+            router.replace('/miner/MinerHome');
+            break;
+          case 'engineer':
+            router.replace('/engineer/EngineerHome');
+            break;
+          case 'safety_officer':
+          case 'safety-officer':
+            router.replace('/safety-officer/SafetyOfficerHome');
+            break;
+          case 'supervisor':
+            router.replace('/supervisor/SupervisorHome');
+            break;
+          case 'admin':
+            router.replace('/admin/AdminHome');
+            break;
+          default:
+            Alert.alert('Error', `Invalid user role: ${userRole}`);
+        }
+      } else {
+        console.log('⚠️ User not found in database');
+        Alert.alert(
+          'Access Denied',
+          'Your phone number is not registered in the system. Please contact your administrator.',
+          [{ 
+            text: 'OK', 
+            onPress: () => router.replace('/auth/PhoneLogin')
+          }]
+        );
+      }
+    } catch (err: any) {
+      console.error('❌ Error verifying OTP:', err);
+      console.error('Error code:', err.code);
+      console.error('Error message:', err.message);
+      
+      let errorMessage = 'Failed to verify OTP. Please try again.';
+      
+      if (err.code === 'auth/invalid-verification-code') {
+        errorMessage = 'Invalid OTP code. Please check and try again.';
+      } else if (err.code === 'auth/code-expired') {
+        errorMessage = 'OTP code has expired. Please request a new one.';
+      } else if (err.code === 'auth/session-expired') {
+        errorMessage = 'Verification session expired. Please start over.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      Alert.alert('Verification Failed', errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,6 +150,11 @@ export default function OTPVerification() {
           <Text style={styles.subtitle}>
             {translator.translate('enterOTP')}
           </Text>
+          {phoneNumber && (
+            <Text style={styles.phoneNumber}>
+              Sent to {phoneNumber}
+            </Text>
+          )}
         </View>
 
         <View style={styles.otpContainer}>
@@ -74,10 +172,18 @@ export default function OTPVerification() {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleVerify}>
-          <Text style={styles.buttonText}>
-            {translator.translate('verify')}
-          </Text>
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          onPress={handleVerify}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.buttonText}>
+              {translator.translate('verify')}
+            </Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.footer}>
@@ -119,6 +225,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
+  phoneNumber: {
+    fontSize: 14,
+    color: COLORS.primary,
+    textAlign: 'center',
+    marginTop: 8,
+    fontWeight: '600',
+  },
   otpContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -143,6 +256,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 32,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: '#FFFFFF',

@@ -10,6 +10,16 @@ import { auth } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
 import { translator } from '../../services/translator';
 
+// 🧪 TEST MODE - Remove this in production!
+const TEST_PHONES = [
+  '+911234567890', // Miner
+  '+911234567891', // Engineer
+  '+911234567892', // Supervisor
+  '+911234567893', // Safety Officer
+  '+911234567894', // Admin
+];
+const IS_TEST_MODE = true; // Set to false in production
+
 export default function PhoneLogin() {
   const router = useRouter();
   const [phone, setPhone] = useState('+91');
@@ -47,6 +57,42 @@ export default function PhoneLogin() {
     setLoading(true);
 
     try {
+      // 🧪 TEST MODE: Skip real OTP for test numbers
+      if (IS_TEST_MODE && TEST_PHONES.includes(phone)) {
+        console.log('🧪 TEST MODE: Using test phone number');
+        const testVerificationId = 'TEST_VERIFICATION_ID';
+        
+        // Determine role based on phone number
+        let roleInfo = '';
+        if (phone === '+911234567890') roleInfo = 'Role: Miner';
+        else if (phone === '+911234567891') roleInfo = 'Role: Engineer';
+        else if (phone === '+911234567892') roleInfo = 'Role: Supervisor';
+        else if (phone === '+911234567893') roleInfo = 'Role: Safety Officer';
+        else if (phone === '+911234567894') roleInfo = 'Role: Admin';
+        
+        Alert.alert(
+          '🧪 Test Mode',
+          `Test phone detected!\n\nPhone: ${phone}\n${roleInfo}\nTest OTP: 123456\n\nEnter 123456 in the next screen.`,
+          [
+            { 
+              text: 'OK', 
+              onPress: () => {
+                router.push({
+                  pathname: '/auth/OTPVerification',
+                  params: { 
+                    phoneNumber: phone,
+                    verificationId: testVerificationId,
+                    isTestMode: 'true'
+                  }
+                });
+              }
+            }
+          ]
+        );
+        setLoading(false);
+        return;
+      }
+      
       console.log('📱 Sending OTP to:', phone);
       
       // Use PhoneAuthProvider.verifyPhoneNumber (matching your working flow)

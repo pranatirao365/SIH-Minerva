@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Animated } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Trophy, Star, ArrowLeft, Zap } from '../../components/Icons';
+import React, { useEffect, useState } from 'react';
+import { Animated, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowLeft, Trophy, Zap } from '../../components/Icons';
 import { useRoleStore } from '../../hooks/useRoleStore';
 
-export default function GamingModule() {
+type Props = {
+  inline?: boolean;
+  onClose?: () => void;
+};
+
+export default function GamingModule({ inline = false, onClose }: Props) {
   const router = useRouter();
   const { completeModule } = useRoleStore();
   const [score, setScore] = useState(0);
@@ -59,16 +64,20 @@ export default function GamingModule() {
     completeModule('game');
   };
 
+  const Container: any = inline ? View : SafeAreaView;
+
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <Container className="flex-1 bg-background">
       {/* Header */}
-      <View className="px-6 py-4 flex-row items-center justify-between border-b border-border">
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text className="text-foreground text-lg font-bold">Safety Game</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      {!inline && (
+        <View className="px-6 py-4 flex-row items-center justify-between border-b border-border">
+          <TouchableOpacity onPress={() => router.back()}>
+            <ArrowLeft size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text className="text-foreground text-lg font-bold">Safety Game</Text>
+          <View style={{ width: 24 }} />
+        </View>
+      )}
 
       {!gameActive && timeLeft === 30 ? (
         // Start Screen
@@ -89,12 +98,17 @@ export default function GamingModule() {
             <Text className="text-neutral-300">• Try to get the highest score!</Text>
           </View>
 
-          <TouchableOpacity
-            onPress={startGame}
-            className="bg-primary rounded-lg p-4 items-center"
-          >
-            <Text className="text-white text-xl font-bold">Start Game</Text>
-          </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={startGame}
+                  className="bg-primary rounded-lg p-4 items-center"
+                >
+                  <Text className="text-white text-xl font-bold">Start Game</Text>
+                </TouchableOpacity>
+                {inline && onClose && (
+                  <TouchableOpacity onPress={onClose} className="mt-4">
+                    <Text className="text-primary">Close</Text>
+                  </TouchableOpacity>
+                )}
         </ScrollView>
       ) : (
         // Game Screen
@@ -125,7 +139,7 @@ export default function GamingModule() {
               </TouchableOpacity>
             ))}
 
-            {!gameActive && timeLeft === 0 && (
+                {!gameActive && timeLeft === 0 && (
               <View className="flex-1 items-center justify-center">
                 <Trophy size={60} color="#10B981" />
                 <Text className="text-foreground text-3xl font-bold mt-4">Game Over!</Text>
@@ -138,17 +152,25 @@ export default function GamingModule() {
                   <Text className="text-white text-lg font-bold">Play Again</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  onPress={() => router.back()}
-                  className="mt-4"
-                >
-                  <Text className="text-primary text-lg">Back to Home</Text>
-                </TouchableOpacity>
+                    {!inline ? (
+                      <TouchableOpacity
+                        onPress={() => router.back()}
+                        className="mt-4"
+                      >
+                        <Text className="text-primary text-lg">Back to Home</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      onClose && (
+                        <TouchableOpacity onPress={onClose} className="mt-4">
+                          <Text className="text-primary text-lg">Close</Text>
+                        </TouchableOpacity>
+                      )
+                    )}
               </View>
             )}
           </View>
         </View>
       )}
-    </SafeAreaView>
+    </Container>
   );
 }

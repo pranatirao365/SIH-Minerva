@@ -1,8 +1,19 @@
-# Welcome to your Expo app 👋
+# MINERVA - Mining Safety Mobile Application
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Complete mining safety platform built with React Native, Expo, TypeScript, and NativeWind.
 
-## Get started
+## 🚀 Features
+
+- 📱 Multi-language support (English, Hindi, Telugu)
+- 🔐 Phone + OTP authentication
+- 👷 Multi-role system (Miner, Supervisor, Safety Officer, Engineer)
+- 🎥 Safety training modules (Video, Voice, Quiz, Game)
+- 📷 AI-powered hazard & PPE scanning
+- 🆘 Emergency SOS with one-tap alert
+- 💬 Real-time team chat
+- 📊 Role-based dashboards
+
+## 🛠️ Installation
 
 1. Install dependencies
 

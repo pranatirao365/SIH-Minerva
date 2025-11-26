@@ -1,0 +1,42 @@
+// Icon wrapper to use @expo/vector-icons instead of lucide-react-native
+import { MaterialCommunityIcons, Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import React from 'react';
+
+// Map lucide icon names to expo vector icons
+export const Home = (props: any) => <Ionicons name="home" {...props} />;
+export const MessageCircle = (props: any) => <Ionicons name="chatbubble-outline" {...props} />;
+export const User = (props: any) => <Ionicons name="person" {...props} />;
+export const Bell = (props: any) => <Ionicons name="notifications-outline" {...props} />;
+export const Briefcase = (props: any) => <Ionicons name="briefcase-outline" {...props} />;
+export const Shield = (props: any) => <Ionicons name="shield-checkmark" {...props} />;
+export const HardHat = (props: any) => <MaterialCommunityIcons name="hard-hat" {...props} />;
+export const AlertCircle = (props: any) => <Ionicons name="alert-circle" {...props} />;
+export const ArrowLeft = (props: any) => <Ionicons name="arrow-back" {...props} />;
+export const Video = (props: any) => <Ionicons name="videocam" {...props} />;
+export const Mic = (props: any) => <Ionicons name="mic" {...props} />;
+export const Trophy = (props: any) => <Ionicons name="trophy" {...props} />;
+export const Map = (props: any) => <Ionicons name="map" {...props} />;
+export const Camera = (props: any) => <Ionicons name="camera" {...props} />;
+export const AlertTriangle = (props: any) => <Ionicons name="warning" {...props} />;
+export const CheckCircle = (props: any) => <Ionicons name="checkmark-circle" {...props} />;
+export const TrendingUp = (props: any) => <Ionicons name="trending-up" {...props} />;
+export const Play = (props: any) => <Ionicons name="play" {...props} />;
+export const Pause = (props: any) => <Ionicons name="pause" {...props} />;
+export const SkipForward = (props: any) => <Ionicons name="play-skip-forward" {...props} />;
+export const FileText = (props: any) => <Ionicons name="document-text" {...props} />;
+export const XCircle = (props: any) => <Ionicons name="close-circle" {...props} />;
+export const Star = (props: any) => <Ionicons name="star" {...props} />;
+export const Zap = (props: any) => <Ionicons name="flash" {...props} />;
+export const MapPin = (props: any) => <Ionicons name="location" {...props} />;
+export const ScanLine = (props: any) => <MaterialCommunityIcons name="line-scan" {...props} />;
+export const Upload = (props: any) => <Ionicons name="cloud-upload" {...props} />;
+export const Phone = (props: any) => <Ionicons name="call" {...props} />;
+export const X = (props: any) => <Ionicons name="close" {...props} />;
+export const Globe = (props: any) => <Ionicons name="globe" {...props} />;
+export const Check = (props: any) => <Ionicons name="checkmark" {...props} />;
+export const ShieldCheck = (props: any) => <Ionicons name="shield-checkmark" {...props} />;
+export const Users = (props: any) => <Ionicons name="people" {...props} />;
+export const Wrench = (props: any) => <Ionicons name="construct" {...props} />;
+export const LogOut = (props: any) => <Ionicons name="log-out" {...props} />;
+export const Send = (props: any) => <Ionicons name="send" {...props} />;
+export const WifiOff = (props: any) => <MaterialCommunityIcons name="wifi-off" {...props} />;

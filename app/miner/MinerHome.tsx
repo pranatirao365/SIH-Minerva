@@ -1,26 +1,37 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { 
-  Video, Mic, Trophy, Map, Camera, Shield, AlertTriangle,
-  CheckCircle, TrendingUp, Bell
-} from '../../components/Icons';
-import { translator } from '../../services/translator';
-import { useRoleStore } from '../../hooks/useRoleStore';
-import { OfflineBanner } from '../../components/OfflineBanner';
+import React, { useState } from 'react';
+import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmergencyButton } from '../../components/EmergencyButton';
+import {
+  AlertTriangle,
+  Bell,
+  Camera,
+  CheckCircle,
+  Map,
+  Mic,
+  Shield,
+  TrendingUp,
+  Trophy,
+  Video
+} from '../../components/Icons';
+import { OfflineBanner } from '../../components/OfflineBanner';
 import { COLORS } from '../../constants/styles';
+import { useRoleStore } from '../../hooks/useRoleStore';
+import { translator } from '../../services/translator';
+import GamingModule from './GamingModule';
 
 export default function MinerHome() {
   const router = useRouter();
   const { user, moduleProgress, safetyScore } = useRoleStore();
+  const [showInlineGame, setShowInlineGame] = useState(false);
 
   const quickActions = [
     { icon: Map, label: 'Heat Map', route: '/miner/HeatMapView', color: COLORS.primary },
     { icon: Camera, label: 'Hazard Scan', route: '/miner/HazardScan', color: COLORS.destructive },
     { icon: Shield, label: 'PPE Scan', route: '/miner/PPEScanScreen', color: COLORS.accent },
     { icon: AlertTriangle, label: 'Report', route: '/miner/IncidentReport', color: '#F59E0B' },
+    { icon: Trophy, label: 'Simulation', routeUrl: 'https://sihsim.vercel.app/', color: COLORS.primary },
   ];
 
   const trainingModules = [
@@ -50,7 +61,7 @@ export default function MinerHome() {
       label: 'Play Game', 
       route: '/miner/GamingModule', 
       completed: moduleProgress.game,
-      locked: !moduleProgress.quiz
+      locked: true
     },
   ];
 
@@ -90,7 +101,7 @@ export default function MinerHome() {
               return (
                 <TouchableOpacity
                   key={index}
-                  onPress={() => !module.locked && router.push(module.route as any)}
+                  onPress={() => !module.locked && (module.route === '/miner/GamingModule' ? setShowInlineGame(true) : router.push(module.route as any))}
                   disabled={module.locked}
                   style={[
                     styles.moduleCard,
@@ -121,6 +132,16 @@ export default function MinerHome() {
           </View>
         </View>
 
+        {/* Inline Game Container (expanded on demand) */}
+        {showInlineGame && (
+          <View style={[styles.section, { paddingTop: 0 }]}>
+            <Text style={styles.sectionTitle}>Play: Safety Reflex Game</Text>
+            <View style={{ height: 420 }}>
+              <GamingModule inline onClose={() => setShowInlineGame(false)} />
+            </View>
+          </View>
+        )}
+
         {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -131,7 +152,7 @@ export default function MinerHome() {
               return (
                 <TouchableOpacity
                   key={index}
-                  onPress={() => router.push(action.route as any)}
+                  onPress={() => action.routeUrl ? Linking.openURL(action.routeUrl) : router.push(action.route as any)}
                   style={styles.actionCardWrapper}
                   activeOpacity={0.7}
                 >

@@ -1,6 +1,6 @@
 import { getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, getFirestore } from 'firebase/firestore';
 
 /**
  * Comprehensive Firebase Connection Test

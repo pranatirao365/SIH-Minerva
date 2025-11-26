@@ -1,20 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { signOut } from 'firebase/auth';
+import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  FlatList,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, addDoc, getDocs, deleteDoc, doc, setDoc } from 'firebase/firestore';
-import { db, auth } from '../../config/firebase';
-import { signOut } from 'firebase/auth';
-import { useRouter } from 'expo-router';
+import { auth, db } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
 
 interface User {

@@ -1,8 +1,8 @@
+import { useRootNavigationState, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useRouter, useRootNavigationState } from 'expo-router';
-import { useRoleStore } from '../hooks/useRoleStore';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { COLORS } from '../constants/styles';
+import { useRoleStore } from '../hooks/useRoleStore';
 import { testFirebaseSetup } from '../services/testFirebaseSetup';
 
 export default function Index() {

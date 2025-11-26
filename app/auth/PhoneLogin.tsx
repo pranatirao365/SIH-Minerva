@@ -1,14 +1,14 @@
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { useRouter } from 'expo-router';
-import React, { useState, useRef } from 'react';
+import { getApp } from 'firebase/app';
+import { PhoneAuthProvider } from 'firebase/auth';
+import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Phone } from '../../components/Icons';
+import { auth } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
 import { translator } from '../../services/translator';
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
-import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
-import { auth } from '../../config/firebase';
-import { getApp } from 'firebase/app';
 
 export default function PhoneLogin() {
   const router = useRouter();

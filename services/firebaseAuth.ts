@@ -1,9 +1,7 @@
-import { 
-  PhoneAuthProvider,
-  signInWithCredential,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  ConfirmationResult
+import {
+    ConfirmationResult,
+    RecaptchaVerifier,
+    signInWithPhoneNumber
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 

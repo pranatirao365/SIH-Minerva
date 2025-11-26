@@ -1,14 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShieldCheck } from '../../components/Icons';
-import { db, auth } from '../../config/firebase';
+import { auth, db } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import { translator } from '../../services/translator';
-import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
 
 export default function OTPVerification() {
   const router = useRouter();

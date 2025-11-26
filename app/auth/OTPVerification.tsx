@@ -10,11 +10,16 @@ import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import { translator } from '../../services/translator';
 
+// 🧪 TEST MODE - Remove this in production!
+const TEST_OTP = '123456';
+const IS_TEST_MODE = true; // Set to false in production
+
 export default function OTPVerification() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const phoneNumber = params.phoneNumber as string;
   const verificationId = params.verificationId as string;
+  const isTestMode = params.isTestMode === 'true';
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -50,6 +55,73 @@ export default function OTPVerification() {
     setLoading(true);
 
     try {
+      // 🧪 TEST MODE: Bypass Firebase authentication for test mode
+      if (IS_TEST_MODE && isTestMode && verificationId === 'TEST_VERIFICATION_ID') {
+        console.log('🧪 TEST MODE: Bypassing Firebase authentication');
+        
+        if (otpCode !== TEST_OTP) {
+          Alert.alert('Invalid OTP', `Test OTP is: ${TEST_OTP}`);
+          setLoading(false);
+          return;
+        }
+        
+        console.log('✅ Test OTP verified!');
+        
+        // Get phone without + to match Firestore document ID
+        const phone = phoneNumber.replace('+', '');
+        
+        console.log('📊 Fetching user data from Firestore for phone:', phone);
+        
+        // Fetch user role from Firestore
+        const userDoc = await getDoc(doc(db, 'users', phone));
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const userRole = userData.role;
+          
+          console.log('✅ User found with role:', userRole);
+          
+          // Set the role in the store
+          setRole(userRole);
+          
+          // Navigate based on role
+          switch (userRole) {
+            case 'miner':
+              router.replace('/miner/MinerHome');
+              break;
+            case 'engineer':
+              router.replace('/engineer/EngineerHome');
+              break;
+            case 'safety_officer':
+            case 'safety-officer':
+              router.replace('/safety-officer/SafetyOfficerHome');
+              break;
+            case 'supervisor':
+              router.replace('/supervisor/SupervisorHome');
+              break;
+            case 'admin':
+              router.replace('/admin/AdminHome');
+              break;
+            default:
+              Alert.alert('Error', `Invalid user role: ${userRole}`);
+          }
+          setLoading(false);
+          return;
+        } else {
+          console.log('⚠️ User not found in database');
+          Alert.alert(
+            'Access Denied',
+            'Your phone number is not registered in the system. Please contact your administrator.',
+            [{ 
+              text: 'OK', 
+              onPress: () => router.replace('/auth/PhoneLogin')
+            }]
+          );
+          setLoading(false);
+          return;
+        }
+      }
+      
       console.log('🔐 Verifying OTP for phone:', phoneNumber);
       console.log('📱 OTP Code:', otpCode);
       console.log('🆔 Verification ID:', verificationId);

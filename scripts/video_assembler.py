@@ -498,23 +498,54 @@ def assemble_final_video(
     print(f"       FPS: {fps}")
     print(f"       Duration: {final_video.duration:.1f} seconds")
     
-    final_video.write_videofile(
-        str(output_path),
-        fps=fps,
-        codec='libx264',
-        audio_codec='aac',
-        temp_audiofile='temp-audio.m4a',
-        remove_temp=True,
-        logger=None  # Suppress moviepy progress bar for cleaner output
-    )
+    # Use unique temp audio filename to avoid conflicts
+    temp_audio_file = f'temp-audio-{datetime.now().strftime("%Y%m%d_%H%M%S_%f")}.m4a'
     
-    # Clean up
-    for clip in video_clips:
-        clip.close()
-    final_video.close()
+    try:
+        final_video.write_videofile(
+            str(output_path),
+            fps=fps,
+            codec='libx264',
+            audio_codec='aac',
+            temp_audiofile=temp_audio_file,
+            remove_temp=False,  # We'll manually remove to avoid race conditions
+            logger=None  # Suppress moviepy progress bar for cleaner output
+        )
+    finally:
+        # Clean up clips first
+        for clip in video_clips:
+            try:
+                clip.close()
+            except:
+                pass
+        
+        # Clean up audio clips
+        for audio_clip in valid_audio_clips:
+            try:
+                audio_clip.close()
+            except:
+                pass
+        
+        try:
+            final_video.close()
+        except:
+            pass
+        
+        # Then remove temp audio file if it exists
+        import time
+        for attempt in range(3):
+            try:
+                if os.path.exists(temp_audio_file):
+                    os.remove(temp_audio_file)
+                break
+            except PermissionError:
+                if attempt < 2:
+                    time.sleep(0.5)  # Wait a bit and retry
+                else:
+                    print(f"       ⚠️  Could not remove temp file: {temp_audio_file}")
     
     # Get file size
     file_size_mb = output_path.stat().st_size / (1024 * 1024)
-    print(f"       ✓ Video saved: {output_path.name} ({file_size_mb:.1f} MB)")
+    print(f"       [OK] Video saved: {output_path.name} ({file_size_mb:.1f} MB)")
     
     return output_path

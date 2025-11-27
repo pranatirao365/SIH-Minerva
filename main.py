@@ -9,12 +9,17 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
+# Fix Windows console encoding for Unicode characters
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+
 # Load environment variables from .env file
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
-    print("⚠️  python-dotenv not installed, using system environment variables only")
+    print("[WARNING] python-dotenv not installed, using system environment variables only")
 
 # Import pipeline modules
 from scripts.script_generator import generate_scene_breakdown
@@ -47,7 +52,7 @@ def setup_directories(config):
     for directory in directories:
         dir_path = base_path / directory
         dir_path.mkdir(parents=True, exist_ok=True)
-        print(f"✓ Directory ready: {directory}/")
+        print(f"[OK] Directory ready: {directory}/")
 
 
 def get_language_choice():
@@ -66,9 +71,9 @@ def get_language_choice():
             lang_map = {'1': 'en', '2': 'hi', '3': 'te'}
             lang_names = {'1': 'English', '2': 'Hindi', '3': 'Telugu'}
             selected_lang = lang_map[choice]
-            print(f"✓ Language selected: {lang_names[choice]}")
+            print(f"[OK] Language selected: {lang_names[choice]}")
             return selected_lang
-        print("❌ Invalid choice. Please enter 1, 2, or 3.")
+        print("[ERROR] Invalid choice. Please enter 1, 2, or 3.")
 
 
 def get_user_topic():
@@ -87,10 +92,10 @@ def get_user_topic():
     topic = input("\nEnter the mining topic for the video: ").strip()
     
     if not topic:
-        print("❌ Error: Topic cannot be empty!")
+        print("[ERROR] Topic cannot be empty!")
         sys.exit(1)
     
-    print(f"\n✓ Topic selected: '{topic}'")
+    print(f"\n[OK] Topic selected: '{topic}'")
     return topic
 
 
@@ -109,7 +114,7 @@ def save_scene_data(scenes, topic):
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(output_data, f, indent=2, ensure_ascii=False)
     
-    print(f"✓ Scene breakdown saved to: {output_path}")
+    print(f"[OK] Scene breakdown saved to: {output_path}")
     return output_path
 
 
@@ -121,28 +126,28 @@ def run_pipeline(topic, language, config):
     print("="*60)
     
     # Stage 1: Scene Breakdown
-    print("\n[1/5] 🎬 Generating scene breakdown...")
+    print("\n[1/5] Generating scene breakdown...")
     scenes = generate_scene_breakdown(topic, config, language)
     scene_file = save_scene_data(scenes, topic)
-    print(f"✓ Generated {len(scenes)} scenes")
+    print(f"[OK] Generated {len(scenes)} scenes")
     
     # Stage 2: Image Generation
-    print("\n[2/5] 🎨 Generating character images and environments...")
+    print("\n[2/5] Generating character images and environments...")
     image_paths = generate_images(scenes, topic, config)
-    print(f"✓ Generated {len(image_paths)} images")
+    print(f"[OK] Generated {len(image_paths)} images")
     
     # Stage 3: Animation Generation
-    print("\n[3/5] 🎞️  Generating animations...")
+    print("\n[3/5] Generating animations...")
     animation_paths = generate_animations(scenes, image_paths, config)
-    print(f"✓ Generated {len(animation_paths)} animations")
+    print(f"[OK] Generated {len(animation_paths)} animations")
     
     # Stage 4: Voiceover Generation
-    print("\n[4/5] 🎤 Generating voiceovers...")
+    print("\n[4/5] Generating voiceovers...")
     audio_paths = generate_voiceovers(scenes, config, language)
-    print(f"✓ Generated {len(audio_paths)} voiceover clips")
+    print(f"[OK] Generated {len(audio_paths)} voiceover clips")
     
     # Stage 5: Video Assembly
-    print("\n[5/5] 🎥 Assembling final video...")
+    print("\n[5/5] Assembling final video...")
     final_video_path = assemble_final_video(
         scenes=scenes,
         animation_paths=animation_paths,
@@ -151,7 +156,7 @@ def run_pipeline(topic, language, config):
         language=language,
         config=config
     )
-    print(f"✓ Final video saved to: {final_video_path}")
+    print(f"[OK] Final video saved to: {final_video_path}")
     
     return final_video_path
 
@@ -176,7 +181,7 @@ def main():
         
         # Success message
         print("\n" + "="*60)
-        print("✅ VIDEO GENERATION COMPLETE!")
+        print("[SUCCESS] VIDEO GENERATION COMPLETE!")
         print("="*60)
         print(f"\nTopic: {topic}")
         print(f"Output: {final_video}")
@@ -184,10 +189,10 @@ def main():
         print("="*60 + "\n")
         
     except KeyboardInterrupt:
-        print("\n\n❌ Pipeline interrupted by user.")
+        print("\n\n[ERROR] Pipeline interrupted by user.")
         sys.exit(1)
     except Exception as e:
-        print(f"\n\n❌ Pipeline error: {str(e)}")
+        print(f"\n\n[ERROR] Pipeline error: {str(e)}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

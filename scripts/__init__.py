@@ -6,7 +6,7 @@ __all__ = [
     'script_generator',
     'image_generator',
     'animation_generator',
-    'icon_generator',
     'voiceover_generator',
-    'video_assembler'
+    'video_assembler',
+    'generate_video'
 ]

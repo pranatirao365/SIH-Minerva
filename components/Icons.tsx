@@ -40,3 +40,4 @@ export const Wrench = (props: any) => <Ionicons name="construct" {...props} />;
 export const LogOut = (props: any) => <Ionicons name="log-out" {...props} />;
 export const Send = (props: any) => <Ionicons name="send" {...props} />;
 export const WifiOff = (props: any) => <MaterialCommunityIcons name="wifi-off" {...props} />;
+export const RefreshCw = (props: any) => <Ionicons name="refresh" {...props} />;

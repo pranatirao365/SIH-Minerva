@@ -1,43 +1,72 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
 
-# dependencies
 node_modules/
-
-# Expo
-.expo/
 dist/
-web-build/
-expo-env.d.ts
+build/
+.cache/
+# Environment variables
+.env
+.env.local
+.env.production
+.env.staging
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+# Generated content
+images/*.png
+images/*.jpg
+images/*.jpeg
+animations/*.mp4
+animations/*.avi
+icons/*.png
+audio/*.wav
+audio/*.mp3
+output/*.mp4
+scripts/scene_breakdown.json
 
-# Metro
-.metro-health-check*
+# Keep directories but ignore contents
+!images/.gitkeep
+!animations/.gitkeep
+!icons/.gitkeep
+!audio/.gitkeep
+!output/.gitkeep
 
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.tmp
+*.bak
 
-# macOS
+# OS generated files
 .DS_Store
-*.pem
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
 
-# local env files
-.env*.local
+# MoviePy and video processing
+temp-audio.m4a
+*.m4a
 
-# typescript
-*.tsbuildinfo
-
-app-example
-
-# generated native folders
-/ios
-/android
+# Logs and debug
+*.log
+logs/
+debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

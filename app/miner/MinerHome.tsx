@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmergencyButton } from '../../components/EmergencyButton';
 import {
@@ -31,7 +31,7 @@ export default function MinerHome() {
     { icon: Camera, label: 'Hazard Scan', route: '/miner/HazardScan', color: COLORS.destructive },
     { icon: Shield, label: 'PPE Scan', route: '/miner/PPEScanScreen', color: COLORS.accent },
     { icon: AlertTriangle, label: 'Report', route: '/miner/IncidentReport', color: '#F59E0B' },
-    { icon: Trophy, label: 'Simulation', routeUrl: 'https://sihsim.vercel.app/', color: COLORS.primary },
+    { icon: Trophy, label: 'Simulation', route: '/miner/SimulationScreen', color: COLORS.primary },
   ];
 
   const trainingModules = [
@@ -152,7 +152,7 @@ export default function MinerHome() {
               return (
                 <TouchableOpacity
                   key={index}
-                  onPress={() => action.routeUrl ? Linking.openURL(action.routeUrl) : router.push(action.route as any)}
+                  onPress={() => router.push(action.route as any)}
                   style={styles.actionCardWrapper}
                   activeOpacity={0.7}
                 >

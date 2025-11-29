@@ -3,8 +3,8 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 import useGameStore from '../../stores/gameStore';
 
 export default function WarningOverlay() {
-  const warningEvent = useGameStore(state => state.warningEvent);
-  const isWarningActive = useGameStore(state => state.isWarningActive);
+  const warningEvent = useGameStore((state: any) => state.warningEvent);
+  const isWarningActive = useGameStore((state: any) => state.isWarningActive);
   
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const flashAnim = useRef(new Animated.Value(0)).current;

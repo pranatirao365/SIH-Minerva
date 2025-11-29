@@ -5,11 +5,11 @@ import useGameStore, { GAME_EVENTS } from '../../stores/gameStore';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function GameHUD() {
-  const progress = useGameStore(state => state.progress);
-  const totalDistance = useGameStore(state => state.totalDistance);
-  const safetyScore = useGameStore(state => state.safetyScore);
-  const timeElapsed = useGameStore(state => state.timeElapsed);
-  const completedEvents = useGameStore(state => state.completedEvents);
+  const progress = useGameStore((state: any) => state.progress);
+  const totalDistance = useGameStore((state: any) => state.totalDistance);
+  const safetyScore = useGameStore((state: any) => state.safetyScore);
+  const timeElapsed = useGameStore((state: any) => state.timeElapsed);
+  const completedEvents = useGameStore((state: any) => state.completedEvents);
   
   const progressPercent = (progress / totalDistance) * 100;
   
@@ -110,7 +110,7 @@ export default function GameHUD() {
           <View style={[styles.tunnelPath, styles.tunnelPathProgress, { width: `${progressPercent}%` }]} />
           
           {/* Event markers */}
-          {GAME_EVENTS.map((event) => {
+          {GAME_EVENTS.map((event: any) => {
             const eventPosition = (event.position / totalDistance) * 100;
             const isCompleted = completedEvents.includes(event.id);
             const isPassed = progress > event.position;

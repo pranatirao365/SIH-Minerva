@@ -5,8 +5,8 @@ import useGameStore from '../../stores/gameStore';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function TunnelBackground() {
-  const progress = useGameStore(state => state.progress);
-  const gameState = useGameStore(state => state.gameState);
+  const progress = useGameStore((state: any) => state.progress);
+  const gameState = useGameStore((state: any) => state.gameState);
   
   // Create dust particles
   const dustParticles = Array.from({ length: 50 }, (_, i) => {

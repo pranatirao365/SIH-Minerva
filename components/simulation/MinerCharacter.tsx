@@ -5,9 +5,9 @@ import useGameStore from '../../stores/gameStore';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function MinerCharacter() {
-  const characterState = useGameStore(state => state.characterState);
-  const progress = useGameStore(state => state.progress);
-  const totalDistance = useGameStore(state => state.totalDistance);
+  const characterState = useGameStore((state: any) => state.characterState);
+  const progress = useGameStore((state: any) => state.progress);
+  const totalDistance = useGameStore((state: any) => state.totalDistance);
   
   const walkAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;

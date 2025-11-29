@@ -14,12 +14,12 @@ import useGameStore, { GAME_EVENTS } from '../../stores/gameStore';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function GameCompletion({ onExit }: { onExit?: () => void }) {
-  const safetyScore = useGameStore(state => state.safetyScore);
-  const timeElapsed = useGameStore(state => state.timeElapsed);
-  const decisionsCorrect = useGameStore(state => state.decisionsCorrect);
-  const decisionsTotal = useGameStore(state => state.decisionsTotal);
-  const completedEvents = useGameStore(state => state.completedEvents);
-  const resetGame = useGameStore(state => state.resetGame);
+  const safetyScore = useGameStore((state: any) => state.safetyScore);
+  const timeElapsed = useGameStore((state: any) => state.timeElapsed);
+  const decisionsCorrect = useGameStore((state: any) => state.decisionsCorrect);
+  const decisionsTotal = useGameStore((state: any) => state.decisionsTotal);
+  const completedEvents = useGameStore((state: any) => state.completedEvents);
+  const resetGame = useGameStore((state: any) => state.resetGame);
   
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -161,9 +161,9 @@ export default function GameCompletion({ onExit }: { onExit?: () => void }) {
                 <Text style={styles.learningsTitle}>Key Safety Learnings</Text>
               </View>
               
-              {GAME_EVENTS.filter(event => 
+              {GAME_EVENTS.filter((event: any) =>
                 completedEvents.includes(event.id)
-              ).map((event) => {
+              ).map((event: any) => {
                 const eventEmojis: Record<string, string> = {
                   smoke: '💨',
                   fire: '🔥',
@@ -184,7 +184,7 @@ export default function GameCompletion({ onExit }: { onExit?: () => void }) {
                         </Text>
                       </View>
                     </View>
-                    {event.instructions.slice(0, 2).map((instruction, i) => (
+                    {event.instructions.slice(0, 2).map((instruction: string, i: number) => (
                       <View key={i} style={styles.learningInstruction}>
                         <Text style={styles.learningCheckmark}>✓</Text>
                         <Text style={styles.learningInstructionText} numberOfLines={2}>

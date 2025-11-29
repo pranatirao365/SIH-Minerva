@@ -40,6 +40,7 @@ export const Wrench = (props: any) => <Ionicons name="construct" {...props} />;
 export const LogOut = (props: any) => <Ionicons name="log-out" {...props} />;
 export const Send = (props: any) => <Ionicons name="send" {...props} />;
 export const WifiOff = (props: any) => <MaterialCommunityIcons name="wifi-off" {...props} />;
+export const RefreshCw = (props: any) => <Ionicons name="refresh" {...props} />;
 export const Settings = (props: any) => <Ionicons name="settings-outline" {...props} />;
 export const BarChart3 = (props: any) => <Ionicons name="bar-chart" {...props} />;
 export const Youtube = (props: any) => <Ionicons name="logo-youtube" {...props} />;

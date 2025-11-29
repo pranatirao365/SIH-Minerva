@@ -1,30 +1,107 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmergencyButton } from '../../components/EmergencyButton';
 import {
-  AlertTriangle,
-  Bell,
-  Camera,
-  CheckCircle,
-  Map,
-  Mic,
-  Shield,
-  TrendingUp,
-  Trophy,
-  Video
+    Activity,
+    AlertTriangle,
+    Bell,
+    Camera,
+    CheckCircle,
+    ChevronRight,
+    Droplets,
+    Heart,
+    Map,
+    Mic,
+    Shield,
+    Thermometer,
+    TrendingUp,
+    Trophy,
+    Video
 } from '../../components/Icons';
 import { OfflineBanner } from '../../components/OfflineBanner';
+import { getWebSocketURL } from '../../config/smartHelmetConfig';
 import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import { translator } from '../../services/translator';
 import GamingModule from './GamingModule';
 
+interface HelmetData {
+  env: {
+    temp: number | null;
+    hum: number | null;
+  };
+  helmet: {
+    worn: boolean;
+  };
+  pulse: {
+    bpm: number;
+    spo2: number;
+    signal?: number;  // Optional, not used with MAX30100
+  };
+  emergency: boolean;
+}
+
 export default function MinerHome() {
   const router = useRouter();
   const { user, moduleProgress, safetyScore } = useRoleStore();
   const [showInlineGame, setShowInlineGame] = useState(false);
+  
+  // Smart Helmet WebSocket State
+  const [helmetConnected, setHelmetConnected] = useState(false);
+  const [helmetData, setHelmetData] = useState<HelmetData | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  // Initialize WebSocket for Smart Helmet
+  useEffect(() => {
+    const connectHelmet = () => {
+      try {
+        const ws = new WebSocket(getWebSocketURL());
+        
+        ws.onopen = () => {
+          setHelmetConnected(true);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data) as HelmetData;
+            setHelmetData(data);
+
+            // Alert for emergency - Hardware button pressed
+            if (data.emergency) {
+              Alert.alert(
+                '🚨 SOS ALERT SENT', 
+                'Your emergency alert has been sent to Supervisors and Safety Officers. Help is on the way. Stay calm and follow safety protocols.',
+                [{ text: 'OK' }]
+              );
+            }
+          } catch (error) {
+            console.error('Error parsing helmet data:', error);
+          }
+        };
+
+        ws.onerror = () => setHelmetConnected(false);
+        ws.onclose = () => {
+          setHelmetConnected(false);
+          // Retry connection after 5 seconds
+          setTimeout(connectHelmet, 5000);
+        };
+
+        wsRef.current = ws;
+      } catch (error) {
+        console.error('Failed to connect to helmet:', error);
+      }
+    };
+
+    connectHelmet();
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
 
   const quickActions = [
     { icon: Map, label: 'Heat Map', route: '/miner/HeatMapView', color: COLORS.primary },
@@ -87,6 +164,111 @@ export default function MinerHome() {
               </View>
               <TrendingUp size={40} color={COLORS.primary} />
             </View>
+          </View>
+
+          {/* Smart Helmet Status Widget */}
+          <View style={styles.helmetCard}>
+            <View style={styles.helmetHeader}>
+              <View style={styles.helmetTitleRow}>
+                <Activity size={24} color="#10B981" />
+                <Text style={styles.helmetTitle}>Smart Helmet</Text>
+              </View>
+              <View style={[styles.connectionStatus, helmetConnected ? styles.connected : styles.disconnected]}>
+                <View style={[styles.connectionDot, helmetConnected ? styles.connectedDot : styles.disconnectedDot]} />
+                <Text style={styles.connectionText}>
+                  {helmetConnected ? 'Connected' : 'Disconnected'}
+                </Text>
+              </View>
+            </View>
+
+            {helmetConnected && helmetData ? (
+              <View style={styles.helmetDataContainer}>
+                {/* Emergency Status */}
+                {helmetData.emergency && (
+                  <View style={styles.emergencyBanner}>
+                    <AlertTriangle size={20} color="#fff" />
+                    <Text style={styles.emergencyText}>EMERGENCY BUTTON PRESSED</Text>
+                  </View>
+                )}
+
+                {/* Helmet Detection */}
+                <View style={[styles.sensorRow, !helmetData.helmet.worn && styles.helmetAlert]}>
+                  <Shield size={20} color={helmetData.helmet.worn ? '#10B981' : '#F59E0B'} />
+                  <Text style={styles.sensorLabel}>Helmet Status:</Text>
+                  <Text style={[styles.sensorValue, !helmetData.helmet.worn && styles.warningValue]}>
+                    {helmetData.helmet.worn ? 'Worn ✓' : 'Not Worn ⚠️'}
+                  </Text>
+                </View>
+
+                {/* Heart Rate */}
+                <View style={[styles.sensorRow, (helmetData.pulse.bpm < 60 || helmetData.pulse.bpm > 100) && helmetData.pulse.bpm > 0 && styles.pulseAlert]}>
+                  <Heart size={20} color={
+                    helmetData.pulse.bpm === 0 ? '#6B7280' : 
+                    (helmetData.pulse.bpm < 60 || helmetData.pulse.bpm > 100) ? '#EF4444' : '#10B981'
+                  } />
+                  <Text style={styles.sensorLabel}>Heart Rate:</Text>
+                  <Text style={[
+                    styles.sensorValue, 
+                    (helmetData.pulse.bpm < 60 || helmetData.pulse.bpm > 100) && helmetData.pulse.bpm > 0 && styles.alertValue
+                  ]}>
+                    {helmetData.pulse.bpm > 0 ? `${helmetData.pulse.bpm} BPM` : 'No Signal'}
+                  </Text>
+                </View>
+
+                {/* SpO2 (Blood Oxygen) */}
+                <View style={[styles.sensorRow, helmetData.pulse.spo2 < 90 && helmetData.pulse.spo2 > 0 && styles.pulseAlert]}>
+                  <Droplets size={20} color={
+                    helmetData.pulse.spo2 === 0 ? '#6B7280' : 
+                    helmetData.pulse.spo2 < 90 ? '#EF4444' : 
+                    helmetData.pulse.spo2 < 95 ? '#F59E0B' : '#10B981'
+                  } />
+                  <Text style={styles.sensorLabel}>Blood Oxygen (SpO2):</Text>
+                  <Text style={[
+                    styles.sensorValue,
+                    helmetData.pulse.spo2 < 90 && helmetData.pulse.spo2 > 0 && styles.alertValue,
+                    helmetData.pulse.spo2 >= 90 && helmetData.pulse.spo2 < 95 && styles.warningValue
+                  ]}>
+                    {helmetData.pulse.spo2 > 0 ? `${helmetData.pulse.spo2}%` : 'No Signal'}
+                  </Text>
+                </View>
+
+                {/* Temperature */}
+                <View style={styles.sensorRow}>
+                  <Thermometer size={20} color={helmetData.env.temp > 35 ? '#F59E0B' : '#6B7280'} />
+                  <Text style={styles.sensorLabel}>Temperature:</Text>
+                  <Text style={[styles.sensorValue, helmetData.env.temp > 35 && styles.warningValue]}>
+                    {helmetData.env.temp.toFixed(1)}°C
+                  </Text>
+                </View>
+
+                {/* Humidity */}
+                <View style={styles.sensorRow}>
+                  <Droplets size={20} color="#6B7280" />
+                  <Text style={styles.sensorLabel}>Humidity:</Text>
+                  <Text style={styles.sensorValue}>
+                    {helmetData.env.hum.toFixed(0)}%
+                  </Text>
+                </View>
+
+                {/* Tap for details */}
+                <TouchableOpacity 
+                  style={styles.detailsButton}
+                  onPress={() => router.push('/miner/SmartHelmetStatus')}
+                >
+                  <Text style={styles.detailsButtonText}>View Full Details</Text>
+                  <ChevronRight size={16} color={COLORS.primary} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.helmetDisconnected}>
+                <Text style={styles.disconnectedMessage}>
+                  {helmetConnected ? 'Waiting for data...' : 'Helmet not connected'}
+                </Text>
+                <Text style={styles.disconnectedSubtext}>
+                  Check helmet power and WiFi connection
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -340,5 +522,145 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textMuted,
     marginTop: 8,
+  },
+  // Smart Helmet Widget Styles
+  helmetCard: {
+    marginTop: 16,
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+  },
+  helmetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  helmetTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  helmetTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  connectionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+  },
+  connected: {
+    backgroundColor: '#10B98120',
+  },
+  disconnected: {
+    backgroundColor: '#6B728020',
+  },
+  connectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  connectedDot: {
+    backgroundColor: '#10B981',
+  },
+  disconnectedDot: {
+    backgroundColor: '#6B7280',
+  },
+  connectionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  helmetDataContainer: {
+    gap: 10,
+  },
+  emergencyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  emergencyText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  sensorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    padding: 12,
+    gap: 10,
+  },
+  gasAlert: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+  },
+  helmetAlert: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  pulseAlert: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  sensorLabel: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    flex: 1,
+  },
+  sensorValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  alertValue: {
+    color: '#EF4444',
+  },
+  warningValue: {
+    color: '#F59E0B',
+  },
+  detailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary + '10',
+    gap: 4,
+  },
+  detailsButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  helmetDisconnected: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  disconnectedMessage: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+  },
+  disconnectedSubtext: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 4,
+    textAlign: 'center',
   },
 });

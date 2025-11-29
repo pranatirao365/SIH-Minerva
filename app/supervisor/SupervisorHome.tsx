@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AlertTriangle,
   BarChart3,
+  Bell,
   CheckCircle,
   FileText,
   Settings,
@@ -19,6 +20,26 @@ import { useRoleStore } from '../../hooks/useRoleStore';
 export default function SupervisorHome() {
   const router = useRouter();
   const { user } = useRoleStore();
+
+  // Emergency features - highest priority
+  const emergencyModules = [
+    {
+      icon: Bell,
+      title: 'SOS Notifications',
+      description: 'View and respond to miner emergencies',
+      route: '/supervisor/SOSNotifications',
+      color: '#EF4444',
+      isEmergency: true,
+    },
+    {
+      icon: AlertTriangle,
+      title: 'Alert Miners',
+      description: 'Send emergency alerts to miners\' helmets',
+      route: '/supervisor/AlertMiners',
+      color: '#F59E0B',
+      isEmergency: true,
+    },
+  ];
 
   const mainModules = [
     {
@@ -110,6 +131,26 @@ export default function SupervisorHome() {
           </View>
         </View>
 
+        {/* Emergency Modules - Priority Section */}
+        <View style={styles.modulesContainer}>
+          <Text style={styles.sectionTitle}>⚠️ Emergency Controls</Text>
+          <View style={styles.emergencyGrid}>
+            {emergencyModules.map((module, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.emergencyCard, { borderColor: module.color }]}
+                onPress={() => router.push(module.route as any)}
+              >
+                <View style={[styles.emergencyIcon, { backgroundColor: module.color + '20' }]}>
+                  <module.icon size={32} color={module.color} />
+                </View>
+                <Text style={styles.emergencyTitle}>{module.title}</Text>
+                <Text style={styles.moduleDescription}>{module.description}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         {/* Main Modules */}
         <View style={styles.modulesContainer}>
           <Text style={styles.sectionTitle}>Supervisor Tools</Text>
@@ -133,6 +174,7 @@ export default function SupervisorHome() {
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -195,12 +237,44 @@ const styles = StyleSheet.create({
   },
   modulesContainer: {
     paddingHorizontal: 20,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.text,
     marginBottom: 16,
+  },
+  emergencyGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  emergencyCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 16,
+    width: '48%',
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  emergencyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  emergencyTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 6,
   },
   modulesGrid: {
     flexDirection: 'row',

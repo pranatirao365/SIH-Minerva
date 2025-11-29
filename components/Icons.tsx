@@ -1,5 +1,5 @@
 // Icon wrapper to use @expo/vector-icons instead of lucide-react-native
-import { MaterialCommunityIcons, Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 
 // Map lucide icon names to expo vector icons
@@ -41,3 +41,8 @@ export const LogOut = (props: any) => <Ionicons name="log-out" {...props} />;
 export const Send = (props: any) => <Ionicons name="send" {...props} />;
 export const WifiOff = (props: any) => <MaterialCommunityIcons name="wifi-off" {...props} />;
 export const RefreshCw = (props: any) => <Ionicons name="refresh" {...props} />;
+export const Settings = (props: any) => <Ionicons name="settings-outline" {...props} />;
+export const BarChart3 = (props: any) => <Ionicons name="bar-chart" {...props} />;
+export const Youtube = (props: any) => <Ionicons name="logo-youtube" {...props} />;
+export const Film = (props: any) => <Ionicons name="film" {...props} />;
+export const Sparkles = (props: any) => <Ionicons name="sparkles" {...props} />;

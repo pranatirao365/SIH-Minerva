@@ -1,0 +1,51 @@
+{
+  "pipeline": {
+    "scene_count": 6,
+    "animation_duration": 5,
+    "output_resolution": [720, 1280],
+    "fps": 24
+  },
+  "models": {
+    "llm": {
+      "provider": "gemini",
+      "model": "gemini-2.0-flash",
+      "api_key_env": "GEMINI_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 2000
+    },
+    "image_generation": {
+      "provider": "huggingface",
+      "model": "black-forest-labs/FLUX.1-schnell",
+      "api_key_env": "HF_TOKEN"
+    },
+    "animation": {
+      "provider": "local_opencv",
+      "input_type": "image_to_video",
+      "duration_seconds": 4,
+      "fps": 30
+    },
+    "icon_generation": {
+      "provider": "cdn",
+      "mode": "lottiefiles-urls-only",
+      "icons_file": "icons.json"
+    },
+    "voiceover": {
+      "provider": "elevenlabs",
+      "model": "eleven_multilingual_v2",
+      "api_key_env": "ELEVENLABS_API_KEY",
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "voice_id_hindi": "YKoQKJvC7vYQiyH1vCwW",
+      "voice_id_telugu": "JBFqnCBsd6RMkjVDRZzb",
+      "stability": 0.5,
+      "similarity_boost": 0.8
+    }
+  },
+  "paths": {
+    "scripts": "scripts",
+    "images": "images",
+    "animations": "animations",
+    "icons": "icons",
+    "audio": "audio",
+    "output": "output"
+  }
+}

@@ -1,20 +1,20 @@
+import {
+    AlertTriangle,
+    BarChart3,
+    Bell,
+    CheckCircle,
+    FileText,
+    Settings,
+    Shield,
+    Users,
+    Video,
+    Youtube
+} from '@/components/Icons';
+import { COLORS } from '@/constants/styles';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  AlertTriangle,
-  BarChart3,
-  Bell,
-  CheckCircle,
-  FileText,
-  Settings,
-  Shield,
-  Users,
-  Video,
-  Youtube
-} from '@/components/Icons';
-import { COLORS } from '@/constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
 
 export default function SupervisorHome() {

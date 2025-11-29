@@ -1,21 +1,21 @@
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  Alert,
-  ScrollView,
+    ActivityIndicator,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft } from '../../components/Icons';
 import PPEStatusList from '../../components/PPEStatusList';
 
-const API_URL = 'http://172.20.10.2:8000/ppe-scan';
+const API_URL = 'http://10.60.8.115:8000/ppe-scan';
 
 interface PPEResult {
   present: boolean;

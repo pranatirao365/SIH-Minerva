@@ -6,7 +6,7 @@
  */
 
 // ⚠️ CONFIGURATION: Use computer's IP when testing on physical device
-const BACKEND_URL = 'http://172.20.10.2:8000'; // Your computer's local IP
+const BACKEND_URL = 'http://10.60.8.115:8000'; // Your computer's local IP
 
 interface PPEItem {
   present: boolean;

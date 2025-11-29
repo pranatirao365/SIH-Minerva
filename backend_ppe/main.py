@@ -8,9 +8,12 @@ import uvicorn
 import os
 import torch
 
-# Fix PyTorch 2.9 weights_only security change - import ultralytics classes first
-from ultralytics.nn.tasks import DetectionModel
-torch.serialization.add_safe_globals([DetectionModel])
+# Monkey-patch torch.load to use weights_only=False for compatibility with older YOLO models
+_original_torch_load = torch.load
+def patched_torch_load(*args, **kwargs):
+    kwargs.setdefault('weights_only', False)
+    return _original_torch_load(*args, **kwargs)
+torch.load = patched_torch_load
 
 from ultralytics import YOLO
 

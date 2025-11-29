@@ -13,22 +13,22 @@ from scripts.hf_image_client import generate_image
 
 def create_fallback_image(scene: Dict, output_path: Path) -> None:
     """Create a simple fallback image when API fails"""
-    # Create a 512x512 image with mining colors (dark background)
-    img = Image.new('RGB', (512, 512), color='#1a1a1a')
+    # Create a 1080x1080 image with mining colors (dark background) - matches video aspect ratio
+    img = Image.new('RGB', (1080, 1080), color='#1a1a1a')
     draw = ImageDraw.Draw(img)
 
     # Add a gradient background
-    for y in range(512):
-        for x in range(512):
+    for y in range(1080):
+        for x in range(1080):
             # Create mining tunnel effect
-            distance_from_center = abs(x - 256) + abs(y - 256)
-            brightness = max(20, min(80, 60 - distance_from_center // 10))
+            distance_from_center = abs(x - 540) + abs(y - 540)
+            brightness = max(20, min(80, 60 - distance_from_center // 20))
             img.putpixel((x, y), (brightness, brightness, max(brightness-10, 0)))
 
     # Try to load a font
     try:
-        font_large = ImageFont.truetype("arial.ttf", 24)
-        font_small = ImageFont.truetype("arial.ttf", 16)
+        font_large = ImageFont.truetype("arial.ttf", 48)  # Scaled up for higher resolution
+        font_small = ImageFont.truetype("arial.ttf", 32)  # Scaled up for higher resolution
     except:
         font_large = ImageFont.load_default()
         font_small = ImageFont.load_default()
@@ -36,31 +36,31 @@ def create_fallback_image(scene: Dict, output_path: Path) -> None:
     # Add scene information
     scene_title = f"Scene {scene['scene_number']}"
     scene_desc = scene.get('scene_description', 'Mining safety scene')
-    topic_text = scene_desc[:40] + "..." if len(scene_desc) > 40 else scene_desc
+    topic_text = scene_desc[:80] + "..." if len(scene_desc) > 80 else scene_desc  # More characters for larger image
     fallback_notice = "API UNAVAILABLE - FALLBACK IMAGE"
 
     # Center the text
     bbox = draw.textbbox((0, 0), scene_title, font=font_large)
     text_width = bbox[2] - bbox[0]
-    draw.text(((512 - text_width) // 2, 180), scene_title, fill='white', font=font_large)
+    draw.text(((1080 - text_width) // 2, 360), scene_title, fill='white', font=font_large)
 
     bbox = draw.textbbox((0, 0), topic_text, font=font_small)
     text_width = bbox[2] - bbox[0]
-    draw.text(((512 - text_width) // 2, 220), topic_text, fill='yellow', font=font_small)
+    draw.text(((1080 - text_width) // 2, 440), topic_text, fill='yellow', font=font_small)
 
     bbox = draw.textbbox((0, 0), fallback_notice, font=font_small)
     text_width = bbox[2] - bbox[0]
-    draw.text(((512 - text_width) // 2, 450), fallback_notice, fill='red', font=font_small)
+    draw.text(((1080 - text_width) // 2, 900), fallback_notice, fill='red', font=font_small)
 
-    # Add some mining-themed elements
+    # Add some mining-themed elements - scaled for 1080x1080
     # Draw a simple hard hat silhouette
-    draw.ellipse([200, 300, 250, 350], fill='#FFD700', outline='black', width=2)
-    draw.rectangle([210, 340, 240, 360], fill='#FFD700')
+    draw.ellipse([400, 600, 500, 700], fill='#FFD700', outline='black', width=4)
+    draw.rectangle([420, 680, 480, 720], fill='#FFD700')
 
     # Draw a simple pickaxe
-    draw.line([300, 320, 350, 370], fill='#8B4513', width=4)
-    draw.line([320, 340, 330, 330], fill='#8B4513', width=3)
-    draw.line([320, 340, 310, 350], fill='#8B4513', width=3)
+    draw.line([600, 640, 700, 740], fill='#8B4513', width=8)
+    draw.line([640, 660, 660, 640], fill='#8B4513', width=6)
+    draw.line([640, 660, 620, 680], fill='#8B4513', width=6)
 
     # Save the image
     img.save(output_path)
@@ -74,7 +74,8 @@ def create_image_prompt(scene: Dict, topic: str) -> str:
         "educational style, clear lighting, industrial setting, "
         "miner wearing full PPE (hard hat, safety vest, boots), "
         "realistic but clean art style, high detail, "
-        "photorealistic, 4k quality"
+        "photorealistic, 4k quality, "
+        "no icons, no symbols, no checkmarks, no UI elements"
     )
 
     prompt = f"{scene['scene_description']}, {scene['character_action']}, {base_style}"

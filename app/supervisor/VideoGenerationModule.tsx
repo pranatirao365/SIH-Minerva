@@ -17,8 +17,8 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, CheckCircle, Film, Globe, Sparkles, Video as VideoIcon } from '../../components/Icons';
-import { COLORS } from '../../constants/styles';
+import { ArrowLeft, CheckCircle, Film, Globe, Sparkles, Video as VideoIcon } from '@/components/Icons';
+import { COLORS } from '@/constants/styles';
 
 interface GenerationStage {
   name: string;
@@ -170,7 +170,64 @@ export default function VideoGenerationModule() {
       }
     }
   };
-  
+
+  const saveToLibrary = async () => {
+    try {
+      // Get existing library videos
+      const existingLibrary = await AsyncStorage.getItem('videoLibrary');
+      const libraryVideos = existingLibrary ? JSON.parse(existingLibrary) : [];
+
+      // Create video entry
+      const videoEntry = {
+        id: `video_${Date.now()}`,
+        topic: topic,
+        language: selectedLanguage,
+        languageName: getSelectedLanguageName(),
+        videoUrl: generatedVideoUrl,
+        timestamp: Date.now(),
+        thumbnail: null, // Could add thumbnail generation later
+      };
+
+      // Add to library
+      libraryVideos.unshift(videoEntry); // Add to beginning
+
+      // Save back to storage
+      await AsyncStorage.setItem('videoLibrary', JSON.stringify(libraryVideos));
+
+      Alert.alert(
+        'Success',
+        'Video saved to library successfully!',
+        [
+          { text: 'OK' },
+        ]
+      );
+    } catch (error) {
+      console.error('Save to library error:', error);
+      Alert.alert('Error', 'Failed to save video to library');
+    }
+  };
+
+  const discardVideo = () => {
+    Alert.alert(
+      'Discard Video',
+      'Are you sure you want to discard this video? It will not be saved to the library.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Discard',
+          style: 'destructive',
+          onPress: () => {
+            setGeneratedVideoUrl('');
+            setTopic('');
+            setSelectedLanguage('');
+            setIsPlaying(false);
+            setStages(prev => prev.map(stage => ({ ...stage, status: 'pending', message: undefined })));
+          },
+        },
+      ]
+    );
+  };
+
   const [stages, setStages] = useState<GenerationStage[]>([
     { name: 'Scene Breakdown', status: 'pending' },
     { name: 'Image Generation', status: 'pending' },
@@ -226,7 +283,7 @@ export default function VideoGenerationModule() {
 
     try {
       // Call backend API endpoint
-      const response = await fetch('http://10.60.8.115:4000/api/video/generate', {
+      const response = await fetch('http://192.168.137.1:4000/api/video/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -256,7 +313,7 @@ export default function VideoGenerationModule() {
   const pollGenerationProgress = async (jobId: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`http://10.60.8.115:4000/api/video/status/${jobId}`);
+        const response = await fetch(`http://192.168.137.1:4000/api/video/status/${jobId}`);
         
         if (!response.ok) {
           clearInterval(pollInterval);
@@ -289,7 +346,7 @@ export default function VideoGenerationModule() {
           // Convert relative URL to absolute URL
           const videoUrl = data.videoUrl.startsWith('http') 
             ? data.videoUrl 
-            : `http://10.60.8.115:4000${data.videoUrl}`;
+            : `http://192.168.137.1:4000${data.videoUrl}`;
           
           console.log('Video URL:', videoUrl);
           setGeneratedVideoUrl(videoUrl);
@@ -390,7 +447,7 @@ export default function VideoGenerationModule() {
             onPress={() => setShowLanguageModal(true)}
             disabled={isGenerating}
           >
-            <Text style={[styles.languageSelectorText, !selectedLanguage && styles.placeholder]}>
+            <Text style={[styles.languageSelectorText, !selectedLanguage && styles.placeholder]} numberOfLines={1}>
               {getSelectedLanguageName()}
             </Text>
             <Text style={styles.chevron}>›</Text>
@@ -572,6 +629,22 @@ export default function VideoGenerationModule() {
                 <Text style={styles.downloadButtonText}>Download Video</Text>
               </TouchableOpacity>
 
+              <View style={styles.libraryActionContainer}>
+                <TouchableOpacity 
+                  style={[styles.libraryButton, styles.saveButton]}
+                  onPress={saveToLibrary}
+                >
+                  <Text style={styles.saveButtonText}>Save to Library</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.libraryButton, styles.discardButton]}
+                  onPress={discardVideo}
+                >
+                  <Text style={styles.discardButtonText}>Discard</Text>
+                </TouchableOpacity>
+              </View>
+
               <TouchableOpacity 
                 style={styles.newVideoButton}
                 onPress={async () => {
@@ -697,9 +770,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   languageSelectorText: {
+    flex: 1,
     fontSize: 16,
     color: COLORS.text,
     fontWeight: '500',
+    lineHeight: 20,
   },
   placeholder: {
     color: COLORS.textMuted,
@@ -909,6 +984,34 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   downloadButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  libraryActionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    gap: 12,
+  },
+  libraryButton: {
+    flex: 1,
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+  },
+  saveButton: {
+    backgroundColor: COLORS.primary,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  discardButton: {
+    backgroundColor: COLORS.destructive,
+  },
+  discardButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',

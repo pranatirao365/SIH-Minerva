@@ -47,7 +47,11 @@ def generate_image(prompt: str, config: Dict) -> bytes:
     }
 
     payload = {
-        "inputs": prompt
+        "inputs": prompt,
+        "parameters": {
+            "width": 1080,
+            "height": 1080
+        }
     }
 
     try:

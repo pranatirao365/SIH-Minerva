@@ -226,7 +226,7 @@ export default function VideoGenerationModule() {
 
     try {
       // Call backend API endpoint
-      const response = await fetch('http://10.60.7.111:4000/api/video/generate', {
+      const response = await fetch('http://10.60.8.115:4000/api/video/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -256,7 +256,7 @@ export default function VideoGenerationModule() {
   const pollGenerationProgress = async (jobId: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`http://10.60.7.111:4000/api/video/status/${jobId}`);
+        const response = await fetch(`http://10.60.8.115:4000/api/video/status/${jobId}`);
         
         if (!response.ok) {
           clearInterval(pollInterval);
@@ -289,7 +289,7 @@ export default function VideoGenerationModule() {
           // Convert relative URL to absolute URL
           const videoUrl = data.videoUrl.startsWith('http') 
             ? data.videoUrl 
-            : `http://10.60.7.111:4000${data.videoUrl}`;
+            : `http://10.60.8.115:4000${data.videoUrl}`;
           
           console.log('Video URL:', videoUrl);
           setGeneratedVideoUrl(videoUrl);

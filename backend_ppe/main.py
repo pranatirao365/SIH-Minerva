@@ -1,12 +1,18 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from ultralytics import YOLO
 import cv2
 import numpy as np
 from io import BytesIO
 from PIL import Image
 import uvicorn
 import os
+import torch
+
+# Fix PyTorch 2.9 weights_only security change - import ultralytics classes first
+from ultralytics.nn.tasks import DetectionModel
+torch.serialization.add_safe_globals([DetectionModel])
+
+from ultralytics import YOLO
 
 # PPE Class Mapping - Maps YOLO classes to PPE categories
 PPE_CLASSES = {

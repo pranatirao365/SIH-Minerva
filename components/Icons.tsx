@@ -45,4 +45,6 @@ export const Settings = (props: any) => <Ionicons name="settings-outline" {...pr
 export const BarChart3 = (props: any) => <Ionicons name="bar-chart" {...props} />;
 export const Youtube = (props: any) => <Ionicons name="logo-youtube" {...props} />;
 export const Film = (props: any) => <Ionicons name="film" {...props} />;
+export const Search = (props: any) => <Ionicons name="search" {...props} />;
+export const Filter = (props: any) => <Ionicons name="filter" {...props} />;
 export const Sparkles = (props: any) => <Ionicons name="sparkles" {...props} />;

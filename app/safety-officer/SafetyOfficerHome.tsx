@@ -24,7 +24,7 @@ export default function SafetyOfficerHome() {
       icon: Video,
       title: 'AI Video Generator',
       description: 'Create safety training videos with AI',
-      route: '/safety-officer/VideoGenerationModule',
+      route: '/supervisor/VideoGenerationModule',
       color: COLORS.primary,
       gradient: true,
     },
@@ -60,7 +60,7 @@ export default function SafetyOfficerHome() {
       icon: Youtube,
       title: 'Video Library',
       description: 'Manage training video library',
-      route: '/safety-officer/VideoLibrary',
+      route: '/supervisor/VideoLibrary',
       color: '#EC4899',
     },
     {

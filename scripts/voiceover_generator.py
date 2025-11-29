@@ -1,6 +1,6 @@
 """
 Voiceover Generator Module
-Generates voiceover audio using ElevenLabs TTS
+Generates voiceover audio using ElevenLabs TTS or Google Cloud TTS
 """
 
 import os
@@ -9,62 +9,71 @@ from pathlib import Path
 import requests
 
 
-def configure_elevenlabs_api(config: Dict) -> str:
-    """Get ElevenLabs API key from environment"""
-    api_key = os.getenv(config['models']['voiceover']['api_key_env'])
+def configure_voiceover_api(config: Dict) -> tuple[str, str]:
+    """Get API key and provider from config"""
+    provider = config['models']['voiceover']['provider']
     
-    if not api_key:
-        raise ValueError(
-            f"API key not found. Please set "
-            f"{config['models']['voiceover']['api_key_env']} environment variable."
-        )
+    if provider == 'google_cloud_tts':
+        api_key = config['models']['voiceover']['api_key']
+        if not api_key:
+            raise ValueError("Google Cloud TTS API key not found in config.")
+    elif provider == 'elevenlabs':
+        api_key_env = config['models']['voiceover']['api_key_env']
+        api_key = os.getenv(api_key_env)
+        if not api_key:
+            raise ValueError(
+                f"API key not found. Please set {api_key_env} environment variable."
+            )
+    else:
+        raise ValueError(f"Unsupported voiceover provider: {provider}")
     
-    return api_key
+    return api_key, provider
 
 
-def generate_voiceover_elevenlabs(text: str, api_key: str, config: Dict, output_path: Path, language: str = 'en') -> Path:
-    """Generate voiceover using ElevenLabs API with language-specific voices"""
+def generate_voiceover_google(text: str, api_key: str, config: Dict, output_path: Path, language: str = 'en') -> Path:
+    """Generate voiceover using Google Cloud Text-to-Speech API"""
     
     # Select voice based on language
     if language == 'hi':
-        voice_id = config['models']['voiceover'].get('voice_id_hindi', config['models']['voiceover']['voice_id'])
+        voice_name = config['models']['voiceover'].get('voice_name_hindi', 'hi-IN-Neural2-D')
+        language_code = 'hi-IN'
     elif language == 'te':
-        voice_id = config['models']['voiceover'].get('voice_id_telugu', config['models']['voiceover']['voice_id'])
+        voice_name = config['models']['voiceover'].get('voice_name_telugu', 'te-IN-Standard-A')
+        language_code = 'te-IN'
     else:
-        voice_id = config['models']['voiceover']['voice_id']
+        voice_name = config['models']['voiceover'].get('voice_name', 'en-US-Neural2-D')
+        language_code = config['models']['voiceover'].get('language_code', 'en-US')
     
-    # Use multilingual model for better language support
-    model_id = config['models']['voiceover']['model']
-    
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-    
-    headers = {
-        "Accept": "audio/mpeg",
-        "Content-Type": "application/json",
-        "xi-api-key": api_key
-    }
+    url = f"https://texttospeech.googleapis.com/v1/text:synthesize?key={api_key}"
     
     data = {
-        "text": text,
-        "model_id": model_id,
-        "voice_settings": {
-            "stability": config['models']['voiceover']['stability'],
-            "similarity_boost": config['models']['voiceover']['similarity_boost']
+        "input": {
+            "text": text
+        },
+        "voice": {
+            "languageCode": language_code,
+            "name": voice_name
+        },
+        "audioConfig": {
+            "audioEncoding": config['models']['voiceover'].get('audio_encoding', 'MP3'),
+            "speakingRate": config['models']['voiceover'].get('speaking_rate', 1.0),
+            "pitch": config['models']['voiceover'].get('pitch', 0.0)
         }
     }
     
-    # Add language specification for multilingual model
-    if language != 'en':
-        data["model_id"] = "eleven_multilingual_v2"
-    
-    response = requests.post(url, json=data, headers=headers)
+    response = requests.post(url, json=data)
     
     if response.status_code != 200:
-        raise Exception(f"ElevenLabs API error: {response.status_code} - {response.text}")
+        raise Exception(f"Google TTS API error: {response.status_code} - {response.text}")
+    
+    # Decode base64 audio content
+    import base64
+    audio_content = response.json()['audioContent']
+    audio_data = base64.b64decode(audio_content)
     
     # Save audio
     with open(output_path, 'wb') as f:
-        f.write(response.content)
+        f.write(audio_data)
     
     return output_path
 
@@ -133,17 +142,23 @@ def generate_voiceovers(scenes: List[Dict], config: Dict, language: str = 'en') 
     lang_names = {'en': 'English', 'hi': 'Hindi', 'te': 'Telugu'}
     print(f"   🌐 Voiceover language: {lang_names.get(language, 'English')}")
     
-    # Try to get API key, fall back to mock generation
+    # Try to get API key and provider
     try:
-        api_key = configure_elevenlabs_api(config)
+        api_key, provider = configure_voiceover_api(config)
         use_api = True
-        print(f"   🎤 Using ElevenLabs API")
-    except ValueError:
+        print(f"   🎤 Using {provider} API")
+    except ValueError as e:
         use_api = False
-        print(f"   ⚠️  No API key found, using offline TTS")
+        provider = None
+        print(f"   ⚠️  {e}, using offline TTS")
     
     for i, scene in enumerate(scenes, 1):
-        output_path = audio_dir / f"scene_{scene['scene_number']:02d}.wav"
+        # Choose extension based on provider
+        if use_api and provider == 'google_cloud_tts':
+            ext = 'mp3'
+        else:
+            ext = 'wav'
+        output_path = audio_dir / f"scene_{scene['scene_number']:02d}.{ext}"
         voiceover_text = scene.get('voiceover_line', '')
         
         if not voiceover_text:
@@ -155,7 +170,12 @@ def generate_voiceovers(scenes: List[Dict], config: Dict, language: str = 'en') 
         
         try:
             if use_api:
-                generate_voiceover_elevenlabs(voiceover_text, api_key, config, output_path, language)
+                if provider == 'google_cloud_tts':
+                    generate_voiceover_google(voiceover_text, api_key, config, output_path, language)
+                elif provider == 'elevenlabs':
+                    generate_voiceover_elevenlabs(voiceover_text, api_key, config, output_path, language)
+                else:
+                    raise ValueError(f"Unsupported provider: {provider}")
             else:
                 generate_mock_voiceover(voiceover_text, output_path, config)
             

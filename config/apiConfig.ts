@@ -14,7 +14,7 @@ import Constants from 'expo-constants';
 // Find your LAN IP:
 // - Windows: Run `ipconfig` in terminal, look for "IPv4 Address" under your network adapter
 // - macOS/Linux: Run `ifconfig` or `ip addr`, look for your local network IP (usually 192.168.x.x)
-const LAN_IP = '172.20.10.2'; // 👈 Your Wi-Fi IP (for physical devices)
+const LAN_IP = '192.168.137.1'; // 👈 Your Wi-Fi IP (for physical devices)
 
 const PPE_API_PORT = 8000;
 

@@ -3,14 +3,14 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  AlertTriangle,
-  BarChart3,
-  CheckCircle,
-  FileText,
-  Settings,
-  Shield,
-  Video,
-  Youtube
+    AlertTriangle,
+    BarChart3,
+    CheckCircle,
+    FileText,
+    Settings,
+    Shield,
+    Video,
+    Youtube
 } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
@@ -20,6 +20,13 @@ export default function SafetyOfficerHome() {
   const { user } = useRoleStore();
 
   const mainModules = [
+    {
+      icon: AlertTriangle,
+      title: 'Alert Miners',
+      description: 'Send emergency alerts to miners\' helmets',
+      route: '/safety-officer/AlertMiners',
+      color: '#F59E0B',
+    },
     {
       icon: Video,
       title: 'AI Video Generator',

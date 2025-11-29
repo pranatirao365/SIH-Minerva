@@ -9,8 +9,8 @@ import useGameStore from '../../stores/gameStore';
 
 export default function SimulationScreen() {
   const router = useRouter();
-  const gameState = useGameStore(state => state.gameState);
-  const resetGame = useGameStore(state => state.resetGame);
+  const gameState = useGameStore((state: any) => state.gameState);
+  const resetGame = useGameStore((state: any) => state.resetGame);
   
   // Initialize game on mount
   useEffect(() => {

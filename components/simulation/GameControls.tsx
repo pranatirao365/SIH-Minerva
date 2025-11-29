@@ -3,14 +3,14 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import useGameStore from '../../stores/gameStore';
 
 export default function GameControls() {
-  const gameState = useGameStore(state => state.gameState);
-  const isPaused = useGameStore(state => state.isPaused);
-  const progress = useGameStore(state => state.progress);
-  const totalDistance = useGameStore(state => state.totalDistance);
-  const updateProgress = useGameStore(state => state.updateProgress);
-  const pauseGame = useGameStore(state => state.pauseGame);
-  const resumeGame = useGameStore(state => state.resumeGame);
-  const resetGame = useGameStore(state => state.resetGame);
+  const gameState = useGameStore((state: any) => state.gameState);
+  const isPaused = useGameStore((state: any) => state.isPaused);
+  const progress = useGameStore((state: any) => state.progress);
+  const totalDistance = useGameStore((state: any) => state.totalDistance);
+  const updateProgress = useGameStore((state: any) => state.updateProgress);
+  const pauseGame = useGameStore((state: any) => state.pauseGame);
+  const resumeGame = useGameStore((state: any) => state.resumeGame);
+  const resetGame = useGameStore((state: any) => state.resetGame);
   
   if (gameState === 'intro' || gameState === 'completed' || gameState === 'event') {
     return null;

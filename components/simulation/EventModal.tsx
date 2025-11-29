@@ -14,8 +14,8 @@ import useGameStore from '../../stores/gameStore';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function EventModal() {
-  const currentEvent = useGameStore(state => state.currentEvent);
-  const completeEvent = useGameStore(state => state.completeEvent);
+  const currentEvent = useGameStore((state: any) => state.currentEvent);
+  const completeEvent = useGameStore((state: any) => state.completeEvent);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [hasRead, setHasRead] = useState(false);
   
@@ -110,7 +110,7 @@ export default function EventModal() {
               <View style={styles.instructionsContainer}>
                 <Text style={styles.instructionsTitle}>⚠️ Safety Protocol:</Text>
                 
-                {currentEvent.instructions.map((instruction, index) => (
+                {currentEvent.instructions.map((instruction: string, index: number) => (
                   <View key={index} style={styles.instructionItem}>
                     <View style={styles.instructionNumber}>
                       <Text style={styles.instructionNumberText}>{index + 1}</Text>
@@ -181,7 +181,7 @@ function EventAnimation({ type }: { type: string }) {
           width: 128,
           height: 128,
           backgroundColor: 'rgba(128, 128, 128, 0.3)',
-          left: `${Math.random() * 100}%`,
+          left: Math.random() * (SCREEN_WIDTH - 128),
           transform: [
             {
               translateY: animation.anim.interpolate({
@@ -202,7 +202,7 @@ function EventAnimation({ type }: { type: string }) {
           width: 64,
           height: 64,
           backgroundColor: Math.random() > 0.5 ? '#FF4400' : '#FF8800',
-          left: `${Math.random() * 100}%`,
+          left: Math.random() * (SCREEN_WIDTH - 64),
           bottom: 0,
           transform: [
             {
@@ -224,8 +224,8 @@ function EventAnimation({ type }: { type: string }) {
           width: 96,
           height: 96,
           backgroundColor: 'rgba(0, 255, 0, 0.3)',
-          left: `${Math.random() * 100}%`,
-          top: `${Math.random() * 100}%`,
+          left: Math.random() * (SCREEN_WIDTH - 96),
+          top: Math.random() * (SCREEN_HEIGHT - 96),
           opacity: animation.anim.interpolate({
             inputRange: [0, 0.5, 1],
             outputRange: [0, 0.4, 0],

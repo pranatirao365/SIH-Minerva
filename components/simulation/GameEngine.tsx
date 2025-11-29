@@ -9,9 +9,9 @@ import TunnelBackground from './TunnelBackground';
 import WarningOverlay from './WarningOverlay';
 
 export default function GameEngine() {
-  const gameState = useGameStore(state => state.gameState);
-  const isPaused = useGameStore(state => state.isPaused);
-  const updateTime = useGameStore(state => state.updateTime);
+  const gameState = useGameStore((state: any) => state.gameState);
+  const isPaused = useGameStore((state: any) => state.isPaused);
+  const updateTime = useGameStore((state: any) => state.updateTime);
   
   const lastFrameRef = useRef(Date.now());
   const animationFrameRef = useRef<number | null>(null);

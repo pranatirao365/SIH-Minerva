@@ -15,7 +15,7 @@ import useGameStore from '../../stores/gameStore';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function GameIntro() {
-  const startGame = useGameStore(state => state.startGame);
+  const startGame = useGameStore((state: any) => state.startGame);
   
   // Animated particles
   const particles = Array.from({ length: 20 }, (_, i) => {

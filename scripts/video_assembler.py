@@ -22,61 +22,62 @@ except Exception:
 
 
 def create_subtitle_clip(text: str, duration: float, video_size: tuple):
-    """Create a subtitle text clip - always tries to render subtitles"""
-    
+    """Create a subtitle text clip optimized for mobile viewing"""
+
     # First try with TextClip if ImageMagick is available
     if IMAGEMAGICK_AVAILABLE and TextClip is not None:
         try:
             txt_clip = TextClip(
                 text,
-                fontsize=40,
+                fontsize=32,  # Reduced font size for mobile
                 color='white',
                 font='Arial-Bold',
                 stroke_color='black',
                 stroke_width=2,
                 method='caption',
-                size=(video_size[0] - 200, None),
+                size=(video_size[0] - 240, None),  # More margin for mobile
                 align='center'
             )
             txt_clip = txt_clip.set_duration(duration)
-            txt_clip = txt_clip.set_position(('center', video_size[1] - 150))
+            txt_clip = txt_clip.set_position(('center', video_size[1] - 120))  # Higher position for mobile
             return txt_clip
         except Exception as e:
             pass  # Fall through to PIL-based subtitle
-    
+
     # Fallback: Create subtitle using PIL (Pillow) - always works
     try:
         from PIL import Image, ImageDraw, ImageFont
         import numpy as np
-        
+
         # Create a transparent image for subtitle background
         img_width, img_height = video_size
-        subtitle_height = 200
+        subtitle_height = 160  # Reduced height for mobile
         img = Image.new('RGBA', (img_width, subtitle_height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
-        
-        # Draw semi-transparent black background
-        bg_padding = 20
+
+        # Draw semi-transparent black background with mobile-optimized padding
+        bg_padding = 40  # Increased padding for mobile safety
         draw.rectangle(
-            [(bg_padding, 50), (img_width - bg_padding, subtitle_height - 20)],
-            fill=(0, 0, 0, 180)
+            [(bg_padding, 30), (img_width - bg_padding, subtitle_height - 20)],
+            fill=(0, 0, 0, 200)  # Slightly more opaque for mobile readability
         )
-        
-        # Use default font with reasonable size
+
+        # Use default font with mobile-optimized size
         try:
-            font = ImageFont.truetype("arial.ttf", 36)
+            font = ImageFont.truetype("arial.ttf", 28)  # Smaller font for mobile
         except:
             font = ImageFont.load_default()
-        
-        # Word wrap text
+
+        # Word wrap text with very conservative margins for mobile
         words = text.split()
         lines = []
         current_line = []
-        
+        max_text_width = img_width - 160  # Very conservative margin for mobile
+
         for word in words:
             test_line = ' '.join(current_line + [word])
             bbox = draw.textbbox((0, 0), test_line, font=font)
-            if bbox[2] - bbox[0] < img_width - 100:
+            if bbox[2] - bbox[0] < max_text_width:
                 current_line.append(word)
             else:
                 if current_line:
@@ -84,26 +85,42 @@ def create_subtitle_clip(text: str, duration: float, video_size: tuple):
                 current_line = [word]
         if current_line:
             lines.append(' '.join(current_line))
-        
-        # Draw text lines
-        y_offset = 70
+
+        # Draw text lines with safe margins for mobile
+        y_offset = 50
+        text_margin = 50  # Generous margin from edges for mobile
+
         for line in lines[:3]:  # Max 3 lines
             bbox = draw.textbbox((0, 0), line, font=font)
             text_width = bbox[2] - bbox[0]
-            x = (img_width - text_width) // 2
-            # Draw outline
-            for dx, dy in [(-2,-2), (-2,2), (2,-2), (2,2)]:
+
+            # Ensure text doesn't go beyond safe margins
+            max_allowed_width = img_width - (text_margin * 2)
+            if text_width > max_allowed_width:
+                # If still too wide, truncate with ellipsis
+                original_line = line
+                while text_width > max_allowed_width and len(line) > 10:
+                    line = line[:-1]
+                    bbox = draw.textbbox((0, 0), line + "...", font=font)
+                    text_width = bbox[2] - bbox[0]
+                if len(line) < len(original_line):
+                    line += "..."
+
+            x = max(text_margin, (img_width - text_width) // 2)  # Ensure minimum left margin
+
+            # Draw outline for better readability on mobile
+            for dx, dy in [(-1,-1), (-1,1), (1,-1), (1,1)]:
                 draw.text((x+dx, y_offset+dy), line, font=font, fill=(0, 0, 0, 255))
             # Draw main text
             draw.text((x, y_offset), line, font=font, fill=(255, 255, 255, 255))
-            y_offset += 40
-        
+            y_offset += 35  # Tighter line spacing for mobile
+
         # Convert to ImageClip
         img_array = np.array(img)
         subtitle_clip = ImageClip(img_array, transparent=True)
         subtitle_clip = subtitle_clip.set_duration(duration)
-        subtitle_clip = subtitle_clip.set_position(('center', video_size[1] - subtitle_height - 20))
-        
+        subtitle_clip = subtitle_clip.set_position(('center', video_size[1] - subtitle_height - 30))  # Higher position
+
         return subtitle_clip
     except Exception as e:
         print(f"       ⚠️  Could not create subtitle: {e}")
@@ -301,17 +318,18 @@ def process_scene(
     should_not_do_score = sum(1 for keyword in should_not_do_keywords if keyword in scene_desc or keyword in voiceover or keyword in character_action)
 
     # Add checkbox overlay if we have a clear indication
-    if should_do_score > should_not_do_score:
-        # Should do - show checked box
-        video = add_checkbox_overlay(video, checked=True, position='top-right')
-        print(f"       ✅ Added checked checkbox (should do)")
-    elif should_not_do_score > should_do_score:
-        # Should not do - show unchecked box
-        video = add_checkbox_overlay(video, checked=False, position='top-right')
-        print(f"       ❌ Added unchecked checkbox (should not do)")
-    else:
-        # Neutral - no checkbox
-        print(f"       ➖ No checkbox (neutral content)")
+    # Removed checkbox overlays as requested
+    # if should_do_score > should_not_do_score:
+    #     # Should do - show checked box
+    #     video = add_checkbox_overlay(video, checked=True, position='top-right')
+    #     print(f"       ✅ Added checked checkbox (should do)")
+    # elif should_not_do_score > should_do_score:
+    #     # Should not do - show unchecked box
+    #     video = add_checkbox_overlay(video, checked=False, position='top-right')
+    #     print(f"       ❌ Added unchecked checkbox (should not do)")
+    # else:
+    #     # Neutral - no checkbox
+    #     print(f"       ➖ No checkbox (neutral content)")
 
     return video
 
@@ -476,9 +494,9 @@ def assemble_final_video(
         current_time = title_duration  # Start after title card
         
         for scene, audio_clip in zip(scenes, valid_audio_clips):
-            voiceover_text = scene.get('voiceover_line', '')
-            if voiceover_text:
-                subtitle = create_subtitle_clip(voiceover_text, audio_clip.duration, (final_video.w, final_video.h))
+            subtitle_text = scene.get('scene_description', '')  # Use English description for subtitles
+            if subtitle_text:
+                subtitle = create_subtitle_clip(subtitle_text, audio_clip.duration, (final_video.w, final_video.h))
                 if subtitle is not None:
                     subtitle = subtitle.set_start(current_time)
                     subtitle_clips.append(subtitle)

@@ -7,10 +7,14 @@ import { initFirebase } from './services/firebase';
 const PORT = process.env.PORT || 4000;
 
 async function bootstrap() {
-  await initFirebase();
-  app.listen(PORT, () => {
+  try {
+    await initFirebase();
+  } catch (err) {
+    console.warn('Firebase initialization failed, continuing without Firebase:', err.message);
+  }
+  app.listen(PORT, '0.0.0.0', () => {
     // eslint-disable-next-line no-console
-    console.log(`Minerva backend running on http://localhost:${PORT}`);
+    console.log(`Minerva backend running on http://0.0.0.0:${PORT}`);
   });
 }
 

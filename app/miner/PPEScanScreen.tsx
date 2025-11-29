@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from '../../components/Icons';
 import PPEStatusList from '../../components/PPEStatusList';
 
-const API_URL = 'http://10.60.8.115:8000/ppe-scan';
+const API_URL = 'http://192.168.137.1:8000/ppe-scan';
 
 interface PPEResult {
   present: boolean;

@@ -8,6 +8,9 @@
     "scheme": "minerva",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "packagerOpts": {
+      "host": "192.168.137.1"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.minerva.mobile"

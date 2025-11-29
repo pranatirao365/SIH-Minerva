@@ -2,127 +2,319 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AlertTriangle, BarChart3, Bell, Shield, Users } from '../../components/Icons';
-import { COLORS } from '../../constants/styles';
+import {
+  AlertTriangle,
+  BarChart3,
+  Bell,
+  CheckCircle,
+  FileText,
+  Settings,
+  Shield,
+  Users,
+  Video,
+  Youtube
+} from '@/components/Icons';
+import { COLORS } from '@/constants/styles';
+import { useRoleStore } from '../../hooks/useRoleStore';
 
 export default function SupervisorHome() {
   const router = useRouter();
+  const { user } = useRoleStore();
 
-  const features = [
+  // Emergency features - highest priority
+  const emergencyModules = [
     {
-      icon: <AlertTriangle size={32} color="#F59E0B" />,
-      title: 'Alert Miners',
-      description: 'Send emergency alerts to miners\' helmets',
-      route: '/supervisor/AlertMiners',
-      color: '#FEF3C7',
-      borderColor: '#F59E0B',
-    },
-    {
-      icon: <Bell size={32} color="#EF4444" />,
+      icon: Bell,
       title: 'SOS Notifications',
       description: 'View and respond to miner emergencies',
       route: '/supervisor/SOSNotifications',
-      color: '#FEE2E2',
-      borderColor: '#EF4444',
+      color: '#EF4444',
+      isEmergency: true,
     },
     {
-      icon: <Users size={32} color="#3B82F6" />,
-      title: 'Team Monitoring',
-      description: 'Real-time team status and location',
-      route: '/supervisor/TeamMonitoring',
-      color: '#DBEAFE',
-      borderColor: '#3B82F6',
+      icon: AlertTriangle,
+      title: 'Alert Miners',
+      description: 'Send emergency alerts to miners\' helmets',
+      route: '/supervisor/AlertMiners',
+      color: '#F59E0B',
+      isEmergency: true,
+    },
+  ];
+
+  const mainModules = [
+    {
+      icon: Video,
+      title: 'AI Video Generator',
+      description: 'Create safety training videos with AI',
+      route: '/supervisor/VideoGenerationModule',
+      color: COLORS.primary,
+      gradient: true,
     },
     {
-      icon: <BarChart3 size={32} color="#10B981" />,
-      title: 'Performance Reports',
-      description: 'Team productivity and safety metrics',
-      route: '/supervisor/Reports',
-      color: '#D1FAE5',
-      borderColor: '#10B981',
+      icon: Youtube,
+      title: 'Video Library',
+      description: 'Manage training video library',
+      route: '/supervisor/VideoLibrary',
+      color: '#EC4899',
+    },
+    {
+      icon: Users,
+      title: 'Team Management',
+      description: 'Manage team members and assignments',
+      route: '/supervisor/TeamPerformance',
+      color: COLORS.secondary,
+    },
+    {
+      icon: BarChart3,
+      title: 'Performance Analytics',
+      description: 'View team performance metrics',
+      route: '/supervisor/WorkerManagement',
+      color: COLORS.accent,
+    },
+    {
+      icon: AlertTriangle,
+      title: 'Incident Reports',
+      description: 'Review and manage incidents',
+      route: '/supervisor/IncidentDashboard',
+      color: COLORS.destructive,
+    },
+    {
+      icon: CheckCircle,
+      title: 'Task Assignments',
+      description: 'Assign and track tasks',
+      route: '/supervisor/TaskAssignment',
+      color: '#8B5CF6',
+    },
+    {
+      icon: Shield,
+      title: 'Safety Audits',
+      description: 'Conduct safety audits',
+      route: '/supervisor/AuditTracker',
+      color: '#F59E0B',
+    },
+    {
+      icon: FileText,
+      title: 'Shift Planning',
+      description: 'Plan and manage shifts',
+      route: '/supervisor/ShiftPlanning',
+      color: '#10B981',
     },
   ];
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Shield size={28} color={COLORS.primary} />
-        <Text style={styles.headerTitle}>Supervisor Dashboard</Text>
-      </View>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.welcomeText}>Welcome back,</Text>
+            <Text style={styles.userName}>{user.name || 'Supervisor'}</Text>
+          </View>
+          <TouchableOpacity style={styles.settingsButton}>
+            <Settings size={24} color={COLORS.text} />
+          </TouchableOpacity>
+        </View>
 
-      <ScrollView style={styles.content}>
-        <Text style={styles.subtitle}>Monitor team performance and manage tasks</Text>
+        {/* Quick Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>24</Text>
+            <Text style={styles.statLabel}>Active Shifts</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>98%</Text>
+            <Text style={styles.statLabel}>Safety Score</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>156</Text>
+            <Text style={styles.statLabel}>Team Members</Text>
+          </View>
+        </View>
 
-        <View style={styles.grid}>
-          {features.map((feature, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.card,
-                { backgroundColor: feature.color, borderColor: feature.borderColor },
-              ]}
-              onPress={() => router.push(feature.route as any)}
-            >
-              <View style={styles.cardIcon}>{feature.icon}</View>
-              <Text style={styles.cardTitle}>{feature.title}</Text>
-              <Text style={styles.cardDescription}>{feature.description}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* Emergency Modules - Priority Section */}
+        <View style={styles.modulesContainer}>
+          <Text style={styles.sectionTitle}>⚠️ Emergency Controls</Text>
+          <View style={styles.emergencyGrid}>
+            {emergencyModules.map((module, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.emergencyCard, { borderColor: module.color }]}
+                onPress={() => router.push(module.route as any)}
+              >
+                <View style={[styles.emergencyIcon, { backgroundColor: module.color + '20' }]}>
+                  <module.icon size={32} color={module.color} />
+                </View>
+                <Text style={styles.emergencyTitle}>{module.title}</Text>
+                <Text style={styles.moduleDescription}>{module.description}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Main Modules */}
+        <View style={styles.modulesContainer}>
+          <Text style={styles.sectionTitle}>Supervisor Tools</Text>
+          <View style={styles.modulesGrid}>
+            {mainModules.map((module, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.moduleCard, module.gradient && styles.gradientCard]}
+                onPress={() => router.push(module.route as any)}
+              >
+                <View style={[styles.moduleIcon, { backgroundColor: module.color + '20' }]}>
+                  <module.icon size={28} color={module.color} />
+                </View>
+                <Text style={styles.moduleTitle}>{module.title}</Text>
+                <Text style={styles.moduleDescription}>{module.description}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  scrollView: {
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: COLORS.card,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
-  headerTitle: {
+  welcomeText: {
+    fontSize: 16,
+    color: COLORS.textMuted,
+    fontWeight: '500',
+  },
+  userName: {
     fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.text,
-    marginLeft: 12,
+    marginTop: 4,
   },
-  content: {
-    flex: 1,
+  settingsButton: {
+    padding: 8,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  statCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
     padding: 16,
+    alignItems: 'center',
+    minWidth: 80,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  subtitle: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  modulesContainer: {
+    paddingHorizontal: 20,
     marginBottom: 20,
   },
-  grid: {
-    gap: 16,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 16,
   },
-  card: {
-    padding: 20,
+  emergencyGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  emergencyCard: {
+    backgroundColor: COLORS.card,
     borderRadius: 12,
+    padding: 16,
+    width: '48%',
     borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  emergencyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 12,
   },
-  cardIcon: {
-    marginBottom: 12,
-  },
-  cardTitle: {
-    fontSize: 18,
+  emergencyTitle: {
+    fontSize: 17,
     fontWeight: 'bold',
     color: COLORS.text,
     marginBottom: 6,
   },
-  cardDescription: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
+  modulesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  moduleCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    width: '48%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  gradientCard: {
+    backgroundColor: COLORS.primary + '10',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+  },
+  moduleIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  moduleTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  moduleDescription: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    lineHeight: 16,
   },
 });
-

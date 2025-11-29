@@ -1,8 +1,8 @@
 {
   "pipeline": {
     "scene_count": 6,
-    "animation_duration": 5,
-    "output_resolution": [720, 1280],
+    "animation_duration": 9,
+    "output_resolution": [1080, 1920],
     "fps": 24
   },
   "models": {
@@ -30,14 +30,20 @@
       "icons_file": "icons.json"
     },
     "voiceover": {
-      "provider": "elevenlabs",
-      "model": "eleven_multilingual_v2",
-      "api_key_env": "ELEVENLABS_API_KEY",
-      "voice_id": "21m00Tcm4TlvDq8ikWAM",
-      "voice_id_hindi": "YKoQKJvC7vYQiyH1vCwW",
-      "voice_id_telugu": "JBFqnCBsd6RMkjVDRZzb",
-      "stability": 0.5,
-      "similarity_boost": 0.8
+      "provider": "google_cloud_tts",
+      "api_key": "AIzaSyDhVSROhh9gwGsWwjXuQlp2nLyZRek9M_E",
+      "language_code": "en-US",
+      "voice_name": "en-US-Neural2-D",
+      "voice_name_hindi": "hi-IN-Neural2-D",
+      "voice_name_telugu": "te-IN-Standard-A",
+      "audio_encoding": "MP3",
+      "speaking_rate": 1.0,
+      "pitch": 0.0
+    },
+    "speech_to_text": {
+      "provider": "auto_detect",
+      "api_key": "e032f0526428a7a90f4402a887a91e0aa5021e4f",
+      "language": "en"
     }
   },
   "paths": {

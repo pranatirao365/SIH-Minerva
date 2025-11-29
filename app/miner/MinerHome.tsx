@@ -32,7 +32,7 @@ export default function MinerHome() {
     { icon: Shield, label: 'PPE Scan', route: '/miner/PPEScanScreen', color: COLORS.accent },
     { icon: AlertTriangle, label: 'Report', route: '/miner/IncidentReport', color: '#F59E0B' },
     { icon: Trophy, label: 'Fire Safety', route: '/miner/SimulationScreen', color: '#DC2626' },
-    { icon: Trophy, label: 'Blasting', route: '/miner/BlastingScreen', color: '#F59E0B' },
+    { icon: Trophy, label: 'Blasting', route: '/miner/BlastingGame', color: '#F59E0B' },
   ];
 
   const trainingModules = [

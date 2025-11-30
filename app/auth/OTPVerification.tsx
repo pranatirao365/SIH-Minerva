@@ -58,6 +58,7 @@ export default function OTPVerification() {
       // 🧪 TEST MODE: Bypass Firebase authentication for test mode
       if (IS_TEST_MODE && isTestMode && verificationId === 'TEST_VERIFICATION_ID') {
         console.log('🧪 TEST MODE: Bypassing Firebase authentication');
+        console.log('📱 Entered Phone Number:', phoneNumber);
         
         if (otpCode !== TEST_OTP) {
           Alert.alert('Invalid OTP', `Test OTP is: ${TEST_OTP}`);
@@ -67,51 +68,89 @@ export default function OTPVerification() {
         
         console.log('✅ Test OTP verified!');
         
-        // Get phone without + to match Firestore document ID
-        const phone = phoneNumber.replace('+', '');
+        // CRITICAL: Normalize phone number - remove + and any spaces/dashes
+        const normalizedPhone = phoneNumber.replace(/[^0-9]/g, '');
         
-        console.log('📊 Fetching user data from Firestore for phone:', phone);
+        console.log('📊 Normalized Phone for Firestore Query:', normalizedPhone);
+        console.log('🔍 Querying Firestore: users/' + normalizedPhone);
         
-        // Fetch user role from Firestore
-        const userDoc = await getDoc(doc(db, 'users', phone));
+        // Fetch user role from Firestore using EXACT document ID
+        const userDocRef = doc(db, 'users', normalizedPhone);
+        const userDoc = await getDoc(userDocRef);
+        
+        console.log('📄 Document exists:', userDoc.exists());
         
         if (userDoc.exists()) {
           const userData = userDoc.data();
+          console.log('📋 Full User Data:', JSON.stringify(userData, null, 2));
+          
+          // CRITICAL: Read role field EXACTLY as stored
           const userRole = userData.role;
           
-          console.log('✅ User found with role:', userRole);
+          console.log('🎭 Role Field Value:', userRole);
+          console.log('🎭 Role Type:', typeof userRole);
           
-          // Set the role in the store
+          if (!userRole) {
+            console.error('❌ Role field is missing or undefined!');
+            Alert.alert('Error', 'User role not found in database. Please contact administrator.');
+            setLoading(false);
+            return;
+          }
+          
+          // Normalize role to lowercase for consistent comparison
+          const normalizedRole = userRole.toLowerCase().trim();
+          console.log('✅ Normalized Role:', normalizedRole);
+          
+          // Set the role in the store (store original case)
           setRole(userRole);
           
-          // Navigate based on role
-          switch (userRole) {
-            case 'miner':
-              router.replace('/miner/MinerHome');
-              break;
-            case 'engineer':
-              router.replace('/engineer/EngineerHome');
-              break;
-            case 'safety_officer':
-            case 'safety-officer':
-              router.replace('/safety-officer/SafetyOfficerHome');
-              break;
-            case 'supervisor':
-              router.replace('/supervisor/SupervisorHome');
-              break;
-            case 'admin':
-              router.replace('/admin/AdminHome');
-              break;
-            default:
-              Alert.alert('Error', `Invalid user role: ${userRole}`);
+          // CRITICAL: Store user information including phoneNumber for incident reporting
+          const { setUser } = useRoleStore.getState();
+          setUser({
+            id: normalizedPhone,
+            phoneNumber: normalizedPhone,
+            phone: phoneNumber,
+            name: userData.name || 'User',
+            role: userRole
+          });
+          
+          console.log('✅ User info stored in state:', {
+            id: normalizedPhone,
+            phoneNumber: normalizedPhone,
+            name: userData.name || 'User',
+            role: userRole
+          });
+          
+          // Navigate based on role (case-insensitive comparison)
+          console.log('🧭 Determining navigation for role:', normalizedRole);
+          
+          if (normalizedRole === 'miner') {
+            console.log('➡️ Navigating to: /miner/MinerHome');
+            router.replace('/miner/MinerHome');
+          } else if (normalizedRole === 'engineer') {
+            console.log('➡️ Navigating to: /engineer/EngineerHome');
+            router.replace('/engineer/EngineerHome');
+          } else if (normalizedRole === 'safety_officer' || normalizedRole === 'safety-officer') {
+            console.log('➡️ Navigating to: /safety-officer/SafetyOfficerHome');
+            router.replace('/safety-officer/SafetyOfficerHome');
+          } else if (normalizedRole === 'supervisor') {
+            console.log('➡️ Navigating to: /supervisor/SupervisorHome');
+            router.replace('/supervisor/SupervisorHome');
+          } else if (normalizedRole === 'admin') {
+            console.log('➡️ Navigating to: /admin/AdminHome');
+            router.replace('/admin/AdminHome');
+          } else {
+            console.error('❌ Unknown role:', normalizedRole);
+            Alert.alert('Error', `Invalid user role: ${userRole}. Please contact administrator.`);
           }
           setLoading(false);
           return;
         } else {
-          console.log('⚠️ User not found in database');
+          console.log('⚠️ User document not found in Firestore');
+          console.log('🔍 Attempted path: users/' + normalizedPhone);
           Alert.alert(
             'Access Denied',
-            'Your phone number is not registered in the system. Please contact your administrator.',
+            `Phone number ${phoneNumber} is not registered.\n\nPlease contact your administrator to add your number to the system.`,
             [{ 
               text: 'OK', 
               onPress: () => router.replace('/auth/PhoneLogin')
@@ -136,52 +175,73 @@ export default function OTPVerification() {
       
       console.log('✅ Firebase authentication successful!');
       console.log('👤 User UID:', userCredential.user.uid);
-      console.log('📞 Phone:', userCredential.user.phoneNumber);
+      console.log('📞 Authenticated Phone:', userCredential.user.phoneNumber);
       
-      // Get phone from authenticated user (already in format +917416013923)
-      // Remove + to match Firestore document ID (917416013923)
-      const phone = userCredential.user.phoneNumber?.replace('+', '') || phoneNumber.replace('+', '');
+      // CRITICAL: Normalize phone number - remove all non-numeric characters
+      const authenticatedPhone = userCredential.user.phoneNumber || phoneNumber;
+      const normalizedPhone = authenticatedPhone.replace(/[^0-9]/g, '');
       
-      console.log('📊 Fetching user data from Firestore for phone:', phone);
+      console.log('📊 Normalized Phone for Firestore Query:', normalizedPhone);
+      console.log('🔍 Querying Firestore: users/' + normalizedPhone);
       
-      // Fetch user role from Firestore
-      const userDoc = await getDoc(doc(db, 'users', phone));
+      // Fetch user role from Firestore using EXACT document ID
+      const userDocRef = doc(db, 'users', normalizedPhone);
+      const userDoc = await getDoc(userDocRef);
+      
+      console.log('📄 Document exists:', userDoc.exists());
       
       if (userDoc.exists()) {
         const userData = userDoc.data();
+        console.log('📋 Full User Data:', JSON.stringify(userData, null, 2));
+        
+        // CRITICAL: Read role field EXACTLY as stored
         const userRole = userData.role;
         
-        console.log('✅ User found with role:', userRole);
+        console.log('🎭 Role Field Value:', userRole);
+        console.log('🎭 Role Type:', typeof userRole);
         
-        // Set the role in the store
+        if (!userRole) {
+          console.error('❌ Role field is missing or undefined!');
+          Alert.alert('Error', 'User role not found in database. Please contact administrator.');
+          setLoading(false);
+          return;
+        }
+        
+        // Normalize role to lowercase for consistent comparison
+        const normalizedRole = userRole.toLowerCase().trim();
+        console.log('✅ Normalized Role:', normalizedRole);
+        
+        // Set the role in the store (store original case)
         setRole(userRole);
         
-        // Navigate based on role
-        switch (userRole) {
-          case 'miner':
-            router.replace('/miner/MinerHome');
-            break;
-          case 'engineer':
-            router.replace('/engineer/EngineerHome');
-            break;
-          case 'safety_officer':
-          case 'safety-officer':
-            router.replace('/safety-officer/SafetyOfficerHome');
-            break;
-          case 'supervisor':
-            router.replace('/supervisor/SupervisorHome');
-            break;
-          case 'admin':
-            router.replace('/admin/AdminHome');
-            break;
-          default:
-            Alert.alert('Error', `Invalid user role: ${userRole}`);
+        // Navigate based on role (case-insensitive comparison)
+        console.log('🧭 Determining navigation for role:', normalizedRole);
+        
+        if (normalizedRole === 'miner') {
+          console.log('➡️ Navigating to: /miner/MinerHome');
+          router.replace('/miner/MinerHome');
+        } else if (normalizedRole === 'engineer') {
+          console.log('➡️ Navigating to: /engineer/EngineerHome');
+          router.replace('/engineer/EngineerHome');
+        } else if (normalizedRole === 'safety_officer' || normalizedRole === 'safety-officer') {
+          console.log('➡️ Navigating to: /safety-officer/SafetyOfficerHome');
+          router.replace('/safety-officer/SafetyOfficerHome');
+        } else if (normalizedRole === 'supervisor') {
+          console.log('➡️ Navigating to: /supervisor/SupervisorHome');
+          router.replace('/supervisor/SupervisorHome');
+        } else if (normalizedRole === 'admin') {
+          console.log('➡️ Navigating to: /admin/AdminHome');
+          router.replace('/admin/AdminHome');
+        } else {
+          console.error('❌ Unknown role:', normalizedRole);
+          Alert.alert('Error', `Invalid user role: ${userRole}. Please contact administrator.`);
         }
       } else {
-        console.log('⚠️ User not found in database');
+        console.log('⚠️ User document not found in Firestore');
+        console.log('🔍 Attempted path: users/' + normalizedPhone);
         Alert.alert(
           'Access Denied',
-          'Your phone number is not registered in the system. Please contact your administrator.',
+          `Phone number ${phoneNumber} is not registered.\n\nPlease contact your administrator to add your number to the system.`,
           [{ 
             text: 'OK', 
             onPress: () => router.replace('/auth/PhoneLogin')

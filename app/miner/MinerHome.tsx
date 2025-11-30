@@ -73,9 +73,8 @@ export default function MinerHome() {
       <ScrollView style={styles.scrollView}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.userName}>{user.name || 'Miner'}</Text>
-          
+          <Text style={styles.welcomeText}>Welcome back, {user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}</Text>
+          <Text style={styles.userName}>{user.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : user.name || 'Miner'}</Text>
           {/* Safety Score */}
           <View style={styles.scoreCard}>
             <View style={styles.scoreContent}>

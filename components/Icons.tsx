@@ -46,3 +46,6 @@ export const BarChart3 = (props: any) => <Ionicons name="bar-chart" {...props} /
 export const Youtube = (props: any) => <Ionicons name="logo-youtube" {...props} />;
 export const Film = (props: any) => <Ionicons name="film" {...props} />;
 export const Sparkles = (props: any) => <Ionicons name="sparkles" {...props} />;
+export const CheckSquare = (props: any) => <Ionicons name="checkbox" {...props} />;
+export const Square = (props: any) => <Ionicons name="square-outline" {...props} />;
+export const Volume2 = (props: any) => <Ionicons name="volume-high" {...props} />;

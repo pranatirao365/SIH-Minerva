@@ -1,3 +1,4 @@
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { File, Paths } from 'expo-file-system';
@@ -226,7 +227,7 @@ export default function VideoGenerationModule() {
 
     try {
       // Call backend API endpoint
-      const response = await fetch('http://10.60.8.115:4000/api/video/generate', {
+      const response = await fetch('http://172.20.10.2:4000/api/video/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -256,7 +257,7 @@ export default function VideoGenerationModule() {
   const pollGenerationProgress = async (jobId: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`http://10.60.8.115:4000/api/video/status/${jobId}`);
+        const response = await fetch(`http://172.20.10.2:4000/api/video/status/${jobId}`);
         
         if (!response.ok) {
           clearInterval(pollInterval);

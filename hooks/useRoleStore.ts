@@ -6,6 +6,7 @@ interface User {
   id: string;
   name: string;
   phone: string;
+  phoneNumber?: string; // Normalized phone number for Firebase queries
   role: Role | null;
 }
 

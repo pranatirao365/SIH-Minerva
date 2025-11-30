@@ -48,11 +48,13 @@ export const Youtube = (props: any) => <Ionicons name="logo-youtube" {...props} 
 export const Film = (props: any) => <Ionicons name="film" {...props} />;
 export const Search = (props: any) => <Ionicons name="search" {...props} />;
 export const Filter = (props: any) => <Ionicons name="filter" {...props} />;
-export const Sparkles = (props: any) => <Ionicons name="sparkles" {...props} />;
+export const Clock = (props: any) => <Ionicons name="time-outline" {...props} />;
 export const Activity = (props: any) => <Ionicons name="pulse" {...props} />;
+export const Heart = (props: any) => <Ionicons name="heart" {...props} />;
 export const Thermometer = (props: any) => <Ionicons name="thermometer" {...props} />;
+export const Award = (props: any) => <Ionicons name="ribbon" {...props} />;
+export const Sparkles = (props: any) => <Ionicons name="sparkles" {...props} />;
 export const Droplets = (props: any) => <Ionicons name="water" {...props} />;
 export const ChevronRight = (props: any) => <Ionicons name="chevron-forward" {...props} />;
-export const Heart = (props: any) => <Ionicons name="heart" {...props} />;
 export const CheckSquare = (props: any) => <Ionicons name="checkbox" {...props} />;
 export const Volume2 = (props: any) => <Ionicons name="volume-high" {...props} />;

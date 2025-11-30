@@ -4,6 +4,7 @@ import admin from './admin';
 import miner from './miner';
 import safetyOfficer from './safetyOfficer';
 import supervisor from './supervisor';
+import supervisorEnhancements from './supervisorEnhancements';
 import videoGeneration from './videoGeneration.routes';
 
 const router = Router();
@@ -18,6 +19,7 @@ router.use('/video', videoGeneration);
 router.use(firebaseAuth);
 
 router.use('/supervisor', supervisor);
+router.use('/supervisor-enhancements', supervisorEnhancements);
 router.use('/miner', miner);
 router.use('/safety', safetyOfficer);
 router.use('/admin', admin);

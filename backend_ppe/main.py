@@ -17,12 +17,14 @@ torch.load = patched_torch_load
 
 from ultralytics import YOLO
 
-# PPE Class Mapping - Maps YOLO classes to PPE categories
+# PPE Class Mapping - Maps YOLO classes to PPE categories (6 categories)
 PPE_CLASSES = {
-    "Helmet": ["Helmet", "helmet"],
-    "Gloves": ["Gloves"],
-    "Vest": ["Vest", "Safety-Vest", "vest"],
-    "Shoes": ["Safety-Boot"]
+    "helmet": ["Helmet", "helmet", "hardhat", "hard-hat"],
+    "gloves": ["Gloves", "glove"],
+    "vest": ["Vest", "Safety-Vest", "vest", "jacket", "safety-vest"],
+    "eye_protection": ["Goggles", "goggles", "Glasses", "glasses", "Glass", "glass", "eyewear"],
+    "safety_boots": ["Safety-Boot", "Shoes", "shoes", "boots", "boot"],
+    "protective_suit": ["Suit", "suit", "coverall", "overall"]
 }
 
 # Initialize FastAPI app
@@ -90,28 +92,45 @@ async def ppe_scan(file: UploadFile = File(...)):
         # Run YOLO inference
         results = model(image_array)
         
-        # Initialize ALL 4 PPE categories as NOT PRESENT
+        # Initialize ALL 6 PPE categories as NOT PRESENT (binary presence detection)
         ppe_results = {
-            "Helmet": {"present": False},
-            "Gloves": {"present": False},
-            "Vest": {"present": False},
-            "Shoes": {"present": False}
+            "helmet": {"present": False},
+            "gloves": {"present": False},
+            "vest": {"present": False},
+            "eye_protection": {"present": False},
+            "safety_boots": {"present": False},
+            "protective_suit": {"present": False}
         }
         
-        # Update with YOLO detections
+        # Update with YOLO detections (binary presence only)
+        detected_classes = []
         for result in results:
             boxes = result.boxes
             for box in boxes:
-                # Get raw class name from YOLO model
+                # Get raw class name and confidence from YOLO model
                 class_id = int(box.cls[0])
                 raw_class = result.names[class_id]
+                confidence = float(box.conf[0])
                 
-                # Map to PPE category using EXACT mapping
+                detected_classes.append(f"{raw_class} ({confidence:.2%})")
+                
+                # Skip "no-" variants (duplicates)
+                if "no-" in raw_class.lower() or "no_" in raw_class.lower() or raw_class.lower().startswith("no "):
+                    continue
+                
+                # Map to PPE category using flexible matching
                 for ppe_type, variants in PPE_CLASSES.items():
                     if raw_class in variants:
+                        # Mark as present (binary detection)
                         ppe_results[ppe_type]["present"] = True
-                        print(f"✓ Detected: {ppe_type} -> {raw_class}")
+                        print(f"✓ Detected: {ppe_type} -> {raw_class} ({confidence:.2%})")
                         break
+        
+        print(f"\n📊 Raw Detections: {', '.join(detected_classes) if detected_classes else 'None'}")
+        print(f"\n📊 Final Results (Binary Presence):")
+        for ppe_type, data in ppe_results.items():
+            status = "✓ PRESENT" if data["present"] else "✗ MISSING"
+            print(f"  {ppe_type}: {status}")
         
         return ppe_results
     

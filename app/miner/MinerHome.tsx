@@ -4,21 +4,22 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmergencyButton } from '../../components/EmergencyButton';
 import {
-    Activity,
-    AlertTriangle,
-    Bell,
-    Camera,
-    CheckCircle,
-    ChevronRight,
-    Droplets,
-    Heart,
-    Map,
-    Mic,
-    Shield,
-    Thermometer,
-    TrendingUp,
-    Trophy,
-    Video
+  Activity,
+  AlertTriangle,
+  Bell,
+  Camera,
+  CheckCircle,
+  ChevronRight,
+  Droplets,
+  Heart,
+  Lock,
+  Map,
+  Mic,
+  Shield,
+  Thermometer,
+  TrendingUp,
+  Trophy,
+  Video
 } from '../../components/Icons';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { getWebSocketURL } from '../../config/smartHelmetConfig';
@@ -315,6 +316,27 @@ export default function MinerHome() {
           </View>
         </View>
 
+        {/* Assigned Videos Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Mandatory Videos</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/miner/AssignedVideos' as any)}
+            style={styles.assignedVideosCard}
+            activeOpacity={0.7}
+          >
+            <View style={styles.assignedVideosContent}>
+              <Video size={32} color={COLORS.primary} />
+              <View style={styles.assignedVideosInfo}>
+                <Text style={styles.assignedVideosTitle}>View Assigned Videos</Text>
+                <Text style={styles.assignedVideosSubtitle}>
+                  Watch mandatory training videos before entering work routes
+                </Text>
+              </View>
+              <Lock size={20} color={COLORS.textMuted} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Inline Game Container (expanded on demand) */}
         {showInlineGame && (
           <View style={[styles.section, { paddingTop: 0 }]}>
@@ -522,6 +544,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textMuted,
     marginTop: 8,
+  },
+  // Assigned Videos Widget Styles
+  assignedVideosCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+  },
+  assignedVideosContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  assignedVideosInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  assignedVideosTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  assignedVideosSubtitle: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginTop: 4,
   },
   // Smart Helmet Widget Styles
   helmetCard: {

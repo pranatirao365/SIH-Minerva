@@ -97,7 +97,7 @@ export default function MandatoryVideoManager() {
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
-  const [showMinerStatus, setShowMinerStatus] = useState(false);
+  const [selectedAssignmentForStatus, setSelectedAssignmentForStatus] = useState<VideoAssignment | null>(null);
 
   useEffect(() => {
     loadData();
@@ -264,6 +264,16 @@ export default function MandatoryVideoManager() {
     Alert.alert('Notification Sent', `Notification sent to miner: ${message}`);
   };
 
+  const sendNotificationToAssignment = (assignment: VideoAssignment) => {
+    const message = `Reminder: Please complete the video assignment "${assignment.videoTopic}" before the deadline: ${new Date(assignment.deadline).toLocaleDateString()}.`;
+    
+    assignment.assignedTo.forEach(minerId => {
+      sendNotification(minerId, message);
+    });
+    
+    Alert.alert('Notifications Sent', `Notifications sent to ${assignment.assignedTo.length} miner(s) for assignment: ${assignment.videoTopic}`);
+  };
+
   const filteredAssignments = useMemo(() => {
     return assignments.filter(assignment => {
       // Search filter
@@ -327,32 +337,25 @@ export default function MandatoryVideoManager() {
             ]}
           />
         </View>
+
+        <View style={styles.cardActions}>
+          <TouchableOpacity
+            style={styles.sendNotificationButton}
+            onPress={() => sendNotificationToAssignment(item)}
+          >
+            <Text style={styles.sendNotificationButtonText}>Send Notification</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.viewStatusButton}
+            onPress={() => setSelectedAssignmentForStatus(item)}
+          >
+            <Text style={styles.viewStatusButtonText}>View Status</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
-
-  const renderVideoItem = ({ item }: { item: VideoItem }) => (
-    <TouchableOpacity
-      style={styles.videoItem}
-      onPress={() => {
-        setSelectedVideo(item);
-        setShowAssignmentModal(true);
-      }}
-    >
-      <View style={styles.videoIcon}>
-        <VideoIcon size={24} color={COLORS.primary} />
-      </View>
-      <View style={styles.videoInfo}>
-        <Text style={styles.videoTitle}>{item.topic}</Text>
-        <Text style={styles.videoMeta}>
-          {item.languageName} • {new Date(item.timestamp).toLocaleDateString()}
-        </Text>
-      </View>
-      <View style={styles.assignButton}>
-        <Send size={16} color={COLORS.primary} />
-      </View>
-    </TouchableOpacity>
-  );
 
   if (loading) {
     return (
@@ -367,15 +370,9 @@ export default function MandatoryVideoManager() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={COLORS.text} />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>Mandatory Video Manager</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setShowAssignmentModal(true)}
-        >
-          <Send size={20} color={COLORS.primary} />
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
 
@@ -425,79 +422,7 @@ export default function MandatoryVideoManager() {
                 </TouchableOpacity>
               ))}
             </View>
-
-            {/* Miner Status Toggle */}
-            <TouchableOpacity
-              style={styles.analyticsToggle}
-              onPress={() => setShowMinerStatus(!showMinerStatus)}
-            >
-              <Text style={styles.analyticsToggleText}>
-                {showMinerStatus ? 'Hide Miner Status' : 'Show Miner Status'}
-              </Text>
-            </TouchableOpacity>
           </View>
-
-          {/* Miner Status Section */}
-          {showMinerStatus && (
-            <View style={styles.analyticsSection}>
-              <View style={styles.analyticsCard}>
-                <Text style={styles.analyticsTitle}>Miner Video Status</Text>
-
-                {/* Table Header */}
-                <View style={styles.tableHeader}>
-                  <Text style={[styles.tableHeaderText, { flex: 2 }]}>Miner Name</Text>
-                  <Text style={[styles.tableHeaderText, { flex: 1 }]}>Shift</Text>
-                  <Text style={[styles.tableHeaderText, { flex: 1.5 }]}>Status</Text>
-                  <Text style={[styles.tableHeaderText, { flex: 1 }]}>Action</Text>
-                </View>
-
-                {/* Table Rows */}
-                {getMinerStatusData().map((data) => (
-                  <View key={data.miner.id} style={styles.tableRow}>
-                    <Text style={[styles.tableCellText, { flex: 2 }]}>{data.miner.name}</Text>
-                    <Text style={[styles.tableCellText, { flex: 1 }]}>
-                      {data.miner.shift.charAt(0).toUpperCase() + data.miner.shift.slice(1)}
-                    </Text>
-                    <View style={[styles.tableCell, { flex: 1.5 }]}>
-                      <View style={[
-                        styles.statusBadge,
-                        data.status === 'completed' && styles.statusCompleted,
-                        data.status === 'overdue' && styles.statusOverdue,
-                        data.status === 'pending' && styles.statusPending,
-                        data.status === 'no-assignments' && styles.statusNoAssignments,
-                      ]}>
-                        <Text style={[
-                          styles.statusText,
-                          data.status === 'completed' && styles.statusTextCompleted,
-                          data.status === 'overdue' && styles.statusTextOverdue,
-                          data.status === 'pending' && styles.statusTextPending,
-                          data.status === 'no-assignments' && styles.statusTextNoAssignments,
-                        ]}>
-                          {data.status === 'completed' ? 'Completed' :
-                           data.status === 'overdue' ? 'Overdue' :
-                           data.status === 'pending' ? 'Pending' :
-                           'No Assignments'}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={[styles.tableCell, { flex: 1 }]}>
-                      {data.status === 'overdue' && (
-                        <TouchableOpacity
-                          style={styles.notifyButton}
-                          onPress={() => sendNotification(
-                            data.miner.id,
-                            `Reminder: You have ${data.overdueAssignments} overdue video assignments. Please complete them before your deadline.`
-                          )}
-                        >
-                          <Send size={16} color="#FFFFFF" />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
 
           {filteredAssignments.length === 0 ? (
             <View style={styles.emptyContainer}>
@@ -514,30 +439,6 @@ export default function MandatoryVideoManager() {
             <FlatList
               data={filteredAssignments}
               renderItem={renderAssignmentItem}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-              scrollEnabled={false}
-            />
-          )}
-        </View>
-
-        {/* Available Videos */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Available Videos</Text>
-          <Text style={styles.sectionSubtitle}>Select a video to assign to miners</Text>
-
-          {videos.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <VideoIcon size={48} color={COLORS.textMuted} />
-              <Text style={styles.emptyTitle}>No videos available</Text>
-              <Text style={styles.emptyText}>
-                Generate videos using the AI Video Generator first
-              </Text>
-            </View>
-          ) : (
-            <FlatList
-              data={videos}
-              renderItem={renderVideoItem}
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
               scrollEnabled={false}
@@ -687,6 +588,85 @@ export default function MandatoryVideoManager() {
           </View>
         </View>
       </Modal>
+
+      {/* Miner Status Modal */}
+      <Modal
+        visible={selectedAssignmentForStatus !== null}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setSelectedAssignmentForStatus(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.minerStatusModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Miner Status</Text>
+              <TouchableOpacity
+                onPress={() => setSelectedAssignmentForStatus(null)}
+                style={styles.modalCloseButton}
+              >
+                <XCircle size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+
+            {selectedAssignmentForStatus && (
+              <ScrollView style={styles.minerModalContent}>
+                <Text style={styles.modalAssignmentInfo}>
+                  Video: {selectedAssignmentForStatus.videoTopic}
+                </Text>
+                <Text style={styles.modalAssignmentInfo}>
+                  Deadline: {new Date(selectedAssignmentForStatus.deadline).toLocaleDateString()}
+                </Text>
+
+                <View style={styles.minerStatusList}>
+                  {selectedAssignmentForStatus.assignedTo.map((minerId) => {
+                    const miner = mockMiners.find(m => m.id === minerId);
+                    const progress = assignmentProgress.find(
+                      p => p.assignmentId === selectedAssignmentForStatus.id && p.minerId === minerId
+                    );
+                    
+                    let status = 'pending';
+                    if (progress) {
+                      status = progress.watched ? 'completed' : 'in-progress';
+                    }
+                    if (selectedAssignmentForStatus.deadline < Date.now() && status !== 'completed') {
+                      status = 'overdue';
+                    }
+
+                    return (
+                      <View key={minerId} style={styles.minerStatusItem}>
+                        <View style={styles.modalMinerInfo}>
+                          <User size={20} color={COLORS.primary} />
+                          <View style={styles.minerDetails}>
+                            <Text style={styles.modalMinerName}>{miner?.name || 'Unknown Miner'}</Text>
+                            <Text style={styles.minerRole}>{miner?.role || 'Unknown Role'}</Text>
+                          </View>
+                        </View>
+                        <View style={[
+                          styles.statusBadge,
+                          status === 'completed' && styles.statusCompleted,
+                          status === 'in-progress' && styles.statusInProgress,
+                          status === 'overdue' && styles.statusOverdue,
+                          status === 'pending' && styles.statusPending,
+                        ]}>
+                          <Text style={[
+                            styles.statusText,
+                            status === 'completed' && styles.statusTextCompleted,
+                            status === 'in-progress' && styles.statusTextInProgress,
+                            status === 'overdue' && styles.statusTextOverdue,
+                            status === 'pending' && styles.statusTextPending,
+                          ]}>
+                            {status === 'in-progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -707,6 +687,11 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
   headerTitle: {
     fontSize: 18,
@@ -1286,5 +1271,95 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
     alignSelf: 'center',
+  },
+  viewStatusButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  viewStatusButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    gap: 12,
+  },
+  sendNotificationButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  sendNotificationButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  minerStatusModal: {
+    backgroundColor: COLORS.card,
+    marginHorizontal: 16,
+    marginVertical: 32,
+    borderRadius: 12,
+    maxHeight: '85%',
+    width: '90%',
+    maxWidth: 400,
+    alignSelf: 'center',
+  },
+  minerModalContent: {
+    padding: 16,
+  },
+  modalAssignmentInfo: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginBottom: 8,
+  },
+  minerStatusList: {
+    marginTop: 16,
+  },
+  minerStatusItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalMinerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  minerDetails: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  modalMinerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  minerRole: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+  },
+  statusInProgress: {
+    backgroundColor: '#FFA500',
+  },
+  statusTextInProgress: {
+    color: '#FFFFFF',
   },
 });

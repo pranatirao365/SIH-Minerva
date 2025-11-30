@@ -7,6 +7,7 @@ export const Home = (props: any) => <Ionicons name="home" {...props} />;
 export const MessageCircle = (props: any) => <Ionicons name="chatbubble-outline" {...props} />;
 export const User = (props: any) => <Ionicons name="person" {...props} />;
 export const Bell = (props: any) => <Ionicons name="notifications-outline" {...props} />;
+export const BellOff = (props: any) => <Ionicons name="notifications-off-outline" {...props} />;
 export const Briefcase = (props: any) => <Ionicons name="briefcase-outline" {...props} />;
 export const Shield = (props: any) => <Ionicons name="shield-checkmark" {...props} />;
 export const HardHat = (props: any) => <MaterialCommunityIcons name="hard-hat" {...props} />;
@@ -52,3 +53,10 @@ export const Clock = (props: any) => <Ionicons name="time-outline" {...props} />
 export const Lock = (props: any) => <Ionicons name="lock-closed" {...props} />;
 export const Calendar = (props: any) => <Ionicons name="calendar-outline" {...props} />;
 export const Trash2 = (props: any) => <Ionicons name="trash-outline" {...props} />;
+export const Activity = (props: any) => <Ionicons name="pulse" {...props} />;
+export const Thermometer = (props: any) => <Ionicons name="thermometer" {...props} />;
+export const Droplets = (props: any) => <Ionicons name="water" {...props} />;
+export const ChevronRight = (props: any) => <Ionicons name="chevron-forward" {...props} />;
+export const Heart = (props: any) => <Ionicons name="heart" {...props} />;
+export const CheckSquare = (props: any) => <Ionicons name="checkbox" {...props} />;
+export const Volume2 = (props: any) => <Ionicons name="volume-high" {...props} />;

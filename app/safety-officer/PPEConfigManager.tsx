@@ -540,34 +540,30 @@ export default function PPEConfigManager() {
                 PPE_PARAMETERS.find(p => p.id === ppeParameterFilter)?.name : null;
 
               return (
-                <View key={miner.id} style={styles.minerListItem}>
+                <View key={miner.id} style={[
+                  styles.minerListItem, 
+                  isCompliant ? styles.safeCard : styles.unsafeCard
+                ]}>
+                  {/* Miner Info Section */}
                   <View style={styles.minerListInfo}>
                     <View style={styles.minerNameRow}>
-                      <User size={20} color={COLORS.primary} />
-                      <Text style={styles.minerName}>{miner.name}</Text>
+                      <User size={20} color={isCompliant ? "#FFFFFF" : "#FFFFFF"} />
+                      <Text style={[styles.minerName, isCompliant ? styles.safeText : styles.unsafeText]}>{miner.name}</Text>
                     </View>
-                    <Text style={styles.minerDetails}>
+                    <Text style={[styles.minerDetails, isCompliant ? styles.safeText : styles.unsafeText]}>
                       {miner.shift} Shift • {miner.location}
                     </Text>
-                    <Text style={styles.scanTime}>Scanned at {formatTime(miner.timestamp)}</Text>
+                    <Text style={[styles.scanTime, isCompliant ? styles.safeText : styles.unsafeText]}>Scanned at {formatTime(miner.timestamp)}</Text>
                     {missingParameter && (
-                      <Text style={styles.missingParameterText}>
+                      <Text style={[styles.missingParameterText, isCompliant ? styles.safeText : styles.unsafeText]}>
                         Missing: {missingParameter}
                       </Text>
                     )}
                   </View>
-                  <View style={styles.minerListActions}>
-                    <View style={[styles.statusContainer, isCompliant ? styles.safeStatus : styles.unsafeStatus]}>
-                      {isCompliant ? (
-                        <CheckCircle size={16} color="#FFFFFF" />
-                      ) : (
-                        <XCircle size={16} color="#FFFFFF" />
-                      )}
-                      <Text style={styles.statusText}>
-                        {isCompliant ? 'Safe' : 'Unsafe'}
-                      </Text>
-                    </View>
-                    {!isCompliant && (
+
+                  {/* Notify button for unsafe cards */}
+                  {!isCompliant && (
+                    <View style={styles.minerListActions}>
                       <TouchableOpacity
                         style={styles.notifyMinerButton}
                         onPress={() => {
@@ -575,39 +571,14 @@ export default function PPEConfigManager() {
                           setShowNotificationModal(true);
                         }}
                       >
-                        <Bell size={16} color={COLORS.destructive} />
+                        <Bell size={20} color="#FFFFFF" />
                       </TouchableOpacity>
-                    )}
-                  </View>
+                    </View>
+                  )}
                 </View>
               );
             })
           )}
-        </View>
-
-        {/* Summary Stats */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Compliance Summary</Text>
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>
-                {miners.filter(m => checkMinerCompliance(m)).length}
-              </Text>
-              <Text style={styles.statLabel}>Safe Miners</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: COLORS.destructive }]}>
-                {miners.filter(m => !checkMinerCompliance(m)).length}
-              </Text>
-              <Text style={styles.statLabel}>Non-Compliant</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>
-                {Math.round((miners.filter(m => checkMinerCompliance(m)).length / miners.length) * 100)}%
-              </Text>
-              <Text style={styles.statLabel}>Compliance Rate</Text>
-            </View>
-          </View>
         </View>
       </ScrollView>
 
@@ -659,7 +630,6 @@ export default function PPEConfigManager() {
                   }
                 }}
               >
-                <Bell size={16} color="#FFFFFF" />
                 <Text style={styles.sendButtonText}>Send Notification</Text>
               </TouchableOpacity>
             </View>
@@ -999,9 +969,13 @@ const styles = StyleSheet.create({
   notifyMinerButton: {
     padding: 8,
     borderRadius: 6,
-    backgroundColor: COLORS.card,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderWidth: 1,
-    borderColor: COLORS.destructive,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    minWidth: 36,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalOverlay: {
     flex: 1,
@@ -1087,18 +1061,77 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 80,
   },
   minerListInfo: {
     flex: 1,
   },
   minerListActions: {
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'flex-end',
   },
   missingParameterText: {
     fontSize: 14,
     color: COLORS.destructive,
     fontWeight: '500',
     marginTop: 4,
+  },
+  statusButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 80,
+  },
+  safeButton: {
+    backgroundColor: '#10B981', // Green for safe
+  },
+  unsafeButton: {
+    backgroundColor: COLORS.destructive, // Red for unsafe
+  },
+  statusButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  statusButtonContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 8,
+  },
+  notifyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  statusActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 20,
+  },
+  safeCard: {
+    backgroundColor: '#10B981', // Green for safe
+  },
+  unsafeCard: {
+    backgroundColor: COLORS.destructive, // Red for unsafe
+  },
+  safeText: {
+    color: '#FFFFFF',
+  },
+  unsafeText: {
+    color: '#FFFFFF',
+  },
+  notifyMinerButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#F59E0B', // Amber/yellow for better visibility
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    minWidth: 36,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

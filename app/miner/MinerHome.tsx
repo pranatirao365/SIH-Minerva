@@ -22,6 +22,7 @@ import {
   Thermometer,
   TrendingUp,
   Trophy,
+  User,
   Video,
   Wrench,
   Zap
@@ -111,14 +112,14 @@ export default function MinerHome() {
 
   const quickActions = [
     { icon: Shield, label: 'PPE Scan', route: '/miner/PPEScanScreen', color: COLORS.accent },
-    { icon: Zap, label: 'Torch', route: '/miner/Torch', color: '#F59E0B' },
+    { icon: AlertTriangle, label: 'Report', route: '/miner/IncidentReport', color: '#F59E0B' },
     { icon: CheckCircle, label: 'Daily Check-in', route: '/miner/DailyCheckIn', color: '#10B981' },
   ];
 
   const safetyFeatures = [
     { icon: Map, label: 'Heat Map', route: '/miner/HeatMapView', color: COLORS.primary },
     { icon: Camera, label: 'Hazard Scan', route: '/miner/HazardScan', color: COLORS.destructive },
-    { icon: AlertTriangle, label: 'Report', route: '/miner/IncidentReport', color: '#F59E0B' },
+    { icon: Zap, label: 'Torch', route: '/miner/Torch', color: '#F59E0B' },
     { icon: Trophy, label: 'Fire Safety', route: '/miner/SimulationScreen', color: '#DC2626' },
     { icon: Trophy, label: 'Blasting', route: '/miner/BlastingGame', color: '#F59E0B' },
     { icon: Heart, label: 'Health Monitor', route: '/miner/SmartHelmetStatus', color: '#EC4899' },
@@ -166,8 +167,27 @@ export default function MinerHome() {
       <ScrollView style={styles.scrollView}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.userName}>{user.name || 'Miner'}</Text>
+          {/* Top Bar with Welcome Text and Icons */}
+          <View style={styles.headerTopBar}>
+            <View style={styles.welcomeSection}>
+              <Text style={styles.welcomeText}>Welcome back,</Text>
+              <Text style={styles.userName}>{user.name || 'Miner'}</Text>
+            </View>
+            <View style={styles.headerIcons}>
+              <TouchableOpacity 
+                onPress={() => router.push('/miner/NotificationsScreen' as any)}
+                style={styles.headerIconButton}
+              >
+                <Bell size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => router.push('/profile' as any)}
+                style={styles.headerIconButton}
+              >
+                <User size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </View>
           
           {/* Safety Score */}
           <View style={styles.scoreCard}>
@@ -453,6 +473,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a252f',
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+  },
+  headerTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  welcomeSection: {
+    flex: 1,
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   quickActionsWrapper: {
     position: 'absolute',

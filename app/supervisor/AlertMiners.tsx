@@ -28,32 +28,52 @@ export default function AlertMiners() {
 
   // WebSocket Connection
   useEffect(() => {
-    const ws = new WebSocket(getWebSocketURL());
-    
-    ws.onopen = () => {
-      console.log('✓ Alert System WebSocket connected');
-      setWsConnected(true);
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const connectWebSocket = () => {
+      try {
+        ws = new WebSocket(getWebSocketURL());
+        
+        ws.onopen = () => {
+          console.log('✓ Alert System WebSocket connected');
+          setWsConnected(true);
+        };
+
+        ws.onerror = (error) => {
+          console.warn('WebSocket connection error - ESP32 helmet may be offline');
+          setWsConnected(false);
+        };
+
+        ws.onclose = () => {
+          console.log('✗ WebSocket disconnected - will retry in 5 seconds');
+          setWsConnected(false);
+          
+          // Retry connection after delay
+          reconnectTimeout = setTimeout(() => {
+            connectWebSocket();
+          }, 5000);
+        };
+
+        wsRef.current = ws;
+      } catch (error) {
+        console.warn('Failed to create WebSocket connection:', error);
+        setWsConnected(false);
+        
+        // Retry after delay
+        reconnectTimeout = setTimeout(() => {
+          connectWebSocket();
+        }, 5000);
+      }
     };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setWsConnected(false);
-    };
-
-    ws.onclose = () => {
-      console.log('✗ WebSocket disconnected');
-      setWsConnected(false);
-      setTimeout(() => {
-        // Retry connection
-        const newWs = new WebSocket(getWebSocketURL());
-        wsRef.current = newWs;
-      }, 5000);
-    };
-
-    wsRef.current = ws;
+    connectWebSocket();
 
     return () => {
-      if (ws.readyState === WebSocket.OPEN) {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close();
       }
     };

@@ -24,4 +24,7 @@ export const auth = getAuth(app);
 // Initialize Firestore
 export const db = getFirestore(app);
 
+// Export the config for reCAPTCHA
+export { firebaseConfig };
+
 export default app;

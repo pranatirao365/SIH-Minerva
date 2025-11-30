@@ -195,7 +195,9 @@ export class VideoGenerationService {
     // Try to find the output video file
     const videoFile = this.findLatestVideo();
     if (videoFile) {
-      job.videoUrl = `/videos/${path.basename(videoFile)}`;
+      // Use full URL for mobile app access
+      const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 4000}`;
+      job.videoUrl = `${baseUrl}/videos/${path.basename(videoFile)}`;
     }
 
     jobs.set(jobId, job);

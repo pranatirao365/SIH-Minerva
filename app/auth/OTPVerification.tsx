@@ -1,11 +1,14 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import { getApp } from 'firebase/app';
 import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShieldCheck } from '../../components/Icons';
-import { auth, db } from '../../config/firebase';
+import { auth, db, firebaseConfig } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import { translator } from '../../services/translator';
@@ -23,6 +26,8 @@ export default function OTPVerification() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
+  const recaptchaVerifier = useRef<any>(null);
+  const firebaseApp = getApp();
   const { setRole } = useRoleStore();
 
   const handleOtpChange = (value: string, index: number) => {
@@ -153,6 +158,22 @@ export default function OTPVerification() {
         
         console.log('✅ User found with role:', userRole);
         
+        // Register authenticated user for progress tracking
+        if (userRole === 'miner') {
+          try {
+            const authenticatedUsers = await AsyncStorage.getItem('authenticatedUsers');
+            const userIds = authenticatedUsers ? JSON.parse(authenticatedUsers) : [];
+            
+            if (!userIds.includes(userCredential.user.uid)) {
+              userIds.push(userCredential.user.uid);
+              await AsyncStorage.setItem('authenticatedUsers', JSON.stringify(userIds));
+              console.log('✅ User registered for progress tracking:', userCredential.user.uid);
+            }
+          } catch (error) {
+            console.error('❌ Error registering user for progress tracking:', error);
+          }
+        }
+        
         // Set the role in the store
         setRole(userRole);
         
@@ -213,6 +234,11 @@ export default function OTPVerification() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={firebaseConfig}
+        attemptInvisibleVerification={true}
+      />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <ShieldCheck size={80} color={COLORS.primary} />
@@ -233,7 +259,7 @@ export default function OTPVerification() {
           {otp.map((digit, index) => (
             <TextInput
               key={index}
-              ref={(ref) => (inputRefs.current[index] = ref)}
+              ref={(ref) => { inputRefs.current[index] = ref; }}
               value={digit}
               onChangeText={(value) => handleOtpChange(value, index)}
               onKeyPress={(e) => handleKeyPress(e, index)}

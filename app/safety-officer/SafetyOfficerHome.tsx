@@ -57,6 +57,13 @@ export default function SafetyOfficerHome() {
       color: '#8B5CF6',
     },
     {
+      icon: Video,
+      title: 'Mandatory Video Manager',
+      description: 'Assign required training videos to miners',
+      route: '/safety-officer/MandatoryVideoManager',
+      color: '#10B981',
+    },
+    {
       icon: Youtube,
       title: 'Video Library',
       description: 'Manage training video library',

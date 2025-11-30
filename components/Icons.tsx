@@ -48,3 +48,7 @@ export const Film = (props: any) => <Ionicons name="film" {...props} />;
 export const Search = (props: any) => <Ionicons name="search" {...props} />;
 export const Filter = (props: any) => <Ionicons name="filter" {...props} />;
 export const Sparkles = (props: any) => <Ionicons name="sparkles" {...props} />;
+export const Clock = (props: any) => <Ionicons name="time-outline" {...props} />;
+export const Lock = (props: any) => <Ionicons name="lock-closed" {...props} />;
+export const Calendar = (props: any) => <Ionicons name="calendar-outline" {...props} />;
+export const Trash2 = (props: any) => <Ionicons name="trash-outline" {...props} />;

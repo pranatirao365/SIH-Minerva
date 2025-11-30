@@ -8,6 +8,7 @@
  * - DHT11 Temperature & Humidity Sensor
  * - IR Sensor (Helmet Detection)
  * - MAX30100 Pulse Oximeter (Heart Rate & SpO2)
+ * - MQ-4 Methane Gas Sensor (CH4 Detection)
  * - Emergency Push Button
  * - Buzzer (Active/Passive)
  * 
@@ -15,8 +16,25 @@
  * - DHT11: DATA=GPIO4
  * - IR Sensor: DOUT=GPIO27
  * - MAX30100: SDA=GPIO21, SCL=GPIO22 (I2C)
+ * - MQ-4 Sensor: AOUT=GPIO34 (Analog), DOUT=GPIO35 (Digital - Optional)
  * - Emergency Button: GPIO14 (with internal pull-up)
  * - Buzzer: GPIO5 (Output)
+ * 
+ * MQ-4 Gas Sensor Wiring:
+ * - VCC → 5V (MQ-4 requires 5V for heater)
+ * - GND → GND
+ * - AOUT (Analog Output) → GPIO34 (ADC1_CH6)
+ * - DOUT (Digital Output) → GPIO35 (Optional - threshold detection)
+ * 
+ * Note: MQ-4 requires 24-48 hours preheating for accurate readings.
+ * The sensor detects methane (CH4), natural gas, and CNG.
+ * Typical detection range: 300-10000 ppm
+ * 
+ * Gas Level Thresholds:
+ * - Safe: < 1000 ppm (< 25% LEL)
+ * - Warning: 1000-2500 ppm (25-50% LEL)
+ * - Danger: > 2500 ppm (> 50% LEL)
+ * - Critical: > 5000 ppm (> 100% LEL - Explosive!)
  * 
  * Required Libraries (Install from Arduino Library Manager):
  * - WebSockets by Markus Sattler
@@ -66,6 +84,26 @@ DHT dht(DHTPIN, DHTTYPE);
 #define IR_SENSOR_PIN  27  // IR sensor for helmet worn detection
 #define EMERGENCY_PIN  14
 #define BUZZER_PIN     5   // Buzzer for emergency alerts
+
+// ============================================
+// MQ-4 METHANE GAS SENSOR CONFIGURATION
+// ============================================
+#define MQ4_ANALOG_PIN  34  // Analog output from MQ-4 (ADC1_CH6)
+#define MQ4_DIGITAL_PIN 35  // Digital output from MQ-4 (optional threshold detection)
+
+// MQ-4 Gas detection thresholds (in ppm)
+#define GAS_SAFE_THRESHOLD     1000   // < 1000 ppm = Safe
+#define GAS_WARNING_THRESHOLD  2500   // 1000-2500 ppm = Warning
+#define GAS_DANGER_THRESHOLD   5000   // 2500-5000 ppm = Danger, > 5000 = Critical
+
+// MQ-4 calibration values (adjust based on sensor calibration)
+#define MQ4_RL_VALUE           10.0   // Load resistance in kOhms (typically 10K)
+#define MQ4_RO_CLEAN_AIR_FACTOR 4.4   // Rs/Ro in clean air (from datasheet)
+
+// MQ-4 sensor variables
+float mq4_ro = 10.0;  // Sensor resistance in clean air (will be calibrated)
+int gasLevel = 0;     // Current gas reading (ppm)
+int gasAnalogRaw = 0; // Raw ADC value
 
 // Buzzer control variables
 bool buzzerActive = false;
@@ -307,6 +345,21 @@ const char MAIN_page[] PROGMEM = R"rawliteral(
           <div class="value" id="spo2" style="font-size: 2.0em; color: #00d4ff;">- %</div>
         </div>
       </div>
+
+      <!-- Methane Gas Card -->
+      <div class="card">
+        <div class="card-title">
+          <span class="card-icon">💨</span>
+          MQ-4 Gas Detector
+        </div>
+        <div class="value-group">
+          <div class="value-label">Methane Level</div>
+          <div class="value" id="gas_level" style="font-size: 2.0em; color: #2ecc71;">- ppm</div>
+        </div>
+        <div class="big-status status-safe" id="gas_status">
+          Checking...
+        </div>
+      </div>
     </div>
 
     <footer>
@@ -404,6 +457,43 @@ const char MAIN_page[] PROGMEM = R"rawliteral(
         }
       }
 
+      // MQ-4 Gas Sensor Data
+      if (data.gas) {
+        let gasLevelEl = document.getElementById('gas_level');
+        let gasStatusEl = document.getElementById('gas_status');
+        
+        if (data.gas.ppm !== undefined) {
+          gasLevelEl.innerText = data.gas.ppm + " ppm";
+          
+          // Color coding based on danger level
+          if (data.gas.ppm < 1000) {
+            gasLevelEl.style.color = '#2ecc71'; // Green - Safe
+            gasStatusEl.innerText = "✓ Safe - Normal Levels";
+            gasStatusEl.className = "big-status status-safe";
+          } else if (data.gas.ppm < 2500) {
+            gasLevelEl.style.color = '#f39c12'; // Yellow - Warning
+            gasStatusEl.innerText = "⚠️ WARNING - Elevated Gas";
+            gasStatusEl.className = "big-status status-emergency";
+            gasStatusEl.style.background = "rgba(243, 156, 18, 0.3)";
+            gasStatusEl.style.borderColor = "#f39c12";
+            gasStatusEl.style.color = "#f39c12";
+          } else if (data.gas.ppm < 5000) {
+            gasLevelEl.style.color = '#ff6348'; // Orange-Red - Danger
+            gasStatusEl.innerText = "🚨 DANGER - High Gas Level!";
+            gasStatusEl.className = "big-status status-emergency";
+          } else {
+            gasLevelEl.style.color = '#e74c3c'; // Red - Critical
+            gasStatusEl.innerText = "💀 CRITICAL - EVACUATE NOW!";
+            gasStatusEl.className = "big-status status-emergency";
+          }
+        } else {
+          gasLevelEl.innerText = "-- ppm";
+          gasLevelEl.style.color = '#888';
+          gasStatusEl.innerText = "Sensor Warming Up...";
+          gasStatusEl.className = "big-status status-safe";
+        }
+      }
+
     } catch (e) {
       console.error("Invalid JSON:", e, event.data);
     }
@@ -414,6 +504,51 @@ const char MAIN_page[] PROGMEM = R"rawliteral(
 </body>
 </html>
 )rawliteral";
+
+// ============================================
+// MQ-4 GAS SENSOR FUNCTIONS
+// ============================================
+// Calculate sensor resistance from analog reading
+float MQResistanceCalculation(int raw_adc) {
+  if (raw_adc == 0) return 0;
+  return (((float)MQ4_RL_VALUE * (4095 - raw_adc) / raw_adc));
+}
+
+// Calibrate sensor - call this in clean air during setup
+float MQCalibration() {
+  float val = 0;
+  // Take 50 samples
+  for (int i = 0; i < 50; i++) {
+    val += MQResistanceCalculation(analogRead(MQ4_ANALOG_PIN));
+    delay(50);
+  }
+  val = val / 50;  // Average
+  val = val / MQ4_RO_CLEAN_AIR_FACTOR;  // Calculate Ro
+  return val;
+}
+
+// Read methane concentration in ppm
+int MQGetGasPercentage(float rs_ro_ratio) {
+  // MQ-4 curve equation for methane: ppm = 1000 * pow(10, (log10(rs_ro_ratio) - 0.36) / -0.38)
+  // Simplified approximation for methane detection
+  if (rs_ro_ratio <= 0) return 0;
+  
+  float ppm = 1000.0 * pow(10.0, ((log10(rs_ro_ratio) - 0.36) / -0.38));
+  
+  // Limit to reasonable range
+  if (ppm < 0) ppm = 0;
+  if (ppm > 10000) ppm = 10000;
+  
+  return (int)ppm;
+}
+
+// Read current gas level
+int readMQ4GasLevel() {
+  gasAnalogRaw = analogRead(MQ4_ANALOG_PIN);
+  float rs = MQResistanceCalculation(gasAnalogRaw);
+  float rs_ro_ratio = rs / mq4_ro;
+  return MQGetGasPercentage(rs_ro_ratio);
+}
 
 // ============================================
 // MAX30100 CALLBACK - BEAT DETECTION
@@ -485,10 +620,22 @@ void setup() {
   pinMode(IR_SENSOR_PIN, INPUT);
   pinMode(EMERGENCY_PIN, INPUT_PULLUP);
   pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(MQ4_ANALOG_PIN, INPUT);
+  pinMode(MQ4_DIGITAL_PIN, INPUT);
   digitalWrite(BUZZER_PIN, LOW);  // Buzzer off initially
   Serial.println("✓ GPIO pins configured");
   Serial.println("✓ IR sensor initialized for helmet detection");
   Serial.println("✓ Buzzer initialized on GPIO5");
+  
+  // Calibrate MQ-4 sensor
+  Serial.print("Calibrating MQ-4 gas sensor...");
+  mq4_ro = MQCalibration();
+  Serial.print(" Done! Ro = ");
+  Serial.print(mq4_ro);
+  Serial.println(" kOhms");
+  Serial.println("✓ MQ-4 methane sensor initialized on GPIO34");
+  Serial.println("   Note: MQ-4 requires 24-48hrs preheating for accuracy");
+  Serial.println("   Gas thresholds: Safe<1000, Warning<2500, Danger<5000, Critical>5000 ppm");
 
   // Initialize MAX30100 sensor
   Serial.print("Initializing MAX30100...");
@@ -606,6 +753,19 @@ void loop() {
     // Note: Hardware emergency button does NOT activate buzzer
     // It only sends emergency status in JSON for app notification
 
+    // ---- Read MQ-4 Gas Sensor ----
+    gasLevel = readMQ4GasLevel();
+    int gasDigital = digitalRead(MQ4_DIGITAL_PIN);  // Optional: threshold trigger
+    String gasStatus = "safe";
+    
+    if (gasLevel >= GAS_DANGER_THRESHOLD) {
+      gasStatus = "critical";
+    } else if (gasLevel >= GAS_WARNING_THRESHOLD) {
+      gasStatus = "danger";
+    } else if (gasLevel >= GAS_SAFE_THRESHOLD) {
+      gasStatus = "warning";
+    }
+
     // ---- Build JSON String ----
     String json = "{";
 
@@ -628,6 +788,13 @@ void loop() {
     json += "\"pulse\":{";
     json += "\"bpm\":" + String(heartRate, 1) + ",";
     json += "\"spo2\":" + String(spO2);
+    json += "},";
+
+    // MQ-4 gas sensor data
+    json += "\"gas\":{";
+    json += "\"ppm\":" + String(gasLevel) + ",";
+    json += "\"raw\":" + String(gasAnalogRaw) + ",";
+    json += "\"status\":\"" + gasStatus + "\"";
     json += "},";
 
     // Emergency status

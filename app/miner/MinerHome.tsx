@@ -4,21 +4,26 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmergencyButton } from '../../components/EmergencyButton';
 import {
-    Activity,
-    AlertTriangle,
-    Bell,
-    Camera,
-    CheckCircle,
-    ChevronRight,
-    Droplets,
-    Heart,
-    Map,
-    Mic,
-    Shield,
-    Thermometer,
-    TrendingUp,
-    Trophy,
-    Video
+  Activity,
+  AlertTriangle,
+  BarChart3,
+  Bell,
+  Camera,
+  CheckCircle,
+  ChevronRight,
+  Droplets,
+  FileText,
+  Heart,
+  Map,
+  Mic,
+  Shield,
+  Sparkles,
+  Thermometer,
+  TrendingUp,
+  Trophy,
+  Video,
+  Wrench,
+  Zap
 } from '../../components/Icons';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { getWebSocketURL } from '../../config/smartHelmetConfig';
@@ -104,12 +109,22 @@ export default function MinerHome() {
   }, []);
 
   const quickActions = [
+    { icon: Shield, label: 'PPE Scan', route: '/miner/PPEScanScreen', color: COLORS.accent },
+    { icon: Zap, label: 'Torch', route: '/miner/Torch', color: '#F59E0B' },
+    { icon: CheckCircle, label: 'Daily Check-in', route: '/miner/DailyCheckIn', color: '#10B981' },
+  ];
+
+  const safetyFeatures = [
     { icon: Map, label: 'Heat Map', route: '/miner/HeatMapView', color: COLORS.primary },
     { icon: Camera, label: 'Hazard Scan', route: '/miner/HazardScan', color: COLORS.destructive },
-    { icon: Shield, label: 'PPE Scan', route: '/miner/PPEScanScreen', color: COLORS.accent },
     { icon: AlertTriangle, label: 'Report', route: '/miner/IncidentReport', color: '#F59E0B' },
     { icon: Trophy, label: 'Fire Safety', route: '/miner/SimulationScreen', color: '#DC2626' },
     { icon: Trophy, label: 'Blasting', route: '/miner/BlastingGame', color: '#F59E0B' },
+    { icon: Heart, label: 'Health Monitor', route: '/miner/SmartHelmetStatus', color: '#EC4899' },
+    { icon: Sparkles, label: 'AI Assistant', route: '/chat', color: '#8B5CF6' },
+    { icon: Wrench, label: 'Equipment Check', route: '/miner/EquipmentCheck', color: '#6366F1' },
+    { icon: FileText, label: 'Case Studies', route: '/miner/CaseStudies', color: '#0EA5E9' },
+    { icon: BarChart3, label: 'Progress', route: '/miner/Progress', color: '#14B8A6' },
   ];
 
   const trainingModules = [
@@ -166,7 +181,38 @@ export default function MinerHome() {
             </View>
           </View>
 
-          {/* Smart Helmet Status Widget */}
+          {/* Quick Actions - Overlapping */}
+          <View style={styles.quickActionsWrapper}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            
+            <View style={styles.quickActionsContainer}>
+              <View style={styles.quickActionsRow}>
+                {quickActions.map((action, index) => {
+                  const Icon = action.icon;
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => router.push(action.route as any)}
+                      style={styles.quickActionItem}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.quickActionCard, { backgroundColor: action.color + '15' }]}>
+                        <Icon size={36} color={action.color} />
+                        <Text style={styles.quickActionLabel}>{action.label}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Spacing for overlapping content */}
+        <View style={styles.overlapSpacer} />
+
+        {/* Smart Helmet Status Widget */}
+        <View style={styles.section}>
           <View style={styles.helmetCard}>
             <View style={styles.helmetHeader}>
               <View style={styles.helmetTitleRow}>
@@ -234,10 +280,10 @@ export default function MinerHome() {
 
                 {/* Temperature */}
                 <View style={styles.sensorRow}>
-                  <Thermometer size={20} color={helmetData.env.temp > 35 ? '#F59E0B' : '#6B7280'} />
+                  <Thermometer size={20} color={helmetData.env.temp !== null && helmetData.env.temp > 35 ? '#F59E0B' : '#6B7280'} />
                   <Text style={styles.sensorLabel}>Temperature:</Text>
-                  <Text style={[styles.sensorValue, helmetData.env.temp > 35 && styles.warningValue]}>
-                    {helmetData.env.temp.toFixed(1)}°C
+                  <Text style={[styles.sensorValue, helmetData.env.temp !== null && helmetData.env.temp > 35 && styles.warningValue]}>
+                    {helmetData.env.temp !== null ? `${helmetData.env.temp.toFixed(1)}°C` : 'N/A'}
                   </Text>
                 </View>
 
@@ -246,7 +292,7 @@ export default function MinerHome() {
                   <Droplets size={20} color="#6B7280" />
                   <Text style={styles.sensorLabel}>Humidity:</Text>
                   <Text style={styles.sensorValue}>
-                    {helmetData.env.hum.toFixed(0)}%
+                    {helmetData.env.hum !== null ? `${helmetData.env.hum.toFixed(0)}%` : 'N/A'}
                   </Text>
                 </View>
 
@@ -325,28 +371,43 @@ export default function MinerHome() {
           </View>
         )}
 
-        {/* Quick Actions */}
+        {/* Safety Features */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.sectionTitle}>Safety Features</Text>
           
-          <View style={styles.actionGrid}>
-            {quickActions.map((action, index) => {
+          {/* First 9 features in 3x3 grid */}
+          <View style={styles.safetyFeaturesGrid}>
+            {safetyFeatures.slice(0, 9).map((action, index) => {
               const Icon = action.icon;
               return (
                 <TouchableOpacity
                   key={index}
                   onPress={() => router.push(action.route as any)}
-                  style={styles.actionCardWrapper}
+                  style={styles.safetyFeatureItem}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.actionCard, { backgroundColor: action.color + '20' }]}>
-                    <Icon size={32} color={action.color} />
-                    <Text style={styles.actionLabel}>{action.label}</Text>
+                  <View style={[styles.safetyFeatureCard, { backgroundColor: action.color + '20' }]}>
+                    <Icon size={28} color={action.color} />
+                    <Text style={styles.safetyFeatureLabel}>{action.label}</Text>
                   </View>
                 </TouchableOpacity>
               );
             })}
           </View>
+
+          {/* Progress feature spanning full width */}
+          {safetyFeatures[9] && (
+            <TouchableOpacity
+              onPress={() => router.push(safetyFeatures[9].route as any)}
+              style={styles.progressFeatureWrapper}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.progressFeatureCard, { backgroundColor: safetyFeatures[9].color + '20' }]}>
+                <BarChart3 size={32} color={safetyFeatures[9].color} />
+                <Text style={styles.progressFeatureLabel}>{safetyFeatures[9].label}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Recent Notifications */}
@@ -384,10 +445,21 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingTop: 24,
+    paddingBottom: 130,
     backgroundColor: COLORS.card,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+  },
+  quickActionsWrapper: {
+    position: 'absolute',
+    bottom: -50,
+    left: 24,
+    right: 24,
+    zIndex: 10,
+  },
+  overlapSpacer: {
+    height: 60,
   },
   welcomeText: {
     fontSize: 14,
@@ -480,6 +552,44 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
+  quickActionsContainer: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  quickActionItem: {
+    flex: 1,
+    aspectRatio: 1,
+  },
+  quickActionCard: {
+    flex: 1,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+  },
+  quickActionLabel: {
+    marginTop: 8,
+    fontWeight: '500',
+    color: COLORS.text,
+    textAlign: 'center',
+    fontSize: 12,
+  },
   actionCardWrapper: {
     width: '48%',
     marginBottom: 16,
@@ -494,6 +604,48 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
     textAlign: 'center',
+  },
+  safetyFeaturesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  safetyFeatureItem: {
+    width: '31.5%',
+    marginBottom: 12,
+    aspectRatio: 1,
+  },
+  safetyFeatureCard: {
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  safetyFeatureLabel: {
+    marginTop: 6,
+    fontWeight: '600',
+    color: COLORS.text,
+    textAlign: 'center',
+    fontSize: 11,
+  },
+  progressFeatureWrapper: {
+    width: '100%',
+  },
+  progressFeatureCard: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 80,
+  },
+  progressFeatureLabel: {
+    fontWeight: '600',
+    color: COLORS.text,
+    fontSize: 16,
   },
   notificationHeader: {
     flexDirection: 'row',

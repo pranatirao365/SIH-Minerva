@@ -145,7 +145,7 @@ export default function AdminHome() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>👑 Admin Panel</Text>
+        <Text style={styles.headerTitle}>Admin Panel</Text>
         <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
@@ -154,7 +154,7 @@ export default function AdminHome() {
       <ScrollView style={styles.content}>
         {/* Add User Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>➕ Add New User</Text>
+          <Text style={styles.sectionTitle}>Add New User</Text>
           
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Phone Number</Text>
@@ -217,10 +217,10 @@ export default function AdminHome() {
         {/* Users List Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>👥 All Users ({users.length})</Text>
+            <Text style={styles.sectionTitle}>All Users ({users.length})</Text>
             <TouchableOpacity onPress={fetchUsers} disabled={refreshing}>
               <Text style={styles.refreshButton}>
-                {refreshing ? '⟳' : '🔄'} Refresh
+                Refresh
               </Text>
             </TouchableOpacity>
           </View>
@@ -232,16 +232,20 @@ export default function AdminHome() {
               {users.map((user) => (
                 <View key={user.id} style={styles.userCard}>
                   <View style={styles.userInfo}>
-                    <Text style={styles.userPhone}>📱 {user.phoneNumber}</Text>
-                    <View style={[styles.roleBadge, { backgroundColor: getRoleColor(user.role) }]}>
-                      <Text style={styles.roleBadgeText}>{getRoleLabel(user.role)}</Text>
+                    <Text style={styles.userPhone}>{user.phoneNumber}</Text>
+                    <View style={[styles.roleBadge, { 
+                      backgroundColor: getRoleColor(user.role) + '25'
+                    }]}>
+                      <Text style={[styles.roleBadgeText, { color: getRoleColor(user.role) }]}>
+                        {getRoleLabel(user.role)}
+                      </Text>
                     </View>
                   </View>
                   <TouchableOpacity
                     style={styles.deleteButton}
                     onPress={() => handleDeleteUser(user.id, user.phoneNumber)}
                   >
-                    <Text style={styles.deleteButtonText}>🗑️ Delete</Text>
+                    <Text style={styles.deleteButtonText}>Delete</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -276,14 +280,17 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   signOutButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: COLORS.destructive,
+    backgroundColor: COLORS.destructive + '25',
     borderRadius: 8,
   },
   signOutText: {
-    color: '#FFFFFF',
+    color: COLORS.destructive,
     fontWeight: '600',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   content: {
     flex: 1,
@@ -354,7 +361,8 @@ const styles = StyleSheet.create({
   },
   addButton: {
     backgroundColor: COLORS.primary,
-    padding: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
@@ -390,25 +398,28 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   roleBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
     alignSelf: 'flex-start',
-    marginTop: 4,
+    marginTop: 6,
   },
   roleBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   deleteButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: COLORS.destructive,
+    backgroundColor: '#000000',
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: COLORS.destructive,
   },
   deleteButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.destructive,
     fontSize: 12,
     fontWeight: '600',
   },

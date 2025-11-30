@@ -549,9 +549,11 @@ const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 24,
     paddingVertical: 24,
+    backgroundColor: COLORS.background,
   },
   lastSection: {
     paddingBottom: 100,
+    backgroundColor: COLORS.background,
   },
   sectionTitle: {
     fontSize: 20,
@@ -568,7 +570,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -579,9 +581,9 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 4,
   },
   moduleCardLocked: {
     opacity: 0.5,
@@ -656,9 +658,9 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
   },
   quickActionLabel: {
     marginTop: 6,
@@ -695,7 +697,7 @@ const styles = StyleSheet.create({
   },
   safetyFeatureCard: {
     padding: 12,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
@@ -707,9 +709,9 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 4,
   },
   safetyFeatureLabel: {
     marginTop: 8,
@@ -723,7 +725,7 @@ const styles = StyleSheet.create({
   },
   progressFeatureCard: {
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -737,9 +739,9 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 4,
   },
   progressFeatureLabel: {
     fontWeight: '600',
@@ -754,10 +756,18 @@ const styles = StyleSheet.create({
   },
   notificationCard: {
     backgroundColor: COLORS.card,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
     padding: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   notificationTitle: {
     fontSize: 16,
@@ -778,10 +788,18 @@ const styles = StyleSheet.create({
   helmetCard: {
     marginTop: 16,
     backgroundColor: COLORS.card,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
     padding: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   helmetHeader: {
     flexDirection: 'row',

@@ -55,3 +55,6 @@ export const Droplets = (props: any) => <Ionicons name="water" {...props} />;
 export const ChevronRight = (props: any) => <Ionicons name="chevron-forward" {...props} />;
 export const Heart = (props: any) => <Ionicons name="heart" {...props} />;
 export const Lock = (props: any) => <Ionicons name="lock-closed" {...props} />;
+export const Cloud = (props: any) => <Ionicons name="cloud" {...props} />;
+export const RadioWaves = (props: any) => <MaterialCommunityIcons name="vibrate" {...props} />;
+export const Wind = (props: any) => <Ionicons name="leaf" {...props} />;

@@ -54,3 +54,4 @@ export const Thermometer = (props: any) => <Ionicons name="thermometer" {...prop
 export const Droplets = (props: any) => <Ionicons name="water" {...props} />;
 export const ChevronRight = (props: any) => <Ionicons name="chevron-forward" {...props} />;
 export const Heart = (props: any) => <Ionicons name="heart" {...props} />;
+export const Lock = (props: any) => <Ionicons name="lock-closed" {...props} />;

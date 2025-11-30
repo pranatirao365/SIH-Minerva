@@ -14,6 +14,7 @@ import {
   Droplets,
   FileText,
   Heart,
+  Lock,
   Map,
   Mic,
   Shield,
@@ -183,7 +184,7 @@ export default function MinerHome() {
 
           {/* Quick Actions - Overlapping */}
           <View style={styles.quickActionsWrapper}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <Text style={styles.quickActionsTitle}>Quick Actions</Text>
             
             <View style={styles.quickActionsContainer}>
               <View style={styles.quickActionsRow}>
@@ -196,8 +197,8 @@ export default function MinerHome() {
                       style={styles.quickActionItem}
                       activeOpacity={0.7}
                     >
-                      <View style={[styles.quickActionCard, { backgroundColor: action.color + '15' }]}>
-                        <Icon size={36} color={action.color} />
+                      <View style={styles.quickActionCard}>
+                        <Icon size={30} color={action.color} />
                         <Text style={styles.quickActionLabel}>{action.label}</Text>
                       </View>
                     </TouchableOpacity>
@@ -340,20 +341,22 @@ export default function MinerHome() {
                   activeOpacity={0.7}
                 >
                   <Icon 
-                    size={32} 
+                    size={28} 
                     color={module.locked ? '#525252' : module.completed ? COLORS.accent : COLORS.primary} 
                   />
-                  <Text style={[
-                    styles.moduleLabel,
-                    module.locked && styles.moduleLabelLocked
-                  ]}>
-                    {module.label}
-                  </Text>
-                  {module.completed && (
-                    <Text style={styles.completedText}>✓ Completed</Text>
-                  )}
+                  <View style={styles.moduleContent}>
+                    <Text style={[
+                      styles.moduleLabel,
+                      module.locked && styles.moduleLabelLocked
+                    ]}>
+                      {module.label}
+                    </Text>
+                    {module.completed && (
+                      <Text style={styles.completedText}>✓ Completed</Text>
+                    )}
+                  </View>
                   {module.locked && (
-                    <Text style={styles.lockedText}>🔒 Locked</Text>
+                    <Lock size={20} color="#6B7280" />
                   )}
                 </TouchableOpacity>
               );
@@ -386,7 +389,7 @@ export default function MinerHome() {
                   style={styles.safetyFeatureItem}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.safetyFeatureCard, { backgroundColor: action.color + '20' }]}>
+                  <View style={styles.safetyFeatureCard}>
                     <Icon size={28} color={action.color} />
                     <Text style={styles.safetyFeatureLabel}>{action.label}</Text>
                   </View>
@@ -402,7 +405,7 @@ export default function MinerHome() {
               style={styles.progressFeatureWrapper}
               activeOpacity={0.7}
             >
-              <View style={[styles.progressFeatureCard, { backgroundColor: safetyFeatures[9].color + '20' }]}>
+              <View style={styles.progressFeatureCard}>
                 <BarChart3 size={32} color={safetyFeatures[9].color} />
                 <Text style={styles.progressFeatureLabel}>{safetyFeatures[9].label}</Text>
               </View>
@@ -446,29 +449,36 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 130,
-    backgroundColor: COLORS.card,
+    paddingBottom: 115,
+    backgroundColor: '#1a252f',
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
   quickActionsWrapper: {
     position: 'absolute',
-    bottom: -50,
+    bottom: -45,
     left: 24,
     right: 24,
     zIndex: 10,
+    marginTop: 20,
+  },
+  quickActionsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 8,
   },
   overlapSpacer: {
-    height: 60,
+    height: 50,
   },
   welcomeText: {
     fontSize: 14,
-    color: COLORS.textMuted,
+    color: '#BDC3C7',
   },
   userName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text,
+    color: '#FFFFFF',
     marginTop: 4,
   },
   scoreCard: {
@@ -508,18 +518,28 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   moduleGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    gap: 12,
   },
   moduleCard: {
-    width: '48%',
+    width: '100%',
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 16,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 60,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   moduleCardLocked: {
     opacity: 0.5,
@@ -529,10 +549,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent + '20',
     borderColor: COLORS.accent,
   },
+  moduleContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   moduleLabel: {
-    marginTop: 8,
     fontWeight: '600',
     color: COLORS.text,
+    fontSize: 15,
   },
   moduleLabelLocked: {
     color: COLORS.textMuted,
@@ -554,8 +578,8 @@ const styles = StyleSheet.create({
   },
   quickActionsContainer: {
     backgroundColor: COLORS.card,
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 18,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -570,25 +594,36 @@ const styles = StyleSheet.create({
   quickActionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 10,
   },
   quickActionItem: {
     flex: 1,
-    aspectRatio: 1,
+    aspectRatio: 1.1,
   },
   quickActionCard: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
+    padding: 10,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   quickActionLabel: {
-    marginTop: 8,
+    marginTop: 6,
     fontWeight: '500',
     color: COLORS.text,
     textAlign: 'center',
-    fontSize: 12,
+    fontSize: 11,
   },
   actionCardWrapper: {
     width: '48%',
@@ -618,13 +653,24 @@ const styles = StyleSheet.create({
   },
   safetyFeatureCard: {
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   safetyFeatureLabel: {
-    marginTop: 6,
+    marginTop: 8,
     fontWeight: '600',
     color: COLORS.text,
     textAlign: 'center',
@@ -635,12 +681,23 @@ const styles = StyleSheet.create({
   },
   progressFeatureCard: {
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 12,
     minHeight: 80,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   progressFeatureLabel: {
     fontWeight: '600',

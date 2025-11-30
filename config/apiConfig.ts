@@ -17,6 +17,7 @@ import Constants from 'expo-constants';
 const LAN_IP = '192.168.137.1'; // 👈 Your Wi-Fi IP (for physical devices)
 
 const PPE_API_PORT = 8000;
+const VIDEO_API_PORT = 4000;
 
 /**
  * Get the appropriate API base URL based on the device/platform
@@ -44,6 +45,31 @@ export const getPPEApiUrl = (): string => {
 };
 
 /**
+ * Get the video generation API base URL
+ */
+export const getVideoApiUrl = (): string => {
+  // Check if running on a physical device
+  const isDevice = Constants.isDevice;
+
+  if (Platform.OS === 'android') {
+    // Android emulator uses 10.0.2.2 to access host machine's localhost
+    // Physical Android device uses LAN IP
+    return isDevice 
+      ? `http://${LAN_IP}:${VIDEO_API_PORT}`
+      : `http://10.0.2.2:${VIDEO_API_PORT}`;
+  } else if (Platform.OS === 'ios') {
+    // iOS simulator can use localhost directly
+    // Physical iOS device uses LAN IP
+    return isDevice
+      ? `http://${LAN_IP}:${VIDEO_API_PORT}`
+      : `http://localhost:${VIDEO_API_PORT}`;
+  }
+
+  // Default fallback (web or other platforms)
+  return `http://localhost:${VIDEO_API_PORT}`;
+};
+
+/**
  * PPE API endpoints
  */
 export const PPE_API_ENDPOINTS = {
@@ -51,8 +77,40 @@ export const PPE_API_ENDPOINTS = {
 };
 
 /**
+ * Video Generation API endpoints
+ */
+export const VIDEO_API_ENDPOINTS = {
+  generate: '/api/video/generate',
+  status: '/api/video/status',
+  videos: '/videos',
+};
+
+/**
  * Get the full prediction endpoint URL
  */
 export const getPPEPredictUrl = (): string => {
   return `${getPPEApiUrl()}${PPE_API_ENDPOINTS.predict}`;
+};
+
+/**
+ * Get video generation endpoint URL
+ */
+export const getVideoGenerateUrl = (): string => {
+  return `${getVideoApiUrl()}${VIDEO_API_ENDPOINTS.generate}`;
+};
+
+/**
+ * Get video status endpoint URL
+ */
+export const getVideoStatusUrl = (jobId: string): string => {
+  return `${getVideoApiUrl()}${VIDEO_API_ENDPOINTS.status}/${jobId}`;
+};
+
+/**
+ * Get full video URL for streaming
+ */
+export const getVideoUrl = (videoPath: string): string => {
+  // Remove leading slash if present
+  const cleanPath = videoPath.startsWith('/') ? videoPath.substring(1) : videoPath;
+  return `${getVideoApiUrl()}/${cleanPath}`;
 };

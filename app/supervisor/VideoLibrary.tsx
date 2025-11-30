@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Play, X, Video as VideoIcon, Search, Filter } from '@/components/Icons';
+import { ArrowLeft, Play, Trash2, Video as VideoIcon, Search, Filter, Send, Calendar } from '@/components/Icons';
 import { COLORS } from '@/constants/styles';
 
 interface VideoItem {
@@ -74,7 +74,7 @@ export default function VideoLibrary() {
   const deleteVideo = async (videoId: string) => {
     Alert.alert(
       'Delete Video',
-      'Are you sure you want to delete this video from the library?',
+      'Are you sure you want to delete this video from the library? This will also remove all related assignments and progress.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -85,6 +85,27 @@ export default function VideoLibrary() {
               const updatedVideos = videos.filter(v => v.id !== videoId);
               setVideos(updatedVideos);
               await AsyncStorage.setItem('videoLibrary', JSON.stringify(updatedVideos));
+
+              // Clean up related assignments and progress
+              const existingAssignments = await AsyncStorage.getItem('videoAssignments');
+              if (existingAssignments) {
+                const assignments = JSON.parse(existingAssignments);
+                const filteredAssignments = assignments.filter((a: any) => a.videoId !== videoId);
+                await AsyncStorage.setItem('videoAssignments', JSON.stringify(filteredAssignments));
+              }
+
+              const existingProgress = await AsyncStorage.getItem('assignmentProgress');
+              if (existingProgress) {
+                const progress = JSON.parse(existingProgress);
+                const filteredProgress = progress.filter((p: any) => {
+                  // Find the assignment to check if it matches the videoId
+                  const assignment = existingAssignments ? JSON.parse(existingAssignments).find((a: any) => a.id === p.assignmentId) : null;
+                  return !assignment || assignment.videoId !== videoId;
+                });
+                await AsyncStorage.setItem('assignmentProgress', JSON.stringify(filteredProgress));
+              }
+
+              Alert.alert('Success', 'Video and related assignments deleted successfully');
             } catch (error) {
               console.error('Error deleting video:', error);
               Alert.alert('Error', 'Failed to delete video');
@@ -113,6 +134,75 @@ export default function VideoLibrary() {
     );
   };
 
+  const assignAsDailyTask = (video: VideoItem) => {
+    Alert.alert(
+      'Assign as Daily Task',
+      `Assign "${video.topic}" as a daily mandatory task for all miners?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Assign',
+          onPress: async () => {
+            try {
+              // Create a daily assignment for all miners
+              const assignment = {
+                id: `daily_${video.id}_${Date.now()}`,
+                videoId: video.id,
+                videoTopic: video.topic,
+                assignedTo: ['1', '2', '3', '4'], // All miner IDs
+                assignedBy: 'Supervisor', // In real app, get from user context
+                deadline: Date.now() + 24 * 60 * 60 * 1000, // 24 hours from now
+                isMandatory: true,
+                assignedAt: Date.now(),
+                description: `Daily mandatory safety training: ${video.topic}`,
+                isDailyTask: true,
+                taskDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+              };
+
+              // Load existing assignments
+              const existingAssignments = await AsyncStorage.getItem('videoAssignments');
+              const assignments = existingAssignments ? JSON.parse(existingAssignments) : [];
+
+              // Check for existing daily task for today
+              const today = new Date().toISOString().split('T')[0];
+              const existingDailyTask = assignments.find((a: any) =>
+                a.isDailyTask && a.taskDate === today && a.videoId === video.id
+              );
+
+              if (existingDailyTask) {
+                Alert.alert('Info', 'This video is already assigned as today\'s daily task.');
+                return;
+              }
+
+              // Add new assignment
+              assignments.push(assignment);
+              await AsyncStorage.setItem('videoAssignments', JSON.stringify(assignments));
+
+              // Create progress entries for all miners
+              const existingProgress = await AsyncStorage.getItem('assignmentProgress');
+              const progress = existingProgress ? JSON.parse(existingProgress) : [];
+
+              const newProgress = ['1', '2', '3', '4'].map(minerId => ({
+                assignmentId: assignment.id,
+                minerId,
+                watched: false,
+                progress: 0,
+              }));
+
+              progress.push(...newProgress);
+              await AsyncStorage.setItem('assignmentProgress', JSON.stringify(progress));
+
+              Alert.alert('Success', `Daily task assigned to all miners!`);
+            } catch (error) {
+              console.error('Error assigning daily task:', error);
+              Alert.alert('Error', 'Failed to assign daily task');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -135,6 +225,12 @@ export default function VideoLibrary() {
             {item.languageName} • {formatDate(item.timestamp)}
           </Text>
         </View>
+        <TouchableOpacity
+          style={styles.deleteButtonTop}
+          onPress={() => deleteVideo(item.id)}
+        >
+          <Trash2 size={18} color={COLORS.destructive} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.videoActions}>
@@ -147,10 +243,11 @@ export default function VideoLibrary() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => deleteVideo(item.id)}
+          style={[styles.actionButton, styles.assignButton]}
+          onPress={() => assignAsDailyTask(item)}
         >
-          <X size={16} color="#FFFFFF" />
+          <Calendar size={16} color="#FFFFFF" />
+          <Text style={styles.assignButtonText}>Daily Task</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -365,17 +462,22 @@ const styles = StyleSheet.create({
   },
   videoActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 6,
-    gap: 6,
+    borderRadius: 8,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   playButton: {
     backgroundColor: COLORS.primary,
@@ -388,6 +490,19 @@ const styles = StyleSheet.create({
   deleteButton: {
     backgroundColor: COLORS.destructive,
     flex: 0.3,
+  },
+  deleteButtonTop: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  assignButton: {
+    backgroundColor: COLORS.accent,
+  },
+  assignButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   headerFilterButton: {
     padding: 4,

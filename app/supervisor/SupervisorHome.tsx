@@ -98,6 +98,13 @@ export default function SupervisorHome() {
       color: '#EC4899',
     },
     {
+      icon: BarChart3,
+      title: 'Video Progress Dashboard',
+      description: 'Monitor mandatory video completion',
+      route: '/supervisor/VideoProgressDashboard',
+      color: '#06B6D4',
+    },
+    {
       icon: Users,
       title: 'Team Management',
       description: 'Manage team members and assignments',

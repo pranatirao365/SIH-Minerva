@@ -1,12 +1,13 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { useRouter } from 'expo-router';
 import { getApp } from 'firebase/app';
 import { PhoneAuthProvider } from 'firebase/auth';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Phone } from '../../components/Icons';
-import { auth } from '../../config/firebase';
+import { auth, firebaseConfig } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
 import { translator } from '../../services/translator';
 
@@ -48,7 +49,7 @@ export default function PhoneLogin() {
 
   const handleSendOTP = async () => {
     setError('');
-    
+
     if (!validatePhone(phone)) {
       setError('Please enter a valid phone number (+91 followed by 10 digits)');
       return;
@@ -57,9 +58,10 @@ export default function PhoneLogin() {
     setLoading(true);
 
     try {
-      // 🧪 TEST MODE: Skip real OTP for test numbers
+      // 🧪 TEST MODE: Skip real OTP for test numbers (but still apply rate limiting)
       if (IS_TEST_MODE && TEST_PHONES.includes(phone)) {
         console.log('🧪 TEST MODE: Using test phone number');
+        
         const testVerificationId = 'TEST_VERIFICATION_ID';
         
         // Determine role based on phone number
@@ -72,7 +74,7 @@ export default function PhoneLogin() {
         
         Alert.alert(
           '🧪 Test Mode',
-          `Test phone detected!\n\nPhone: ${phone}\n${roleInfo}\nTest OTP: 123456\n\nEnter 123456 in the next screen.`,
+          `Test phone detected!\n\nPhone: ${phone}\n${roleInfo}\nTest OTP: 123456\n\nEnter 123456 in the next screen.\n\n⏰ Next test OTP available in 30 seconds.`,
           [
             { 
               text: 'OK', 
@@ -133,14 +135,19 @@ export default function PhoneLogin() {
       if (err.code === 'auth/invalid-phone-number') {
         errorMessage = 'Invalid phone number format.';
       } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many attempts. Please try again later.';
+        errorMessage = 'Too many OTP requests. Please try again later.';
       } else if (err.code === 'auth/quota-exceeded') {
-        errorMessage = 'SMS quota exceeded.';
+        errorMessage = 'SMS quota exceeded. Please contact support.';
+      } else if (err.code === 'auth/captcha-check-failed') {
+        errorMessage = 'Security verification failed. Please try again.';
+      } else if (err.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your connection and try again.';
       } else if (err.message) {
         errorMessage = err.message;
       }
       
       setError(errorMessage);
+      
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
@@ -151,7 +158,7 @@ export default function PhoneLogin() {
     <SafeAreaView style={styles.container}>
       <FirebaseRecaptchaVerifierModal
         ref={recaptchaVerifier}
-        firebaseConfig={firebaseApp.options}
+        firebaseConfig={firebaseConfig}
         attemptInvisibleVerification={true}
       />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -307,5 +314,20 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     fontSize: 12,
     textAlign: 'center',
+  },
+  cooldownContainer: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: COLORS.destructive + '10',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.destructive + '30',
+  },
+  cooldownText: {
+    color: COLORS.destructive,
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });

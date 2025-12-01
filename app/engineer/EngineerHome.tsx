@@ -6,7 +6,6 @@ import {
     AlertTriangle,
     Bell,
     Cloud,
-    Globe,
     RadioWaves,
     Thermometer,
     User,

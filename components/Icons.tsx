@@ -53,6 +53,7 @@ export const Activity = (props: any) => <Ionicons name="pulse" {...props} />;
 export const Thermometer = (props: any) => <Ionicons name="thermometer" {...props} />;
 export const Droplets = (props: any) => <Ionicons name="water" {...props} />;
 export const ChevronRight = (props: any) => <Ionicons name="chevron-forward" {...props} />;
+export const ChevronDown = (props: any) => <Ionicons name="chevron-down" {...props} />;
 export const Heart = (props: any) => <Ionicons name="heart" {...props} />;
 export const Lock = (props: any) => <Ionicons name="lock-closed" {...props} />;
 export const Cloud = (props: any) => <Ionicons name="cloud" {...props} />;

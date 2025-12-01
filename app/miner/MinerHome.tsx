@@ -10,6 +10,7 @@ import {
   Bell,
   Camera,
   CheckCircle,
+  ChevronDown,
   ChevronRight,
   Droplets,
   FileText,
@@ -54,6 +55,7 @@ export default function MinerHome() {
   const router = useRouter();
   const { user, moduleProgress, safetyScore } = useRoleStore();
   const [showInlineGame, setShowInlineGame] = useState(false);
+  const [safetyFeaturesExpanded, setSafetyFeaturesExpanded] = useState(true);
   
   // Smart Helmet WebSocket State
   const [helmetConnected, setHelmetConnected] = useState(false);
@@ -396,41 +398,60 @@ export default function MinerHome() {
 
         {/* Safety Features */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Safety Features</Text>
-          
-          {/* First 9 features in 3x3 grid */}
-          <View style={styles.safetyFeaturesGrid}>
-            {safetyFeatures.slice(0, 9).map((action, index) => {
-              const Icon = action.icon;
-              return (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => router.push(action.route as any)}
-                  style={styles.safetyFeatureItem}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.safetyFeatureCard}>
-                    <Icon size={28} color={action.color} />
-                    <Text style={styles.safetyFeatureLabel}>{action.label}</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Progress feature spanning full width */}
-          {safetyFeatures[9] && (
-            <TouchableOpacity
-              onPress={() => router.push(safetyFeatures[9].route as any)}
-              style={styles.progressFeatureWrapper}
+          <View style={styles.safetyFeaturesBox}>
+            <TouchableOpacity 
+              style={styles.safetyFeaturesHeader}
+              onPress={() => setSafetyFeaturesExpanded(!safetyFeaturesExpanded)}
               activeOpacity={0.7}
             >
-              <View style={styles.progressFeatureCard}>
-                <BarChart3 size={32} color={safetyFeatures[9].color} />
-                <Text style={styles.progressFeatureLabel}>{safetyFeatures[9].label}</Text>
-              </View>
+              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Safety Features</Text>
+              <ChevronDown 
+                size={24} 
+                color={COLORS.text} 
+                style={{ 
+                  transform: [{ rotate: safetyFeaturesExpanded ? '0deg' : '-90deg' }] 
+                }} 
+              />
             </TouchableOpacity>
-          )}
+            
+            {safetyFeaturesExpanded && (
+              <>
+                {/* First 9 features in 3x3 grid */}
+                <View style={[styles.safetyFeaturesGrid, { marginTop: 16 }]}>
+                  {safetyFeatures.slice(0, 9).map((action, index) => {
+                    const Icon = action.icon;
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        onPress={() => router.push(action.route as any)}
+                        style={styles.safetyFeatureItem}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.safetyFeatureCard}>
+                          <Icon size={28} color={action.color} />
+                          <Text style={styles.safetyFeatureLabel}>{action.label}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* Progress feature spanning full width */}
+                {safetyFeatures[9] && (
+                  <TouchableOpacity
+                    onPress={() => router.push(safetyFeatures[9].route as any)}
+                    style={styles.progressFeatureWrapper}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.progressFeatureCard}>
+                      <BarChart3 size={32} color={safetyFeatures[9].color} />
+                      <Text style={styles.progressFeatureLabel}>{safetyFeatures[9].label}</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
         </View>
 
         {/* Recent Notifications */}
@@ -560,6 +581,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.text,
     marginBottom: 16,
+  },
+  safetyFeaturesBox: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  safetyFeaturesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 0,
   },
   moduleGrid: {
     flexDirection: 'column',

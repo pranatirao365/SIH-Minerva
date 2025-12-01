@@ -1,3 +1,5 @@
+import { ArrowLeft, CheckCircle, Film, Globe, Sparkles, Video as VideoIcon } from '@/components/Icons';
+import { COLORS } from '@/constants/styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { File, Paths } from 'expo-file-system';
@@ -17,8 +19,6 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, CheckCircle, Film, Globe, Sparkles, Video as VideoIcon } from '@/components/Icons';
-import { COLORS } from '@/constants/styles';
 
 interface GenerationStage {
   name: string;
@@ -283,7 +283,7 @@ export default function VideoGenerationModule() {
 
     try {
       // Call backend API endpoint
-      const response = await fetch('http://192.168.137.1:4000/api/video/generate', {
+      const response = await fetch('http://172.24.0.1:4000/api/video/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -313,7 +313,7 @@ export default function VideoGenerationModule() {
   const pollGenerationProgress = async (jobId: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`http://192.168.137.1:4000/api/video/status/${jobId}`);
+        const response = await fetch(`http://172.24.0.1:4000/api/video/status/${jobId}`);
         
         if (!response.ok) {
           clearInterval(pollInterval);
@@ -346,7 +346,7 @@ export default function VideoGenerationModule() {
           // Convert relative URL to absolute URL
           const videoUrl = data.videoUrl.startsWith('http') 
             ? data.videoUrl 
-            : `http://192.168.137.1:4000${data.videoUrl}`;
+            : `http://172.24.0.1:4000${data.videoUrl}`;
           
           console.log('Video URL:', videoUrl);
           setGeneratedVideoUrl(videoUrl);

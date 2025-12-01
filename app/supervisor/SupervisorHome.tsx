@@ -43,6 +43,46 @@ export default function SupervisorHome() {
 
   const mainModules = [
     {
+      icon: Shield,
+      title: 'PPE Compliance Monitor',
+      description: 'Track PPE scan results and compliance',
+      route: '/supervisor/PPEComplianceMonitor',
+      color: '#06B6D4',
+      gradient: false,
+    },
+    {
+      icon: CheckCircle,
+      title: 'Team Task Status',
+      description: 'Track daily task completion by team',
+      route: '/supervisor/TeamTaskStatus',
+      color: '#10B981',
+      gradient: false,
+    },
+    {
+      icon: Users,
+      title: 'Health Monitoring',
+      description: 'Monitor miner vitals and fitness',
+      route: '/supervisor/HealthMonitoring',
+      color: '#EF4444',
+      gradient: false,
+    },
+    {
+      icon: AlertTriangle,
+      title: 'Hazard Heat Map',
+      description: 'Visualize hazardous zones',
+      route: '/supervisor/HazardZoneHeatMap',
+      color: '#F59E0B',
+      gradient: false,
+    },
+    {
+      icon: BarChart3,
+      title: 'Performance Tracking',
+      description: 'Safety scores and achievements',
+      route: '/supervisor/PerformanceTracking',
+      color: '#8B5CF6',
+      gradient: false,
+    },
+    {
       icon: Video,
       title: 'AI Video Generator',
       description: 'Create safety training videos with AI',
@@ -135,6 +175,22 @@ export default function SupervisorHome() {
           <View style={styles.statCard}>
             <Text style={styles.statValue}>156</Text>
             <Text style={styles.statLabel}>Team Members</Text>
+          </View>
+        </View>
+
+        {/* Enhanced Stats Row */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: '#06B6D4' }]}>92%</Text>
+            <Text style={styles.statLabel}>PPE Compliance</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: '#EF4444' }]}>2</Text>
+            <Text style={styles.statLabel}>Health Alerts</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: '#10B981' }]}>45/50</Text>
+            <Text style={styles.statLabel}>Tasks Done</Text>
           </View>
         </View>
 

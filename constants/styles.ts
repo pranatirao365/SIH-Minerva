@@ -9,7 +9,7 @@ export const COLORS = {
   card: '#1A1A1A',
   border: '#27272A',
   text: '#FAFAFA',
-  textMuted: '#A1A1AA',
+  textMuted: '#CCCCCC',
 };
 
 export const globalStyles = StyleSheet.create({

@@ -49,7 +49,7 @@ export const sendOTP = async (phoneNumber: string, recaptchaVerifier?: any): Pro
       console.log('📱 In production, you must implement expo-firebase-recaptcha');
       
       // Generate mock verification ID for testing
-      const mockVerificationId = `verification_${Date.now()}_${phoneNumber.slice(-4)}`;
+      const mockVerificationId = `verification_${Date.now()}_${phoneNumber.replace('+91', '')}`;
       
       console.log('✅ Mock OTP sent successfully');
       console.log('💡 For testing: Enter any 6-digit code (e.g., 123456)');
@@ -106,6 +106,38 @@ export const verifyOTP = async (verificationId: string, code: string) => {
     }
     
     console.log('Verifying OTP:', code);
+    
+    // Test data OTP mapping
+    const testOTPs: { [key: string]: string } = {
+      '900000001': '123456', // Ravi
+      '900000002': '234567', // Suresh
+      '800000001': '345678', // Arun
+      '800000002': '456789', // Rakesh
+      '800000003': '567890', // Mahesh
+      '800000004': '678901', // Deepak
+      '800000005': '789012', // Imran
+      '800000006': '890123', // Harish
+      '800000007': '901234', // Vijay
+      '800000008': '012345', // Santosh
+      '800000009': '123789', // Sunil
+      '800000010': '234890', // Gopal
+      '700000001': '345901'  // Anita
+    };
+    
+    // Extract phone number from verificationId (for mock mode)
+    const phoneMatch = verificationId.match(/verification_\d+_(\d{9,10})$/);
+    const phoneNumber = phoneMatch ? phoneMatch[1] : null;
+    
+    // Check if it's a test phone number and OTP matches
+    if (phoneNumber && testOTPs[phoneNumber] === code) {
+      console.log('✅ Test OTP verified successfully for phone:', phoneNumber);
+      return {
+        success: true,
+        user: {
+          phoneNumber: `+91${phoneNumber}`
+        }
+      };
+    }
     
     // If we have a confirmation result from Firebase, use it
     if (confirmationResult) {

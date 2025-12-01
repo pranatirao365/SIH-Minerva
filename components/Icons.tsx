@@ -18,6 +18,7 @@ export const Mic = (props: any) => <Ionicons name="mic" {...props} />;
 export const Trophy = (props: any) => <Ionicons name="trophy" {...props} />;
 export const Map = (props: any) => <Ionicons name="map" {...props} />;
 export const Camera = (props: any) => <Ionicons name="camera" {...props} />;
+export const ImageIcon = (props: any) => <Ionicons name="image" {...props} />;
 export const AlertTriangle = (props: any) => <Ionicons name="warning" {...props} />;
 export const CheckCircle = (props: any) => <Ionicons name="checkmark-circle" {...props} />;
 export const TrendingUp = (props: any) => <Ionicons name="trending-up" {...props} />;

@@ -6,6 +6,7 @@
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, QuerySnapshot, DocumentData, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
+import { translateIncidentBatch } from './translationService';
 
 export interface Incident {
   incidentId?: string;
@@ -224,15 +225,32 @@ export async function submitIncident(
       }
     }
     
+    // Translate incident for supervisor view (English, except Telugu)
+    console.log('🌐 Translating incident for supervisor dashboard...');
+    const translated = await translateIncidentBatch(
+      title,
+      description,
+      transcript || '',
+      language
+    );
+    
+    if (translated.wasTranslated) {
+      console.log('✅ Content translated to English for supervisor');
+    } else if (language === 'te') {
+      console.log('🇮🇳 Telugu content kept in original language');
+    } else {
+      console.log('ℹ️ Content already in English or translation skipped');
+    }
+    
     const incidentId = await createIncidentReport({
       reportedBy: minerId,
       minerName,
       type,
-      mediaUrl: mediaUrl || '',
-      description,
-      transcript: transcript || '', // Always string, never undefined
+      mediaUrl: mediaUrl || undefined, // Use undefined, not empty string
+      description: translated.description,
+      transcript: translated.transcript,
       transcriptionStatus,
-      title,
+      title: translated.title,
       status: 'pending',
       severity,
       language: language || 'en'
@@ -242,9 +260,19 @@ export async function submitIncident(
     console.log('Incident ID:', incidentId);
 
     return incidentId;
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error submitting incident:', error);
-    throw error;
+    
+    // Provide user-friendly error messages
+    if (error.message?.includes('permission')) {
+      throw new Error('Permission denied. Please check your Firebase permissions.');
+    } else if (error.message?.includes('network')) {
+      throw new Error('Network error. Please check your internet connection.');
+    } else if (error.message?.includes('auth')) {
+      throw new Error('Authentication error. Please log in again.');
+    }
+    
+    throw new Error(error.message || 'Failed to submit incident. Please try again.');
   }
 }
 
@@ -306,7 +334,7 @@ export async function convertAudioToText(
     // ⏭️ TELUGU STT SKIP - Disable transcription completely for Telugu
     if (language === 'te') {
       console.log('⏭️ Telugu transcription disabled - uploading audio only, no STT');
-      console.log('📝 Returning null transcript for Telugu - no API call made');
+      console.log('📝 Returning empty transcript for Telugu - no API call made');
       return {
         transcript: '',
         detectedLanguage: language,

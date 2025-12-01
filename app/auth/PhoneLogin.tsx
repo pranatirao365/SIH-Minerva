@@ -18,6 +18,19 @@ const TEST_PHONES = [
   '+911234567892', // Supervisor
   '+911234567893', // Safety Officer
   '+911234567894', // Admin
+  '+919000000001',  // Ravi (Supervisor)
+  '+919000000002',  // Suresh (Supervisor)
+  '+918000000001',  // Arun (Miner)
+  '+918000000002',  // Rakesh (Miner)
+  '+918000000003',  // Mahesh (Miner)
+  '+918000000004',  // Deepak (Miner)
+  '+918000000005',  // Imran (Miner)
+  '+918000000006',  // Harish (Miner)
+  '+918000000007',  // Vijay (Miner)
+  '+918000000008',  // Santosh (Miner)
+  '+918000000009',  // Sunil (Miner)
+  '+918000000010',  // Gopal (Miner)
+  '+917000000001'   // Anita (Safety Officer)
 ];
 const IS_TEST_MODE = true; // Set to false in production
 

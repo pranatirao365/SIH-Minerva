@@ -1,11 +1,10 @@
-import { ArrowLeft, CheckCircle, Film, Globe, Sparkles, Video as VideoIcon } from '@/components/Icons';
-import { COLORS } from '@/constants/styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { File, Paths } from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
+import { getAuth, getIdToken } from 'firebase/auth';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -19,6 +18,8 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowLeft, CheckCircle, Film, Globe, Sparkles, Video as VideoIcon } from '@/components/Icons';
+import { COLORS } from '@/constants/styles';
 
 interface GenerationStage {
   name: string;
@@ -51,6 +52,20 @@ export default function VideoGenerationModule() {
   // Load video history from AsyncStorage on mount
   useEffect(() => {
     loadVideoHistory();
+  }, []);
+
+  // Check authentication on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) {
+        Alert.alert('Authentication Required', 'Please log in to access video generation.', [
+          { text: 'OK', onPress: () => router.replace('/auth/PhoneLogin') }
+        ]);
+      }
+    };
+    checkAuth();
   }, []);
 
   const loadVideoHistory = async () => {
@@ -173,9 +188,8 @@ export default function VideoGenerationModule() {
 
   const saveToLibrary = async () => {
     try {
-      // Get existing library videos
-      const existingLibrary = await AsyncStorage.getItem('videoLibrary');
-      const libraryVideos = existingLibrary ? JSON.parse(existingLibrary) : [];
+      // Get current user ID (placeholder for now - should come from auth)
+      const currentUserId = 'safety-officer-1'; // TODO: Get from auth context
 
       // Create video entry
       const videoEntry = {
@@ -188,10 +202,14 @@ export default function VideoGenerationModule() {
         thumbnail: null, // Could add thumbnail generation later
       };
 
-      // Add to library
-      libraryVideos.unshift(videoEntry); // Add to beginning
+      // Save to database
+      
 
-      // Save back to storage
+      // Also save to local AsyncStorage for backward compatibility
+      const existingLibrary = await AsyncStorage.getItem('videoLibrary');
+      const libraryVideos = existingLibrary ? JSON.parse(existingLibrary) : [];
+
+      libraryVideos.unshift(videoEntry);
       await AsyncStorage.setItem('videoLibrary', JSON.stringify(libraryVideos));
 
       Alert.alert(
@@ -282,11 +300,23 @@ export default function VideoGenerationModule() {
     setStages(prev => prev.map(stage => ({ ...stage, status: 'pending', message: undefined })));
 
     try {
+      // Get Firebase ID token for authentication
+      const auth = getAuth();
+      const user = auth.currentUser;
+      
+      if (!user) {
+        Alert.alert('Authentication Error', 'Please log in again.');
+        return;
+      }
+      
+      const idToken = await getIdToken(user);
+      
       // Call backend API endpoint
-      const response = await fetch('http://172.24.0.1:4000/api/video/generate', {
+      const response = await fetch('http://192.168.137.1:4000/api/video/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           topic: topic.trim(),
@@ -313,13 +343,24 @@ export default function VideoGenerationModule() {
   const pollGenerationProgress = async (jobId: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`http://172.24.0.1:4000/api/video/status/${jobId}`);
+        // Get Firebase ID token for authentication
+        const auth = getAuth();
+        const user = auth.currentUser;
         
-        if (!response.ok) {
+        if (!user) {
           clearInterval(pollInterval);
           setIsGenerating(false);
+          Alert.alert('Authentication Error', 'Please log in again.');
           return;
         }
+        
+        const idToken = await getIdToken(user);
+        
+        const response = await fetch(`http://192.168.137.1:4000/api/video/status/${jobId}`, {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+          },
+        });
 
         const data = await response.json();
         
@@ -346,7 +387,7 @@ export default function VideoGenerationModule() {
           // Convert relative URL to absolute URL
           const videoUrl = data.videoUrl.startsWith('http') 
             ? data.videoUrl 
-            : `http://172.24.0.1:4000${data.videoUrl}`;
+            : `http://192.168.137.1:4000${data.videoUrl}`;
           
           console.log('Video URL:', videoUrl);
           setGeneratedVideoUrl(videoUrl);
@@ -590,7 +631,7 @@ export default function VideoGenerationModule() {
                       setVideoLoading(false);
                       setVideoError('');
                     }}
-                    onError={(error) => {
+                    onError={(error: any) => {
                       console.error('Video error details:', error);
                       console.error('Video URL:', generatedVideoUrl);
                       const errorMsg = typeof error === 'string' ? error : 'Failed to load video. Server may not be configured correctly.';

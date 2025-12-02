@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { HardHat, Users, Shield, Wrench, Settings, Check } from '../../components/Icons';
-import { translator } from '../../services/translator';
-import { useRoleStore } from '../../hooks/useRoleStore';
-import { Role, ROLE_LABELS, ROLE_DESCRIPTIONS } from '../../constants/roles';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Check, HardHat, Settings, Shield, Users, Wrench } from '../../components/Icons';
+import { Role, ROLE_DESCRIPTIONS, ROLE_LABELS } from '../../constants/roles';
 import { COLORS } from '../../constants/styles';
+import { useRoleStore } from '../../hooks/useRoleStore';
+import { translator } from '../../services/translator';
 
 const roleOptions = [
   { role: 'miner' as Role, icon: HardHat, color: COLORS.primary },

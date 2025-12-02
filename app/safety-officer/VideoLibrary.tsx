@@ -1,9 +1,13 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ArrowLeft, Filter, Play, Search, Trash2, Video as VideoIcon } from '@/components/Icons';
+import { COLORS } from '@/constants/styles';
+import { VideoLibraryService } from '@/services/videoLibraryService';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Linking,
   StyleSheet,
   Text,
   TextInput,
@@ -11,9 +15,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Play, Trash2, Video as VideoIcon, Search, Filter, RefreshCw } from '@/components/Icons';
-import { COLORS } from '@/constants/styles';
-import { useFocusEffect } from '@react-navigation/native';
 
 interface VideoItem {
   id: string;
@@ -67,7 +68,6 @@ export default function VideoLibrary() {
   const loadVideos = async () => {
     try {
       // Load videos from Firestore
-      const { VideoLibraryService } = await import('@/services/videoLibraryService');
       const fetchedVideos = await VideoLibraryService.getVideos({ status: 'active' });
       
       // Transform to match VideoItem interface
@@ -103,7 +103,6 @@ export default function VideoLibrary() {
           onPress: async () => {
             try {
               // Delete from Firestore
-              const { VideoLibraryService } = await import('@/services/videoLibraryService');
               await VideoLibraryService.deleteVideo(videoId);
               
               // Update local state
@@ -123,7 +122,6 @@ export default function VideoLibrary() {
 
   const playVideo = async (videoUrl: string, topic: string) => {
     try {
-      const { Linking } = await import('react-native');
       const canOpen = await Linking.canOpenURL(videoUrl);
       
       if (canOpen) {

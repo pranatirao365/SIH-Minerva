@@ -18,6 +18,7 @@ export const Mic = (props: any) => <Ionicons name="mic" {...props} />;
 export const Trophy = (props: any) => <Ionicons name="trophy" {...props} />;
 export const Map = (props: any) => <Ionicons name="map" {...props} />;
 export const Camera = (props: any) => <Ionicons name="camera" {...props} />;
+export const ImageIcon = (props: any) => <Ionicons name="image" {...props} />;
 export const AlertTriangle = (props: any) => <Ionicons name="warning" {...props} />;
 export const CheckCircle = (props: any) => <Ionicons name="checkmark-circle" {...props} />;
 export const TrendingUp = (props: any) => <Ionicons name="trending-up" {...props} />;
@@ -59,5 +60,9 @@ export const Thermometer = (props: any) => <Ionicons name="thermometer" {...prop
 export const Award = (props: any) => <Ionicons name="ribbon" {...props} />;
 export const Droplets = (props: any) => <Ionicons name="water" {...props} />;
 export const ChevronRight = (props: any) => <Ionicons name="chevron-forward" {...props} />;
+export const ChevronLeft = (props: any) => <Ionicons name="chevron-back" {...props} />;
 export const CheckSquare = (props: any) => <Ionicons name="checkbox" {...props} />;
 export const Volume2 = (props: any) => <Ionicons name="volume-high" {...props} />;
+export const Mail = (props: any) => <Ionicons name="mail" {...props} />;
+export const Plus = (props: any) => <Ionicons name="add" {...props} />;
+export const Edit2 = (props: any) => <Ionicons name="create-outline" {...props} />;

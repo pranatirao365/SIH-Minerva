@@ -30,11 +30,7 @@ interface MinerPerformance {
 
 export default function PerformanceTracking() {
   const router = useRouter();
-  const [miners, setMiners] = useState<MinerPerformance[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [sortBy, setSortBy] = useState<'score' | 'tasks' | 'ppe' | 'incidents'>('score');
-
+  
   // Mock data
   const mockMiners: MinerPerformance[] = [
     {
@@ -104,12 +100,11 @@ export default function PerformanceTracking() {
     },
   ];
 
-  useEffect(() => {
-    loadPerformance();
-  }, []);
+  const [miners, setMiners] = useState<MinerPerformance[]>(mockMiners);
+  const [refreshing, setRefreshing] = useState(false);
+  const [sortBy, setSortBy] = useState<'score' | 'tasks' | 'ppe' | 'incidents'>('score');
 
   const loadPerformance = async () => {
-    setLoading(true);
     try {
       if (!user?.id) {
         console.error('Supervisor ID not found');
@@ -140,7 +135,7 @@ export default function PerformanceTracking() {
       console.log(`✅ Loaded ${minerPerformance.length} miners for supervisor ${user.id}`);
     } catch (error) {
       console.error('Error loading performance data:', error);
-      setMiners([]);
+      setMiners(mockMiners);
     } finally {
       setLoading(false);
     }
@@ -204,17 +199,6 @@ export default function PerformanceTracking() {
     : 0;
 
   const topPerformer = miners[0];
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading performance data...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>

@@ -1,92 +1,87 @@
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import {
-    ActivityIndicator,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, CheckCircle, Clock, XCircle } from '../../components/Icons';
+import { useRouter } from 'expo-router';
+import { ArrowLeft, CheckCircle, Clock, User, Calendar, TrendingUp } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
-import { useRoleStore } from '../../hooks/useRoleStore';
 import { getTeamTaskStatus } from '../../services/supervisorEnhancements';
 
-interface MinerTask {
-  id: string;
+interface MinerTaskStatus {
   minerId: string;
   minerName: string;
-  status: 'completed' | 'in_progress' | 'not_started' | 'absent';
-  tasksAssigned: number;
-  tasksCompleted: number;
-  lastUpdate: string;
+  totalTasks: number;
+  completedTasks: number;
+  pendingTasks: number;
+  completionRate: number;
+  location: string;
+  shift: string;
 }
 
 export default function TeamTaskStatus() {
   const router = useRouter();
-  const { user } = useRoleStore();
-  const [miners, setMiners] = useState<MinerTask[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'completed' | 'in_progress' | 'not_started' | 'absent'>('all');
+  const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
 
   // Mock data
-  const mockMiners: MinerTask[] = [
+  const [teamStatus] = useState<MinerTaskStatus[]>([
     {
-      id: '1',
       minerId: 'M001',
       minerName: 'Rajesh Kumar',
-      status: 'completed',
-      tasksAssigned: 5,
-      tasksCompleted: 5,
-      lastUpdate: '10 mins ago',
+      totalTasks: 10,
+      completedTasks: 9,
+      pendingTasks: 1,
+      completionRate: 90,
+      location: 'Section A',
+      shift: 'Morning',
     },
     {
-      id: '2',
       minerId: 'M002',
       minerName: 'Amit Sharma',
-      status: 'in_progress',
-      tasksAssigned: 4,
-      tasksCompleted: 2,
-      lastUpdate: '30 mins ago',
+      totalTasks: 8,
+      completedTasks: 6,
+      pendingTasks: 2,
+      completionRate: 75,
+      location: 'Section B',
+      shift: 'Afternoon',
     },
     {
-      id: '3',
       minerId: 'M003',
       minerName: 'Vikram Singh',
-      status: 'completed',
-      tasksAssigned: 6,
-      tasksCompleted: 6,
-      lastUpdate: '1 hour ago',
+      totalTasks: 12,
+      completedTasks: 12,
+      pendingTasks: 0,
+      completionRate: 100,
+      location: 'Section A',
+      shift: 'Morning',
     },
     {
-      id: '4',
       minerId: 'M004',
       minerName: 'Suresh Patel',
-      status: 'not_started',
-      tasksAssigned: 3,
-      tasksCompleted: 0,
-      lastUpdate: '2 hours ago',
+      totalTasks: 10,
+      completedTasks: 5,
+      pendingTasks: 5,
+      completionRate: 50,
+      location: 'Section C',
+      shift: 'Night',
     },
     {
-      id: '5',
       minerId: 'M005',
-      minerName: 'Dinesh Kumar',
-      status: 'absent',
-      tasksAssigned: 4,
-      tasksCompleted: 0,
-      lastUpdate: 'Today',
+      minerName: 'Karan Mehta',
+      totalTasks: 9,
+      completedTasks: 7,
+      pendingTasks: 2,
+      completionRate: 78,
+      location: 'Section B',
+      shift: 'Afternoon',
     },
-  ];
+  ]);
 
   useEffect(() => {
-    loadMiners();
+    loadTeamStatus();
   }, []);
 
-  const loadMiners = async () => {
+  const loadTeamStatus = async () => {
     setLoading(true);
     try {
       if (!user?.id) {
@@ -122,74 +117,31 @@ export default function TeamTaskStatus() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadMiners();
+    await loadTeamStatus();
     setRefreshing(false);
   };
 
-  const filteredMiners = miners.filter(miner =>
-    filter === 'all' ? true : miner.status === filter
+  const getCompletionColor = (rate: number) => {
+    if (rate >= 90) return '#10B981';
+    if (rate >= 75) return '#06B6D4';
+    if (rate >= 50) return '#F59E0B';
+    return '#EF4444';
+  };
+
+  const filteredTeam = teamStatus.filter(member => {
+    if (filter === 'all') return true;
+    if (filter === 'high') return member.completionRate >= 90;
+    if (filter === 'medium') return member.completionRate >= 50 && member.completionRate < 90;
+    if (filter === 'low') return member.completionRate < 50;
+    return true;
+  });
+
+  const avgCompletionRate = Math.round(
+    teamStatus.reduce((sum, m) => sum + m.completionRate, 0) / teamStatus.length
   );
 
-  const totalAssigned = miners.reduce((sum, m) => sum + m.tasksAssigned, 0);
-  const totalCompleted = miners.reduce((sum, m) => sum + m.tasksCompleted, 0);
-  const inProgress = miners.filter(m => m.status === 'in_progress').length;
-  const notStarted = miners.filter(m => m.status === 'not_started').length;
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return '#10B981';
-      case 'in_progress':
-        return '#F59E0B';
-      case 'not_started':
-        return '#EF4444';
-      case 'absent':
-        return '#6B7280';
-      default:
-        return COLORS.textMuted;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle size={24} color="#10B981" />;
-      case 'in_progress':
-        return <Clock size={24} color="#F59E0B" />;
-      case 'not_started':
-        return <XCircle size={24} color="#EF4444" />;
-      case 'absent':
-        return <XCircle size={24} color="#6B7280" />;
-      default:
-        return null;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'Completed';
-      case 'in_progress':
-        return 'In Progress';
-      case 'not_started':
-        return 'Not Started';
-      case 'absent':
-        return 'Absent';
-      default:
-        return status;
-    }
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading team task status...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const totalCompleted = teamStatus.reduce((sum, m) => sum + m.completedTasks, 0);
+  const totalTasks = teamStatus.reduce((sum, m) => sum + m.totalTasks, 0);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -199,56 +151,47 @@ export default function TeamTaskStatus() {
           <ArrowLeft size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Team Task Status</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
         }
       >
         {/* Overview Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: COLORS.primary }]}>
-              {totalCompleted}/{totalAssigned}
-            </Text>
-            <Text style={styles.statLabel}>Total Completed</Text>
+            <TrendingUp size={24} color={COLORS.primary} />
+            <Text style={styles.statValue}>{avgCompletionRate}%</Text>
+            <Text style={styles.statLabel}>Avg Completion</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: '#F59E0B' }]}>{inProgress}</Text>
-            <Text style={styles.statLabel}>In Progress</Text>
+            <CheckCircle size={24} color="#10B981" />
+            <Text style={styles.statValue}>{totalCompleted}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: '#EF4444' }]}>{notStarted}</Text>
-            <Text style={styles.statLabel}>Not Started</Text>
+            <Clock size={24} color="#F59E0B" />
+            <Text style={styles.statValue}>{totalTasks - totalCompleted}</Text>
+            <Text style={styles.statLabel}>Pending</Text>
           </View>
         </View>
 
         {/* Filter Tabs */}
         <View style={styles.filterContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {(['all', 'completed', 'in_progress', 'not_started', 'absent'] as const).map((filterOption) => (
-              <TouchableOpacity
-                key={filterOption}
-                style={[
-                  styles.filterTab,
-                  filter === filterOption && styles.filterTabActive,
-                ]}
-                onPress={() => setFilter(filterOption)}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    filter === filterOption && styles.filterTextActive,
-                  ]}
-                >
-                  {filterOption === 'all' ? 'All' : getStatusText(filterOption)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          {(['all', 'high', 'medium', 'low'] as const).map((f) => (
+            <TouchableOpacity
+              key={f}
+              style={[styles.filterTab, filter === f && styles.filterTabActive]}
+              onPress={() => setFilter(f)}
+            >
+              <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
+                {f === 'all' ? 'All' : f === 'high' ? '90%+' : f === 'medium' ? '50-89%' : '<50%'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Miners List */}
@@ -259,13 +202,13 @@ export default function TeamTaskStatus() {
             </View>
           ) : (
             filteredMiners.map((miner) => (
-              <TouchableOpacity
+              <><TouchableOpacity
                 key={miner.id}
                 style={styles.minerCard}
                 onPress={() => {
                   // View miner task details (removed TaskAssignment as it was deleted)
                   console.log('View tasks for:', miner.minerName);
-                }}
+                } }
               >
                 <View style={styles.minerHeader}>
                   <View style={styles.minerHeaderLeft}>
@@ -286,28 +229,41 @@ export default function TeamTaskStatus() {
                     </Text>
                   </View>
                 </View>
-
-                <View style={styles.progressContainer}>
+              </View><View style={styles.progressSection}>
                   <View style={styles.progressBar}>
                     <View
                       style={[
                         styles.progressFill,
                         {
-                          width: `${miner.tasksAssigned > 0 ? (miner.tasksCompleted / miner.tasksAssigned) * 100 : 0}%`,
-                          backgroundColor: getStatusColor(miner.status),
+                          width: `${member.completionRate}%`,
+                          backgroundColor: getCompletionColor(member.completionRate),
                         },
-                      ]}
-                    />
+                      ]} />
                   </View>
-                  <Text style={styles.progressText}>
-                    {miner.tasksCompleted}/{miner.tasksAssigned} Tasks
+                  <Text style={[styles.completionRate, { color: getCompletionColor(member.completionRate) }]}>
+                    {member.completionRate}%
                   </Text>
-                </View>
-
-                <Text style={styles.lastUpdate}>Last updated: {miner.lastUpdate}</Text>
-              </TouchableOpacity>
-            ))
-          )}
+                </View><View style={styles.taskStats}>
+                  <View style={styles.taskStatItem}>
+                    <CheckCircle size={16} color="#10B981" />
+                    <Text style={styles.taskStatLabel}>Completed</Text>
+                    <Text style={styles.taskStatValue}>{member.completedTasks}</Text>
+                  </View>
+                  <View style={styles.taskStatDivider} />
+                  <View style={styles.taskStatItem}>
+                    <Clock size={16} color="#F59E0B" />
+                    <Text style={styles.taskStatLabel}>Pending</Text>
+                    <Text style={styles.taskStatValue}>{member.pendingTasks}</Text>
+                  </View>
+                  <View style={styles.taskStatDivider} />
+                  <View style={styles.taskStatItem}>
+                    <Calendar size={16} color={COLORS.primary} />
+                    <Text style={styles.taskStatLabel}>Total</Text>
+                    <Text style={styles.taskStatValue}>{member.totalTasks}</Text>
+                  </View>
+                </View></>
+            </View>
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -323,52 +279,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: COLORS.card,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
   backButton: {
-    padding: 4,
+    padding: 8,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.text,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: COLORS.textMuted,
-  },
   content: {
     flex: 1,
   },
   statsContainer: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 20,
     gap: 12,
   },
   statCard: {
     flex: 1,
     backgroundColor: COLORS.card,
-    borderRadius: 12,
     padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: COLORS.text,
+    marginTop: 8,
     marginBottom: 4,
   },
   statLabel: {
@@ -377,103 +322,114 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   filterContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    gap: 8,
   },
   filterTab: {
+    flex: 1,
     paddingVertical: 10,
-    paddingHorizontal: 16,
     borderRadius: 8,
     backgroundColor: COLORS.card,
-    marginRight: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
   },
   filterTabActive: {
     backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   filterText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
     color: COLORS.textMuted,
+    fontWeight: '500',
   },
   filterTextActive: {
     color: '#FFFFFF',
   },
-  minersList: {
-    padding: 16,
-    paddingTop: 0,
+  teamContainer: {
+    padding: 20,
   },
-  minerCard: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 16,
+  },
+  memberCard: {
     backgroundColor: COLORS.card,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  minerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+  memberHeader: {
+    marginBottom: 16,
   },
-  minerHeaderLeft: {
+  memberInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  minerInfo: {
-    gap: 4,
+  memberDetails: {
+    flex: 1,
   },
-  minerName: {
+  memberName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: COLORS.text,
+    marginBottom: 4,
   },
-  minerId: {
-    fontSize: 12,
+  memberMeta: {
+    fontSize: 13,
     color: COLORS.textMuted,
   },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  progressContainer: {
-    marginBottom: 8,
+  progressSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
   },
   progressBar: {
+    flex: 1,
     height: 8,
-    backgroundColor: COLORS.border,
+    backgroundColor: COLORS.background,
     borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 8,
   },
   progressFill: {
     height: '100%',
     borderRadius: 4,
   },
-  progressText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
+  completionRate: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    minWidth: 50,
+    textAlign: 'right',
   },
-  lastUpdate: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-  },
-  emptyState: {
-    padding: 32,
+  taskStats: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  emptyText: {
-    fontSize: 16,
+  taskStatItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  taskStatDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: COLORS.border,
+  },
+  taskStatLabel: {
+    fontSize: 11,
     color: COLORS.textMuted,
+  },
+  taskStatValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text,
   },
 });

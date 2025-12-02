@@ -4,7 +4,6 @@ import { File, Paths } from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import { getAuth, getIdToken } from 'firebase/auth';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -489,23 +488,15 @@ Example format: "Proper PPE Usage in Underground Mining Operations"`;
     setStages(prev => prev.map(stage => ({ ...stage, status: 'pending', message: undefined })));
 
     try {
-      // Get Firebase ID token for authentication
-      const auth = getAuth();
-      const user = auth.currentUser;
+      console.log('🚀 Starting video generation...');
+      console.log('📝 Topic:', topic.trim());
+      console.log('🌐 Language:', selectedLanguage);
       
-      if (!user) {
-        Alert.alert('Authentication Error', 'Please log in again.');
-        return;
-      }
-      
-      const idToken = await getIdToken(user);
-      
-      // Call backend API endpoint
+      // Call backend API endpoint (no authentication required)
       const response = await fetch('http://192.168.137.1:4000/api/video/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           topic: topic.trim(),
@@ -513,18 +504,27 @@ Example format: "Proper PPE Usage in Underground Mining Operations"`;
         }),
       });
 
+      console.log('📡 API Response Status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to start video generation');
+        const errorText = await response.text();
+        console.error('❌ API Error Response:', errorText);
+        throw new Error(`Failed to start video generation: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('✅ API Response Data:', data);
       
       // Poll for progress updates
       pollGenerationProgress(data.jobId);
       
     } catch (error) {
-      console.error('Video generation error:', error);
-      Alert.alert('Error', 'Failed to start video generation. Please ensure backend is running.');
+      console.error('❌ Video generation error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert(
+        'Network Error', 
+        `Failed to start video generation: ${errorMessage}\n\nPlease check:\n• Backend server is running\n• Mobile device is connected to same Wi-Fi\n• Firewall allows connections`
+      );
       setIsGenerating(false);
     }
   };
@@ -532,26 +532,24 @@ Example format: "Proper PPE Usage in Underground Mining Operations"`;
   const pollGenerationProgress = async (jobId: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        // Get Firebase ID token for authentication
-        const auth = getAuth();
-        const user = auth.currentUser;
-        
-        if (!user) {
-          clearInterval(pollInterval);
-          setIsGenerating(false);
-          Alert.alert('Authentication Error', 'Please log in again.');
-          return;
-        }
-        
-        const idToken = await getIdToken(user);
+        console.log('🔄 Polling progress for job:', jobId);
         
         const response = await fetch(`http://192.168.137.1:4000/api/video/status/${jobId}`, {
           headers: {
-            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json',
           },
         });
 
+        console.log('📡 Status Response Status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ Status API Error:', errorText);
+          throw new Error(`Failed to get status: ${response.status} ${response.statusText}`);
+        }
+
         const data = await response.json();
+        console.log('📊 Status Data:', data);
         
         // Update stages based on progress
         if (data.currentStage !== undefined) {

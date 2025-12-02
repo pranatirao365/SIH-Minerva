@@ -26,13 +26,16 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.minerva.mobile",
       "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
         "CAMERA",
         "RECORD_AUDIO",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "ACCESS_FINE_LOCATION"
       ],
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "usesCleartextTraffic": true
     },
     "web": {
       "output": "static",

@@ -16,7 +16,7 @@ import { ArrowLeft } from '../../components/Icons';
 import PPEDetectionItem from '../../components/PPEDetectionItem';
 import SafetyScoreCard from '../../components/SafetyScoreCard';
 
-const API_URL = 'http://172.20.10.2:8000/ppe-scan';
+const API_URL = 'http://192.168.137.1:8000/ppe-scan';
 
 // Backend response format (snake_case keys from API) - Binary presence only
 interface PPEResult {
@@ -260,7 +260,7 @@ export default function PPEScanScreen() {
       let errorMessage = 'Failed to scan image. Please try again.';
       
       if (error.message?.includes('Network') || error.name === 'TypeError') {
-        errorMessage = 'Cannot reach backend server. Please check:\n• Backend is running on http://172.20.10.2:8000\n• Device is on same network\n• No firewall blocking connection';
+        errorMessage = 'Cannot reach backend server. Please check:\n• Backend is running on http://192.168.137.1:8000\n• Device is on same network\n• No firewall blocking connection';
       } else if (error.message?.includes('Backend error')) {
         errorMessage = `Backend error: ${error.message}`;
       } else if (error.message?.includes('Invalid response')) {

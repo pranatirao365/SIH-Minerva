@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
@@ -18,9 +19,11 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { auth, db } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
+
+// Create Icon alias for MaterialCommunityIcons
+const Icon = MaterialCommunityIcons;
 
 interface User {
   id: string;

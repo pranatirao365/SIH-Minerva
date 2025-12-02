@@ -68,14 +68,6 @@ export default function SupervisorHome() {
       gradient: false,
     },
     {
-      icon: AlertTriangle,
-      title: 'Hazard Heat Map',
-      description: 'Visualize hazardous zones',
-      route: '/supervisor/HazardZoneHeatMap',
-      color: '#F59E0B',
-      gradient: false,
-    },
-    {
       icon: BarChart3,
       title: 'Performance Tracking',
       description: 'Safety scores and achievements',

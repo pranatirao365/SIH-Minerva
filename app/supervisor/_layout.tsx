@@ -14,7 +14,6 @@ export default function SupervisorLayout() {
       <Stack.Screen name="PPEComplianceMonitor" />
       <Stack.Screen name="TeamTaskStatus" />
       <Stack.Screen name="HealthMonitoring" />
-      <Stack.Screen name="HazardZoneHeatMap" />
       <Stack.Screen name="PerformanceTracking" />
       <Stack.Screen name="VideoLibrary" />
       <Stack.Screen name="VideoProgressDashboard" />

@@ -101,6 +101,99 @@ service cloud.firestore {
       allow write: if isLoggedIn();
     }
 
+    // --- HAZARDS COLLECTION (Manual hazards) ---
+    match /hazards/{hazardId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode → authenticated users can read hazards
+      allow read: if isLoggedIn();
+
+      // Safety officers can create/update/delete hazards
+      allow write: if isLoggedIn();
+    }
+
+    // --- ML HAZARDS COLLECTION (AI-detected hazards) ---
+    match /mlHazards/{mlHazardId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode → authenticated users can read ML hazards
+      allow read: if isLoggedIn();
+
+      // System/Backend can write ML hazards
+      allow write: if isLoggedIn();
+    }
+
+    // --- MINERS COLLECTION (Live miner locations) ---
+    match /miners/{minerId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode → authenticated users can read miner data
+      allow read: if isLoggedIn();
+
+      // Safety officers and miners themselves can update
+      allow write: if isLoggedIn();
+    }
+
+    // --- EQUIPMENT HAZARDS COLLECTION ---
+    match /equipmentHazards/{equipmentId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode → authenticated users can read equipment hazards
+      allow read: if isLoggedIn();
+
+      // Safety officers can create/update equipment hazards
+      allow write: if isLoggedIn();
+    }
+
+    // --- MAP CONFIG COLLECTION ---
+    match /mapConfig/{mapId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode → authenticated users can read map config
+      allow read: if isLoggedIn();
+
+      // Only admins/safety officers can update map config
+      allow write: if isLoggedIn();
+    }
+
+    // --- HAZARD ZONES COLLECTION ---
+    match /hazardZones/{zoneId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode → authenticated users can read hazard zones
+      allow read: if isLoggedIn();
+
+      // Safety officers can update zones
+      allow write: if isLoggedIn();
+    }
+
+    // --- PPE SCANS COLLECTION ---
+    match /ppeScans/{scanId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode → authenticated users can read/write PPE scans
+      allow read, write: if isLoggedIn();
+    }
+
+    // --- PPE CONFIGS COLLECTION ---
+    match /ppeConfigs/{configId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode → authenticated users can read PPE configs
+      allow read: if isLoggedIn();
+
+      // Safety officers can update configs
+      allow write: if isLoggedIn();
+    }
+
     // --- FALLBACK: deny everything else ---
     match /{document=**} {
       allow read, write: if false;

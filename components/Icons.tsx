@@ -30,6 +30,7 @@ export const XCircle = (props: any) => <Ionicons name="close-circle" {...props} 
 export const Star = (props: any) => <Ionicons name="star" {...props} />;
 export const Zap = (props: any) => <Ionicons name="flash" {...props} />;
 export const MapPin = (props: any) => <Ionicons name="location" {...props} />;
+export const Flame = (props: any) => <Ionicons name="flame" {...props} />;
 export const ScanLine = (props: any) => <MaterialCommunityIcons name="line-scan" {...props} />;
 export const Upload = (props: any) => <Ionicons name="cloud-upload" {...props} />;
 export const Phone = (props: any) => <Ionicons name="call" {...props} />;

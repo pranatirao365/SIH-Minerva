@@ -19,15 +19,23 @@ export default function IncidentDashboard() {
 
   useEffect(() => {
     console.log('📊 Subscribing to incidents...');
+    
+    // Set timeout to stop loading after 3 seconds
+    const loadingTimeout = setTimeout(() => {
+      console.log('⏱️ Loading timeout - using fallback');
+      setLoading(false);
+    }, 3000);
 
     const unsubscribe = subscribeToIncidents((newIncidents) => {
       console.log('📥 Received incidents:', newIncidents.length);
+      clearTimeout(loadingTimeout);
       setIncidents(newIncidents);
       setLoading(false);
     });
 
     return () => {
       console.log('🔌 Unsubscribing from incidents');
+      clearTimeout(loadingTimeout);
       unsubscribe();
     };
   }, []);

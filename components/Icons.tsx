@@ -60,5 +60,9 @@ export const Thermometer = (props: any) => <Ionicons name="thermometer" {...prop
 export const Award = (props: any) => <Ionicons name="ribbon" {...props} />;
 export const Droplets = (props: any) => <Ionicons name="water" {...props} />;
 export const ChevronRight = (props: any) => <Ionicons name="chevron-forward" {...props} />;
+export const ChevronLeft = (props: any) => <Ionicons name="chevron-back" {...props} />;
 export const CheckSquare = (props: any) => <Ionicons name="checkbox" {...props} />;
 export const Volume2 = (props: any) => <Ionicons name="volume-high" {...props} />;
+export const Mail = (props: any) => <Ionicons name="mail" {...props} />;
+export const Plus = (props: any) => <Ionicons name="add" {...props} />;
+export const Edit2 = (props: any) => <Ionicons name="create-outline" {...props} />;

@@ -1,25 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Animated,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft } from '../../components/Icons';
 
 // Backend API URL - automatically uses correct address for web/mobile
 const API_URL = Platform.OS === 'web' 
   ? 'http://localhost:8001' 
-  : 'http://172.20.10.2:8001'; // Your PC's WiFi IP address
+  : 'http://192.168.137.1:8001'; // Your PC's Hotspot IP address
 
 type HazardType = 'crack' | 'leakage' | 'fire' | 'obstruction';
 
@@ -183,13 +183,20 @@ export default function HazardScan() {
     formData.append('hazard_type', backendHazardType);
 
     try {
+      // Add timeout for network request (30 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
       const response = await fetch(`${API_URL}/predict`, {
         method: 'POST',
         body: formData,
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -199,13 +206,20 @@ export default function HazardScan() {
       const data = await response.json();
       return data;
     } catch (error: any) {
+      if (error.name === 'AbortError') {
+        throw new Error(
+          `Request timed out after 30 seconds.\n\n` +
+          `The backend may be processing slowly or unreachable.\n` +
+          `Try a smaller image or check the connection.`
+        );
+      }
       if (error.message === 'Network request failed') {
         throw new Error(
           `Cannot connect to backend at ${API_URL}.\n\n` +
           `Ensure:\n` +
           `1. Backend is running (python hazard_detection_api.py)\n` +
-          `2. Phone and PC are on same WiFi network\n` +
-          `3. IP address ${API_URL.split('://')[1]} is correct`
+          `2. Phone and PC are on same network (Hotspot: 192.168.137.x)\n` +
+          `3. Check if PC firewall is blocking port 8001`
         );
       }
       throw error;

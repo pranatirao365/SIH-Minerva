@@ -1,6 +1,5 @@
-import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import * as Notifications from 'expo-notifications';
+import { addDoc, collection, getDocs, query, Timestamp, where } from 'firebase/firestore';
 
 interface VideoAssignment {
   id: string;

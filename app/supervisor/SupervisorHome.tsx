@@ -14,13 +14,15 @@ import {
 import { COLORS } from '@/constants/styles';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoleStore } from '../../hooks/useRoleStore';
+import { useSupervisor } from '@/contexts/SupervisorContext';
 
 export default function SupervisorHome() {
   const router = useRouter();
   const { user } = useRoleStore();
+  const { assignedMiners, loading, error } = useSupervisor();
 
   // Emergency features - highest priority
   const emergencyModules = [
@@ -145,16 +147,24 @@ export default function SupervisorHome() {
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>24</Text>
-            <Text style={styles.statLabel}>Active Shifts</Text>
+            {loading ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <Text style={styles.statValue}>{assignedMiners.length}</Text>
+            )}
+            <Text style={styles.statLabel}>Assigned Miners</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>98%</Text>
-            <Text style={styles.statLabel}>Safety Score</Text>
+            <Text style={styles.statValue}>
+              {Math.round(assignedMiners.reduce((sum, m) => sum + (m.safetyScore || 0), 0) / (assignedMiners.length || 1))}%
+            </Text>
+            <Text style={styles.statLabel}>Avg Safety Score</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>156</Text>
-            <Text style={styles.statLabel}>Team Members</Text>
+            <Text style={styles.statValue}>
+              {assignedMiners.filter(m => m.shift === 'morning').length}
+            </Text>
+            <Text style={styles.statLabel}>Morning Shift</Text>
           </View>
         </View>
 

@@ -31,56 +31,7 @@ interface MinerVitals {
 export default function HealthMonitoring() {
   const router = useRouter();
   const { user } = useRoleStore();
-  
-  // Mock data
-  const mockMiners: MinerVitals[] = [
-    {
-      id: '1',
-      minerId: 'M001',
-      minerName: 'Rajesh Kumar',
-      heartRate: 78,
-      spO2: 98,
-      temperature: 36.8,
-      fitnessStatus: 'fit',
-      lastUpdate: '2 mins ago',
-      trend: 'stable',
-    },
-    {
-      id: '2',
-      minerId: 'M002',
-      minerName: 'Amit Sharma',
-      heartRate: 110,
-      spO2: 92,
-      temperature: 38.2,
-      fitnessStatus: 'monitor',
-      lastUpdate: '5 mins ago',
-      trend: 'declining',
-    },
-    {
-      id: '3',
-      minerId: 'M003',
-      minerName: 'Vikram Singh',
-      heartRate: 125,
-      spO2: 87,
-      temperature: 39.5,
-      fitnessStatus: 'unfit',
-      lastUpdate: '1 min ago',
-      trend: 'declining',
-    },
-    {
-      id: '4',
-      minerId: 'M004',
-      minerName: 'Suresh Patel',
-      heartRate: 82,
-      spO2: 96,
-      temperature: 37.1,
-      fitnessStatus: 'fit',
-      lastUpdate: '3 mins ago',
-      trend: 'stable',
-    },
-  ];
-
-  const [miners, setMiners] = useState<MinerVitals[]>(mockMiners);
+  const [miners, setMiners] = useState<MinerVitals[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'fit' | 'monitor' | 'unfit'>('all');
   const [loading, setLoading] = useState(false);

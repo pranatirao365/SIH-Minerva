@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AlertTriangle, ArrowLeft, CheckCircle, Clock, MapPin, Phone, User } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
+import { useSupervisor } from '@/contexts/SupervisorContext';
 
 interface SOSAlert {
   id: string;
@@ -20,47 +21,41 @@ interface SOSAlert {
 
 export default function SOSNotifications() {
   const router = useRouter();
+  const { assignedMiners, loading: minersLoading } = useSupervisor();
   const [refreshing, setRefreshing] = useState(false);
-  
-  // Mock SOS alerts - in production, fetch from backend API
-  const [sosAlerts, setSosAlerts] = useState<SOSAlert[]>([
-    {
-      id: '1',
-      minerName: 'Rajesh Kumar',
-      minerId: 'M-001',
-      helmetId: 'ESP32-001',
-      timestamp: new Date(Date.now() - 5 * 60000), // 5 minutes ago
-      location: 'Tunnel A - Section 12',
-      status: 'active',
-      heartRate: 110,
-      spO2: 92,
-      temperature: 32.5,
-    },
-    {
-      id: '2',
-      minerName: 'Amit Singh',
-      minerId: 'M-003',
-      helmetId: 'ESP32-003',
-      timestamp: new Date(Date.now() - 15 * 60000), // 15 minutes ago
-      location: 'Shaft B - Level 3',
-      status: 'responded',
-      heartRate: 95,
-      spO2: 94,
-      temperature: 30.2,
-    },
-    {
-      id: '3',
-      minerName: 'Priya Sharma',
-      minerId: 'M-005',
-      helmetId: 'ESP32-005',
-      timestamp: new Date(Date.now() - 45 * 60000), // 45 minutes ago
-      location: 'Tunnel C - Section 8',
-      status: 'resolved',
-      heartRate: 78,
-      spO2: 96,
-      temperature: 28.8,
-    },
-  ]);
+  const [sosAlerts, setSosAlerts] = useState<SOSAlert[]>([]);
+
+  useEffect(() => {
+    if (assignedMiners.length > 0) {
+      generateSOSAlerts();
+    }
+  }, [assignedMiners]);
+
+  const generateSOSAlerts = () => {
+    console.log('🚨 Generating SOS alerts for', assignedMiners.length, 'miners');
+    
+    // Generate sample SOS alerts from assigned miners
+    const alerts: SOSAlert[] = assignedMiners.slice(0, 3).map((miner, index) => {
+      const statuses: ('active' | 'responded' | 'resolved')[] = ['active', 'responded', 'resolved'];
+      const timeAgo = [5, 15, 45][index] || 10;
+      
+      return {
+        id: miner.id,
+        minerName: miner.name,
+        minerId: miner.id,
+        helmetId: `ESP32-${miner.id.substring(0, 3)}`,
+        timestamp: new Date(Date.now() - timeAgo * 60000),
+        location: miner.location || 'Tunnel A - Section 12',
+        status: statuses[index % 3],
+        heartRate: 70 + Math.floor(Math.random() * 50),
+        spO2: 88 + Math.floor(Math.random() * 10),
+        temperature: 28 + Math.random() * 5,
+      };
+    });
+    
+    setSosAlerts(alerts);
+    console.log('✅ Generated', alerts.length, 'SOS alerts');
+  };
 
   const onRefresh = () => {
     setRefreshing(true);

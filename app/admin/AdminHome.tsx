@@ -1,26 +1,29 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
-import { collection, deleteDoc, doc, getDocs, setDoc, query, where, getDoc } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import { collection, deleteDoc, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
+    FlatList,
+    Modal,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
-    Modal,
-    FlatList,
-    Switch,
-    Dimensions
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
-import { Picker } from '@react-native-picker/picker';
-import * as DocumentPicker from 'expo-document-picker';
+
+// Create Icon alias for MaterialCommunityIcons
+const Icon = MaterialCommunityIcons;
 
 interface User {
   id: string;
@@ -151,7 +154,7 @@ const MinerForm = ({ formData, setFormData }: { formData: any, setFormData: any 
         onPress={() => setFormData({ ...formData, trainingCompleted: !formData.trainingCompleted })}
       >
         <View style={[styles.checkbox, formData.trainingCompleted && styles.checkboxChecked]}>
-          {formData.trainingCompleted && <Text style={styles.checkboxMark}>✓</Text>}
+          {formData.trainingCompleted && <Icon name="check" size={16} color="#000000" style={styles.checkboxMark} />}
         </View>
         <Text style={styles.checkboxLabel}>Safety Training Completed</Text>
       </TouchableOpacity>
@@ -175,9 +178,12 @@ const MinerForm = ({ formData, setFormData }: { formData: any, setFormData: any 
           }
         }}
       >
-        <Text style={styles.documentButtonText}>
-          {formData.healthCheckup ? '✓ Health Report Uploaded' : '📎 Upload Health Checkup Report'}
-        </Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+          <Icon name={formData.healthCheckup ? "check-circle" : "paperclip"} size={18} color="#ffffffff" />
+          <Text style={styles.documentButtonText}>
+            {formData.healthCheckup ? 'Health Report Uploaded' : 'Upload Health Checkup Report'}
+          </Text>
+        </View>
       </TouchableOpacity>
     </View>
   </View>
@@ -375,9 +381,12 @@ const SafetyOfficerForm = ({ formData, setFormData }: { formData: any, setFormDa
           }
         }}
       >
-        <Text style={styles.documentButtonText}>
-          {formData.certifications ? '✓ Certification Uploaded' : '📎 Upload Safety Certifications'}
-        </Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+          <Icon name={formData.certifications ? "check-circle" : "paperclip"} size={18} color="#ffffffff" />
+          <Text style={styles.documentButtonText}>
+            {formData.certifications ? 'Certification Uploaded' : 'Upload Safety Certifications'}
+          </Text>
+        </View>
       </TouchableOpacity>
     </View>
   </View>
@@ -493,9 +502,12 @@ const EngineerForm = ({ formData, setFormData }: { formData: any, setFormData: a
           }
         }}
       >
-        <Text style={styles.documentButtonText}>
-          {formData.qualifications ? '✓ Qualifications Uploaded' : '📎 Upload Engineering Qualifications'}
-        </Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+          <Icon name={formData.qualifications ? "check-circle" : "paperclip"} size={18} color="#ffffffff" />
+          <Text style={styles.documentButtonText}>
+            {formData.qualifications ? 'Qualifications Uploaded' : 'Upload Engineering Qualifications'}
+          </Text>
+        </View>
       </TouchableOpacity>
     </View>
   </View>
@@ -524,6 +536,14 @@ export default function AdminHome() {
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [editedUserData, setEditedUserData] = useState<any>({});
 
+  // Supervisor miners modal state
+  const [showSupervisorMinersModal, setShowSupervisorMinersModal] = useState(false);
+  const [selectedSupervisor, setSelectedSupervisor] = useState<User | null>(null);
+
+  // Miner's supervisor modal state
+  const [showMinerSupervisorModal, setShowMinerSupervisorModal] = useState(false);
+  const [selectedMinerForSupervisor, setSelectedMinerForSupervisor] = useState<User | null>(null);
+
   // Form data state
   const [formData, setFormData] = useState<any>({});
   const [minersList, setMinersList] = useState<User[]>([]);
@@ -543,39 +563,35 @@ export default function AdminHome() {
     {
       value: 'miner',
       label: 'Miner',
-      color: '#2563EB', // Blue
-      icon: '⛏️',
+      color: '#FF6B00',
+      icon: 'pickaxe',
       description: 'Field workers responsible for mining operations and safety compliance'
     },
     {
       value: 'supervisor',
       label: 'Supervisor',
-      color: '#059669', // Green
-      icon: '👔',
+      color: '#FF6B00',
+      icon: 'account-tie',
       description: 'Oversees mining teams, manages operations, and coordinates with management'
     },
     {
       value: 'safety_officer',
       label: 'Safety Officer',
-      color: '#FF6B00', // Orange
-      icon: '🛡️',
+      color: '#FF6B00',
+      icon: 'shield-check',
       description: 'Ensures workplace safety, conducts inspections, and manages compliance'
     },
     {
       value: 'engineer',
       label: 'Engineer',
-      color: '#7C3AED', // Purple
-      icon: '⚙️',
+      color: '#FF6B00',
+      icon: 'cog',
       description: 'Technical experts handling equipment, systems, and engineering solutions'
     },
   ];
 
-  useEffect(() => {
-    fetchUsers();
-    fetchMiners();
-  }, []);
-
-  const fetchUsers = async () => {
+  // Memoize fetch functions to prevent re-creation on every render
+  const fetchUsers = useCallback(async () => {
     setRefreshing(true);
     try {
       const usersSnapshot = await getDocs(collection(db, 'users'));
@@ -606,9 +622,9 @@ export default function AdminHome() {
     } finally {
       setRefreshing(false);
     }
-  };
+  }, []); // Empty dependency array - function never changes
 
-  const fetchMiners = async (filterUnassigned = false) => {
+  const fetchMiners = useCallback(async (filterUnassigned = false) => {
     try {
       const q = query(collection(db, 'users'), where('role', '==', 'miner'));
       const minersSnapshot = await getDocs(q);
@@ -643,8 +659,69 @@ export default function AdminHome() {
       setMinersList(miners);
     } catch (error: any) {
       console.error('Error fetching miners:', error);
+      Alert.alert('Error', 'Failed to fetch miners. Please try again.');
     }
-  };
+  }, []); // Empty dependency array - function never changes
+
+  // Call fetch functions once on mount
+  useEffect(() => {
+    fetchUsers();
+    fetchMiners();
+    
+    // Cleanup to prevent memory leaks
+    return () => {
+      setUsers([]);
+      setMinersList([]);
+    };
+  }, [fetchUsers, fetchMiners]); // Stable dependencies due to useCallback
+
+  // Dynamic update: Refresh selected supervisor data when users change
+  // Use useCallback to prevent re-creating function on every render
+  useEffect(() => {
+    if (!selectedSupervisor || users.length === 0) return;
+    
+    const updatedSupervisor = users.find(u => u.id === selectedSupervisor.id);
+    if (updatedSupervisor) {
+      setSelectedSupervisor(updatedSupervisor);
+    } else {
+      // Supervisor was deleted, close the modal
+      setShowSupervisorMinersModal(false);
+      setShowMinerSupervisorModal(false);
+      setSelectedSupervisor(null);
+    }
+  }, [users, selectedSupervisor?.id]); // Only when users change or supervisor ID changes
+
+  // Dynamic update: Refresh selected miner data when users change
+  useEffect(() => {
+    if (!selectedMinerForSupervisor || users.length === 0) return;
+    
+    const updatedMiner = users.find(u => u.id === selectedMinerForSupervisor.id);
+    if (updatedMiner) {
+      setSelectedMinerForSupervisor(updatedMiner);
+    } else {
+      // Miner was deleted, close the modal
+      setShowMinerSupervisorModal(false);
+      setSelectedMinerForSupervisor(null);
+    }
+  }, [users, selectedMinerForSupervisor?.id]); // Only when users change or miner ID changes
+
+  // Dynamic update: Refresh selected user details when users change
+  useEffect(() => {
+    if (!selectedUserForDetails || users.length === 0) return;
+    
+    const updatedUser = users.find(u => u.id === selectedUserForDetails.id);
+    if (updatedUser) {
+      setSelectedUserForDetails(updatedUser);
+      if (isEditingUser) {
+        setEditedUserData(updatedUser);
+      }
+    } else {
+      // User (any role) was deleted, close the modal
+      setShowUserDetailsModal(false);
+      setSelectedUserForDetails(null);
+      setIsEditingUser(false);
+    }
+  }, [users, selectedUserForDetails?.id, isEditingUser]); // Specific dependencies only
 
   const generateEmployeeId = async (role: string): Promise<string> => {
     try {
@@ -743,13 +820,17 @@ export default function AdminHome() {
       // Create user document in Firestore
       await setDoc(doc(db, 'users', docId), userData);
 
+      // Refresh all data to ensure dynamic updates for all roles
+      await fetchUsers();
+      
+      // Refresh miners list if miner or supervisor was added (for assignment purposes)
+      if (selectedRole === 'miner' || selectedRole === 'supervisor') {
+        await fetchMiners();
+      }
+      
       Alert.alert('Success', `User ${formData.name} added successfully with role: ${selectedRole}`);
       setFormData({});
       setSelectedRole('');
-      fetchUsers();
-      if (selectedRole === 'supervisor') {
-        fetchMiners();
-      }
     } catch (error: any) {
       console.error('Error adding user:', error);
       Alert.alert('Error', error.message || 'Failed to add user');
@@ -761,6 +842,7 @@ export default function AdminHome() {
   const handleSaveUserChanges = async () => {
     if (!selectedUserForDetails) return;
 
+    setLoading(true);
     try {
       // Filter out undefined values to prevent Firebase errors
       const cleanedData = Object.fromEntries(
@@ -768,15 +850,23 @@ export default function AdminHome() {
       );
       
       await setDoc(doc(db, 'users', selectedUserForDetails.id), cleanedData, { merge: true });
-      setUsers(users.map(user => 
-        user.id === selectedUserForDetails.id ? { ...user, ...cleanedData } : user
-      ));
+      
+      // Fetch fresh data from Firebase to ensure everything is in sync for all roles
+      await fetchUsers();
+      
+      // Refresh miners list if miner or supervisor was updated
+      if (selectedUserForDetails.role === 'miner' || selectedUserForDetails.role === 'supervisor') {
+        await fetchMiners();
+      }
+      
       setIsEditingUser(false);
       setShowUserDetailsModal(false);
       Alert.alert('Success', 'User details updated successfully');
     } catch (error: any) {
       console.error('Error updating user:', error);
       Alert.alert('Error', 'Failed to update user details');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -790,13 +880,51 @@ export default function AdminHome() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            setLoading(true);
             try {
+              // First, check if this is a miner and remove from supervisors' assignedMiners
+              const userToDelete = users.find(u => u.id === userId);
+              if (userToDelete?.role === 'miner') {
+                // Find all supervisors who have this miner assigned
+                const supervisorsWithThisMiner = users.filter(
+                  supervisor => supervisor.role === 'supervisor' && 
+                  supervisor.assignedMiners?.includes(userId)
+                );
+                
+                // Update each supervisor to remove this miner
+                for (const supervisor of supervisorsWithThisMiner) {
+                  const updatedMiners = supervisor.assignedMiners?.filter(id => id !== userId) || [];
+                  await setDoc(doc(db, 'users', supervisor.id), {
+                    ...supervisor,
+                    assignedMiners: updatedMiners
+                  });
+                }
+              }
+              
+              // Now delete the user
               await deleteDoc(doc(db, 'users', userId));
-              Alert.alert('Success', 'User deleted successfully');
-              fetchUsers();
+              
+              // Refresh all data to ensure dynamic updates for all roles
+              await fetchUsers();
+              
+              // Refresh miners list if miner or supervisor was deleted
+              if (userToDelete?.role === 'miner' || userToDelete?.role === 'supervisor') {
+                await fetchMiners();
+              }
+              
+              // Close any open modals that might be showing the deleted user
+              // This applies to all roles: miner, supervisor, safety_officer, engineer
+              setShowUserDetailsModal(false);
+              setShowRoleDetailsModal(false);
+              setShowSupervisorMinersModal(false);
+              setShowMinerSupervisorModal(false);
+              
+              Alert.alert('Success', `${userToDelete?.role || 'User'} deleted successfully`);
             } catch (error: any) {
               console.error('Error deleting user:', error);
               Alert.alert('Error', 'Failed to delete user');
+            } finally {
+              setLoading(false);
             }
           },
         },
@@ -805,12 +933,14 @@ export default function AdminHome() {
   };
 
   const handleSignOut = async () => {
+    setLoading(true);
     try {
       await signOut(auth);
       router.replace('/auth/PhoneLogin');
     } catch (error: any) {
       console.error('Error signing out:', error);
       Alert.alert('Error', 'Failed to sign out');
+      setLoading(false);
     }
   };
 
@@ -832,7 +962,19 @@ export default function AdminHome() {
 
   const getAssignedMinersCount = (supervisorId: string) => {
     const supervisor = users.find(user => user.id === supervisorId);
-    return supervisor?.assignedMiners?.length || 0;
+    // Filter out deleted miners - only count miners that actually exist
+    const validMinersCount = supervisor?.assignedMiners?.filter(
+      minerId => users.find(m => m.id === minerId)
+    ).length || 0;
+    return validMinersCount;
+  };
+
+  const getSupervisorDetails = (minerId: string) => {
+    const supervisor = users.find(user =>
+      user.role === 'supervisor' &&
+      user.assignedMiners?.includes(minerId)
+    );
+    return supervisor || null;
   };
 
   return (
@@ -911,12 +1053,16 @@ export default function AdminHome() {
                     key={role.value}
                     style={[styles.roleCategoryCard, { borderColor: role.color }]}
                     onPress={() => {
-                      setSelectedRoleForDetails(role.value);
-                      setShowRoleDetailsModal(true);
+                      try {
+                        setSelectedRoleForDetails(role.value);
+                        setShowRoleDetailsModal(true);
+                      } catch (error) {
+                        console.error('Error opening role details:', error);
+                      }
                     }}
                   >
                     <View style={[styles.roleCategoryIcon, { backgroundColor: role.color }]}>
-                      <Text style={styles.roleCategoryIconText}>{role.icon}</Text>
+                      <Icon name={role.icon} size={32} color="#FFFFFF" />
                     </View>
                     <View style={styles.roleCategoryInfo}>
                       <Text style={styles.roleCategoryTitle}>{role.label}</Text>
@@ -974,34 +1120,46 @@ export default function AdminHome() {
             <FlatList
               data={minersList}
               keyExtractor={(item) => item.id}
-              renderItem={({ item: miner }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.minerListItem,
-                    formData.assignedMiners?.includes(miner.id) && styles.minerListItemSelected
-                  ]}
-                  onPress={() => {
-                    const assigned = formData.assignedMiners || [];
-                    const updated = assigned.includes(miner.id)
-                      ? assigned.filter((id: string) => id !== miner.id)
-                      : [...assigned, miner.id];
-                    setFormData({ ...formData, assignedMiners: updated });
-                  }}
-                >
-                  <View style={styles.minerInfo}>
-                    <Text style={styles.minerName}>{miner.name}</Text>
-                    <Text style={styles.minerPhone}>{miner.phoneNumber}</Text>
-                  </View>
-                  <View style={[
-                    styles.checkbox,
-                    formData.assignedMiners?.includes(miner.id) && styles.checkboxChecked
-                  ]}>
-                    {formData.assignedMiners?.includes(miner.id) && <Text style={styles.checkboxMark}>✓</Text>}
-                  </View>
-                </TouchableOpacity>
-              )}
+              renderItem={({ item: miner }) => {
+                const currentData = isEditingUser ? editedUserData : formData;
+                const isSelected = currentData.assignedMiners?.includes(miner.id);
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.minerListItem,
+                      isSelected && styles.minerListItemSelected
+                    ]}
+                    onPress={() => {
+                      const assigned = currentData.assignedMiners || [];
+                      const updated = assigned.includes(miner.id)
+                        ? assigned.filter((id: string) => id !== miner.id)
+                        : [...assigned, miner.id];
+                      if (isEditingUser) {
+                        setEditedUserData({ ...editedUserData, assignedMiners: updated });
+                      } else {
+                        setFormData({ ...formData, assignedMiners: updated });
+                      }
+                    }}
+                  >
+                    <View style={styles.minerInfo}>
+                      <Text style={styles.minerName}>{miner.name}</Text>
+                      <Text style={styles.minerPhone}>{miner.phoneNumber}</Text>
+                    </View>
+                    <View style={[
+                      styles.checkbox,
+                      isSelected && styles.checkboxChecked
+                    ]}>
+                      {isSelected && <Icon name="check" size={16} color="#000000" style={styles.checkboxMark} />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
               style={styles.minerList}
               showsVerticalScrollIndicator={false}
+              maxToRenderPerBatch={10}
+              initialNumToRender={10}
+              windowSize={5}
+              removeClippedSubviews={true}
             />
 
             <View style={styles.minerModalActions}>
@@ -1009,7 +1167,9 @@ export default function AdminHome() {
                 style={styles.minerModalDoneButton}
                 onPress={() => setShowMinerModal(false)}
               >
-                <Text style={styles.minerModalDoneText}>Done ({formData.assignedMiners?.length || 0} selected)</Text>
+                <Text style={styles.minerModalDoneText}>
+                  Done ({(isEditingUser ? editedUserData.assignedMiners?.length : formData.assignedMiners?.length) || 0} selected)
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1032,9 +1192,12 @@ export default function AdminHome() {
               </Text>
               <TouchableOpacity
                 style={styles.modalCloseButton}
-                onPress={() => setShowRoleDetailsModal(false)}
+                onPress={() => {
+                  setShowRoleDetailsModal(false);
+                  setSelectedRoleForDetails('');
+                }}
               >
-                <Text style={styles.modalCloseText}>✕</Text>
+                <Icon name="close" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
@@ -1045,79 +1208,202 @@ export default function AdminHome() {
               style={styles.roleDetailsList}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews={true}
               renderItem={({ item: user }) => (
-                <TouchableOpacity 
-                  style={styles.roleDetailCard}
-                  onPress={() => {
-                    setSelectedUserForDetails(user);
-                    setEditedUserData({...user});
-                    setIsEditingUser(false);
-                    setShowUserDetailsModal(true);
-                  }}
-                >
+                <View style={styles.roleDetailCard}>
                   {selectedRoleForDetails === 'miner' && (
-                    <>
-                      <View style={styles.roleDetailHeader}>
-                        <View style={styles.userInfoSection}>
-                          <Text style={styles.roleDetailName}>{user.name || 'Unnamed Miner'}</Text>
-                          <Text style={styles.roleDetailSubInfo}>
-                            📱 {user.phoneNumber || 'No phone'}
+                    <View style={styles.minerCardWrapper}>
+                      <TouchableOpacity
+                        style={styles.minerClickableAreaWithButtons}
+                        onPress={() => {
+                          try {
+                            const supervisor = getSupervisorDetails(user.id);
+                            if (supervisor) {
+                              setSelectedSupervisor(supervisor);
+                              setSelectedMinerForSupervisor(user);
+                              setShowRoleDetailsModal(false);
+                              requestAnimationFrame(() => {
+                                setShowMinerSupervisorModal(true);
+                              });
+                            } else {
+                              Alert.alert('No Supervisor', 'This miner is not assigned to any supervisor yet.');
+                            }
+                          } catch (error) {
+                            console.error('Error opening miner supervisor details:', error);
+                          }
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.roleDetailHeader}>
+                          <View style={styles.userInfoSection}>
+                            <Text style={styles.roleDetailName}>{user.name || 'Unnamed Miner'}</Text>
+                            <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                              <Icon name="phone" size={12} color="#CCCCCC" />
+                              <Text style={styles.roleDetailSubInfo}>
+                                {user.phoneNumber || 'No phone'}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                          <Icon name="account-tie" size={14} color="#E0E0E0" />
+                          <Text style={styles.roleDetailInfo}>
+                            Supervisor: {getSupervisorName(user.id) || 'Unassigned'}
                           </Text>
                         </View>
+                      </TouchableOpacity>
+                      <View style={styles.cardActionButtons} pointerEvents="box-none">
                         <TouchableOpacity
-                          style={styles.roleDetailDeleteButton}
-                          onPress={() => handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown')}
+                          style={styles.roleDetailEditButtonAbsolute}
+                          onPress={() => {
+                            console.log('Edit button clicked for miner:', user.name);
+                            setSelectedUserForDetails(user);
+                            setEditedUserData({...user});
+                            setIsEditingUser(true);
+                            setShowRoleDetailsModal(false);
+                            setTimeout(() => {
+                              setShowUserDetailsModal(true);
+                            }, 100);
+                          }}
+                          activeOpacity={0.6}
                         >
-                          <Text style={styles.roleDetailDeleteText}>🗑️</Text>
+                          <Icon name="pencil" size={16} color="#000000" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.roleDetailDeleteButtonAbsoluteSmall}
+                          onPress={() => {
+                            handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
+                          }}
+                          activeOpacity={0.6}
+                        >
+                          <Icon name="delete" size={16} color="#000000" />
                         </TouchableOpacity>
                       </View>
-                      <Text style={styles.roleDetailInfo}>
-                        👔 Supervisor: {getSupervisorName(user.id) || 'Unassigned'}
-                      </Text>
-                    </>
+                    </View>
                   )}
 
                   {selectedRoleForDetails === 'supervisor' && (
-                    <>
-                      <View style={styles.roleDetailHeader}>
-                        <View style={styles.userInfoSection}>
-                          <Text style={styles.roleDetailName}>{user.name || 'Unnamed Supervisor'}</Text>
-                          <Text style={styles.roleDetailSubInfo}>
-                            📱 {user.phoneNumber || 'No phone'}
+                    <View style={styles.supervisorCardWrapper}>
+                      <TouchableOpacity
+                        style={styles.minerClickableAreaWithButtons}
+                        onPress={() => {
+                          try {
+                            setSelectedSupervisor(user);
+                            setShowRoleDetailsModal(false);
+                            requestAnimationFrame(() => {
+                              setShowSupervisorMinersModal(true);
+                            });
+                          } catch (error) {
+                            console.error('Error opening supervisor miners:', error);
+                          }
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.roleDetailHeader}>
+                          <View style={styles.userInfoSection}>
+                            <Text style={styles.roleDetailName}>{user.name || 'Unnamed Supervisor'}</Text>
+                            <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                              <Icon name="phone" size={12} color="#CCCCCC" />
+                              <Text style={styles.roleDetailSubInfo}>
+                                {user.phoneNumber || 'No phone'}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                          <Icon name="account-hard-hat" size={14} color="#E0E0E0" />
+                          <Text style={styles.roleDetailInfo}>
+                            Assigned Miners: {getAssignedMinersCount(user.id)}
                           </Text>
                         </View>
+                      </TouchableOpacity>
+                      <View style={styles.cardActionButtons} pointerEvents="box-none">
                         <TouchableOpacity
-                          style={styles.roleDetailDeleteButton}
-                          onPress={() => handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown')}
+                          style={styles.roleDetailEditButtonAbsolute}
+                          onPress={() => {
+                            console.log('Edit button clicked for supervisor:', user.name);
+                            setSelectedUserForDetails(user);
+                            setEditedUserData({...user});
+                            setIsEditingUser(true);
+                            setShowRoleDetailsModal(false);
+                            setTimeout(() => {
+                              setShowUserDetailsModal(true);
+                            }, 100);
+                          }}
+                          activeOpacity={0.6}
                         >
-                          <Text style={styles.roleDetailDeleteText}>🗑️</Text>
+                          <Icon name="pencil" size={16} color="#000000" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.roleDetailDeleteButtonAbsoluteSmall}
+                          onPress={() => {
+                            handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
+                          }}
+                          activeOpacity={0.6}
+                        >
+                          <Icon name="delete" size={16} color="#000000" />
                         </TouchableOpacity>
                       </View>
-                      <Text style={styles.roleDetailInfo}>
-                        👷 Assigned Miners: {getAssignedMinersCount(user.id)}
-                      </Text>
-                    </>
+                    </View>
                   )}
 
                   {(selectedRoleForDetails === 'safety_officer' || selectedRoleForDetails === 'engineer') && (
-                    <>
-                      <View style={styles.roleDetailHeader}>
-                        <View style={styles.userInfoSection}>
-                          <Text style={styles.roleDetailName}>{user.name || `Unnamed ${getRoleLabel(selectedRoleForDetails)}`}</Text>
-                          <Text style={styles.roleDetailSubInfo}>
-                            📱 {user.phoneNumber || 'No phone'}
-                          </Text>
+                    <View style={styles.minerCardWrapper}>
+                      <TouchableOpacity
+                        style={styles.minerClickableAreaWithButtons}
+                        onPress={() => {
+                          setSelectedUserForDetails(user);
+                          setEditedUserData({...user});
+                          setIsEditingUser(false);
+                          setShowUserDetailsModal(true);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.roleDetailHeader}>
+                          <View style={styles.userInfoSection}>
+                            <Text style={styles.roleDetailName}>{user.name || `Unnamed ${getRoleLabel(selectedRoleForDetails)}`}</Text>
+                            <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                              <Icon name="phone" size={12} color="#CCCCCC" />
+                              <Text style={styles.roleDetailSubInfo}>
+                                {user.phoneNumber || 'No phone'}
+                              </Text>
+                            </View>
+                          </View>
                         </View>
+                      </TouchableOpacity>
+                      <View style={styles.cardActionButtons} pointerEvents="box-none">
                         <TouchableOpacity
-                          style={styles.roleDetailDeleteButton}
-                          onPress={() => handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown')}
+                          style={styles.roleDetailEditButtonAbsolute}
+                          onPress={() => {
+                            console.log('Edit button clicked for:', user.role, user.name);
+                            setSelectedUserForDetails(user);
+                            setEditedUserData({...user});
+                            setIsEditingUser(true);
+                            setShowRoleDetailsModal(false);
+                            setTimeout(() => {
+                              setShowUserDetailsModal(true);
+                            }, 100);
+                          }}
+                          activeOpacity={0.6}
                         >
-                          <Text style={styles.roleDetailDeleteText}>🗑️</Text>
+                          <Icon name="pencil" size={16} color="#000000" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.roleDetailDeleteButtonAbsoluteSmall}
+                          onPress={() => {
+                            handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
+                          }}
+                          activeOpacity={0.6}
+                        >
+                          <Icon name="delete" size={16} color="#000000" />
                         </TouchableOpacity>
                       </View>
-                    </>
+                    </View>
                   )}
-                </TouchableOpacity>
+                </View>
               )}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
@@ -1134,11 +1420,13 @@ export default function AdminHome() {
       <Modal
         visible={showUserDetailsModal}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => {
           setShowUserDetailsModal(false);
           setIsEditingUser(false);
+          setSelectedUserForDetails(null);
         }}
+        statusBarTranslucent
       >
         <View style={styles.modalOverlay}>
           <View style={styles.userDetailsModalContent}>
@@ -1152,40 +1440,12 @@ export default function AdminHome() {
                 onPress={() => {
                   setShowUserDetailsModal(false);
                   setIsEditingUser(false);
+                  setSelectedUserForDetails(null);
+                  setEditedUserData({});
                 }}
               >
-                <Text style={styles.modalCloseText}>✕</Text>
+                <Icon name="close" size={24} color="#FFFFFF" />
               </TouchableOpacity>
-            </View>
-
-            {/* Action Buttons */}
-            <View style={styles.userActions}>
-              {!isEditingUser ? (
-                <TouchableOpacity
-                  style={styles.editButton}
-                  onPress={() => setIsEditingUser(true)}
-                >
-                  <Text style={styles.editButtonText}>✏️ Edit</Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.editActions}>
-                  <TouchableOpacity
-                    style={styles.saveButton}
-                    onPress={handleSaveUserChanges}
-                  >
-                    <Text style={styles.saveButtonText}>💾 Save Changes</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => {
-                      setIsEditingUser(false);
-                      setEditedUserData({...selectedUserForDetails});
-                    }}
-                  >
-                    <Text style={styles.cancelButtonText}>❌ Cancel</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
             </View>
 
             {/* User Details Form */}
@@ -1342,7 +1602,7 @@ export default function AdminHome() {
                           onPress={() => setEditedUserData({ ...editedUserData, trainingCompleted: !editedUserData.trainingCompleted })}
                         >
                           <View style={[styles.checkbox, editedUserData.trainingCompleted && styles.checkboxChecked]}>
-                            {editedUserData.trainingCompleted && <Text style={styles.checkboxMark}>✓</Text>}
+                            {editedUserData.trainingCompleted && <Icon name="check" size={16} color="#000000" style={styles.checkboxMark} />}
                           </View>
                           <Text style={styles.checkboxLabel}>Safety Training Completed</Text>
                         </TouchableOpacity>
@@ -1364,6 +1624,37 @@ export default function AdminHome() {
                         />
                       ) : (
                         <Text style={styles.readOnlyText}>{selectedUserForDetails?.experience || 'Not provided'}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Health Checkup Report</Text>
+                      {isEditingUser ? (
+                        <TouchableOpacity
+                          style={styles.documentButton}
+                          onPress={async () => {
+                            try {
+                              const result = await DocumentPicker.getDocumentAsync({
+                                type: ['application/pdf', 'image/*'],
+                                copyToCacheDirectory: true,
+                              });
+                              if (result.assets && result.assets.length > 0) {
+                                setEditedUserData({ ...editedUserData, healthCheckup: result.assets[0] });
+                              }
+                            } catch (error) {
+                              console.error('Document picker error:', error);
+                            }
+                          }}
+                        >
+                          <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                            <Icon name={editedUserData.healthCheckup ? "check-circle" : "paperclip"} size={18} color="rgba(255, 255, 255, 1)" />
+                            <Text style={styles.documentButtonText}>
+                              {editedUserData.healthCheckup ? 'Health Report Uploaded' : 'Upload Health Checkup Report'}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={styles.readOnlyText}>{selectedUserForDetails?.healthCheckup ? 'Uploaded' : 'Not provided'}</Text>
                       )}
                     </View>
                   </>
@@ -1424,12 +1715,80 @@ export default function AdminHome() {
                         <Text style={styles.readOnlyText}>{selectedUserForDetails?.department || 'Not provided'}</Text>
                       )}
                     </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Assigned Miners</Text>
+                      {isEditingUser ? (
+                        <>
+                          <Text style={styles.helperText}>Select miners to assign to this supervisor</Text>
+                          <TouchableOpacity
+                            style={styles.assignMinersButton}
+                            onPress={() => {
+                              fetchMiners(true);
+                              setShowMinerModal(true);
+                            }}
+                          >
+                            <Text style={styles.assignMinersButtonText}>
+                              Select Miners ({editedUserData.assignedMiners?.length || 0} selected)
+                            </Text>
+                          </TouchableOpacity>
+                          {editedUserData.assignedMiners && editedUserData.assignedMiners.length > 0 && (
+                            <View style={styles.selectedMinersContainer}>
+                              <Text style={styles.selectedMinersLabel}>Selected Miners:</Text>
+                              {editedUserData.assignedMiners.map((minerId: string) => {
+                                const miner = users.find(m => m.id === minerId);
+                                return miner ? (
+                                  <Text key={minerId} style={styles.selectedMinerText}>• {miner.name}</Text>
+                                ) : null;
+                              })}
+                            </View>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <Text style={styles.readOnlyText}>
+                            {selectedUserForDetails?.assignedMiners?.length || 0} miners assigned
+                          </Text>
+                          {selectedUserForDetails?.assignedMiners && selectedUserForDetails.assignedMiners.length > 0 && (
+                            <View style={styles.selectedMinersContainer}>
+                              {selectedUserForDetails.assignedMiners.map((minerId: string) => {
+                                const miner = users.find(m => m.id === minerId);
+                                return miner ? (
+                                  <Text key={minerId} style={styles.selectedMinerText}>• {miner.name}</Text>
+                                ) : null;
+                              })}
+                            </View>
+                          )}
+                        </>
+                      )}
+                    </View>
                   </>
                 )}
 
-                {(selectedUserForDetails?.role === 'safety_officer' || selectedUserForDetails?.role === 'engineer') && (
+                {selectedUserForDetails?.role === 'safety_officer' && (
                   <>
-                    <Text style={styles.formSectionTitle}>{selectedUserForDetails?.role === 'safety_officer' ? 'Safety Officer' : 'Engineer'} Details</Text>
+                    <Text style={styles.formSectionTitle}>Safety Officer Details</Text>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Department</Text>
+                      {isEditingUser ? (
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={editedUserData.department || ''}
+                            onValueChange={(value) => setEditedUserData({ ...editedUserData, department: value })}
+                            style={styles.picker}
+                          >
+                            <Picker.Item label="Select Department" value="" />
+                            <Picker.Item label="Safety & Compliance" value="safety_compliance" />
+                            <Picker.Item label="Risk Assessment" value="risk_assessment" />
+                            <Picker.Item label="Training" value="training" />
+                            <Picker.Item label="Audit" value="audit" />
+                          </Picker>
+                        </View>
+                      ) : (
+                        <Text style={styles.readOnlyText}>{selectedUserForDetails?.department || 'Not provided'}</Text>
+                      )}
+                    </View>
 
                     <View style={styles.inputGroup}>
                       <Text style={styles.label}>Experience (years)</Text>
@@ -1438,12 +1797,71 @@ export default function AdminHome() {
                           style={styles.input}
                           value={editedUserData.experience?.toString() || ''}
                           onChangeText={(text) => setEditedUserData({ ...editedUserData, experience: parseInt(text) || '' })}
-                          placeholder="Enter years of experience"
+                          placeholder="Years of safety experience"
                           keyboardType="numeric"
                           placeholderTextColor="#CCCCCC"
                         />
                       ) : (
                         <Text style={styles.readOnlyText}>{selectedUserForDetails?.experience || 'Not provided'}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Certifications</Text>
+                      {isEditingUser ? (
+                        <TouchableOpacity
+                          style={styles.documentButton}
+                          onPress={async () => {
+                            try {
+                              const result = await DocumentPicker.getDocumentAsync({
+                                type: ['application/pdf', 'image/*'],
+                                copyToCacheDirectory: true,
+                              });
+                              if (result.assets && result.assets.length > 0) {
+                                setEditedUserData({ ...editedUserData, certifications: result.assets[0] });
+                              }
+                            } catch (error) {
+                              console.error('Document picker error:', error);
+                            }
+                          }}
+                        >
+                          <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                            <Icon name={editedUserData.certifications ? "check-circle" : "paperclip"} size={18} color="#ffffffff" />
+                            <Text style={styles.documentButtonText}>
+                              {editedUserData.certifications ? 'Certification Uploaded' : 'Upload Safety Certifications'}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={styles.readOnlyText}>{selectedUserForDetails?.certifications ? 'Uploaded' : 'Not provided'}</Text>
+                      )}
+                    </View>
+                  </>
+                )}
+
+                {selectedUserForDetails?.role === 'engineer' && (
+                  <>
+                    <Text style={styles.formSectionTitle}>Engineer Details</Text>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Specialization</Text>
+                      {isEditingUser ? (
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={editedUserData.specialization || ''}
+                            onValueChange={(value) => setEditedUserData({ ...editedUserData, specialization: value })}
+                            style={styles.picker}
+                          >
+                            <Picker.Item label="Select Specialization" value="" />
+                            <Picker.Item label="Mining Engineering" value="mining_engineering" />
+                            <Picker.Item label="Geotechnical Engineering" value="geotechnical" />
+                            <Picker.Item label="Environmental Engineering" value="environmental" />
+                            <Picker.Item label="Mechanical Engineering" value="mechanical" />
+                            <Picker.Item label="Electrical Engineering" value="electrical" />
+                          </Picker>
+                        </View>
+                      ) : (
+                        <Text style={styles.readOnlyText}>{selectedUserForDetails?.specialization || 'Not provided'}</Text>
                       )}
                     </View>
 
@@ -1457,24 +1875,445 @@ export default function AdminHome() {
                             style={styles.picker}
                           >
                             <Picker.Item label="Select Department" value="" />
-                            <Picker.Item label="Mining Operations" value="mining_ops" />
-                            <Picker.Item label="Blasting" value="blasting" />
-                            <Picker.Item label="Equipment Maintenance" value="maintenance" />
-                            <Picker.Item label="Safety" value="safety" />
                             <Picker.Item label="Engineering" value="engineering" />
+                            <Picker.Item label="R&D" value="research_development" />
+                            <Picker.Item label="Operations" value="operations" />
+                            <Picker.Item label="Maintenance" value="maintenance" />
                           </Picker>
                         </View>
                       ) : (
                         <Text style={styles.readOnlyText}>{selectedUserForDetails?.department || 'Not provided'}</Text>
                       )}
                     </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Experience (years)</Text>
+                      {isEditingUser ? (
+                        <TextInput
+                          style={styles.input}
+                          value={editedUserData.experience?.toString() || ''}
+                          onChangeText={(text) => setEditedUserData({ ...editedUserData, experience: parseInt(text) || '' })}
+                          placeholder="Years of engineering experience"
+                          keyboardType="numeric"
+                          placeholderTextColor="#CCCCCC"
+                        />
+                      ) : (
+                        <Text style={styles.readOnlyText}>{selectedUserForDetails?.experience || 'Not provided'}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Qualifications</Text>
+                      {isEditingUser ? (
+                        <TouchableOpacity
+                          style={styles.documentButton}
+                          onPress={async () => {
+                            try {
+                              const result = await DocumentPicker.getDocumentAsync({
+                                type: ['application/pdf', 'image/*'],
+                                copyToCacheDirectory: true,
+                              });
+                              if (result.assets && result.assets.length > 0) {
+                                setEditedUserData({ ...editedUserData, qualifications: result.assets[0] });
+                              }
+                            } catch (error) {
+                              console.error('Document picker error:', error);
+                            }
+                          }}
+                        >
+                          <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                            <Icon name={editedUserData.qualifications ? "check-circle" : "paperclip"} size={18} color="#ffffffff" />
+                            <Text style={styles.documentButtonText}>
+                              {editedUserData.qualifications ? 'Qualifications Uploaded' : 'Upload Engineering Qualifications'}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={styles.readOnlyText}>{selectedUserForDetails?.qualifications ? 'Uploaded' : 'Not provided'}</Text>
+                      )}
+                    </View>
                   </>
+                )}
+
+                {/* Action Buttons at the End */}
+                {isEditingUser && (
+                  <View style={styles.bottomActions}>
+                    <TouchableOpacity
+                      style={styles.saveButton}
+                      onPress={handleSaveUserChanges}
+                    >
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                        <Icon name="content-save" size={18} color="#000000" />
+                        <Text style={styles.saveButtonText}>Save Changes</Text>
+                      </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.cancelButton}
+                      onPress={() => {
+                        setShowUserDetailsModal(false);
+                        setIsEditingUser(false);
+                        setSelectedUserForDetails(null);
+                        setEditedUserData({});
+                      }}
+                    >
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                        <Icon name="close" size={18} color="#FF6B00" />
+                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             </ScrollView>
           </View>
         </View>
       </Modal>
+
+      {/* Supervisor Miners Modal */}
+      <Modal
+        visible={showSupervisorMinersModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowSupervisorMinersModal(false);
+          setSelectedSupervisor(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.supervisorMinersModalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {selectedSupervisor?.name || 'Supervisor'}'s Miners
+              </Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setShowSupervisorMinersModal(false);
+                  setSelectedSupervisor(null);
+                }}
+              >
+                <Icon name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.supervisorInfoBanner}>
+              <View style={styles.supervisorInfoItem}>
+                <Text style={styles.supervisorInfoLabel}>Contact</Text>
+                <Text style={styles.supervisorInfoValue}>{selectedSupervisor?.phoneNumber || 'N/A'}</Text>
+              </View>
+              <View style={styles.supervisorInfoItem}>
+                <Text style={styles.supervisorInfoLabel}>Total Miners</Text>
+                <Text style={styles.supervisorInfoValue}>
+                  {(() => {
+                    const validCount = selectedSupervisor?.assignedMiners?.filter(
+                      minerId => users.find(m => m.id === minerId)
+                    ).length || 0;
+                    return validCount;
+                  })()}
+                </Text>
+              </View>
+            </View>
+
+            {/* Miners List */}
+            <ScrollView 
+              style={styles.supervisorMinersList} 
+              contentContainerStyle={styles.minersListContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {(() => {
+                // Filter out deleted miners (miners not found in users list)
+                const validMiners = selectedSupervisor?.assignedMiners
+                  ?.map(minerId => users.find(m => m.id === minerId))
+                  .filter(miner => miner !== undefined) || [];
+
+                if (validMiners.length === 0) {
+                  return (
+                    <View style={styles.emptyState}>
+                      <Text style={styles.emptyRoleText}>No miners assigned</Text>
+                      <Text style={styles.emptyRoleSubtext}>This supervisor has no assigned miners yet</Text>
+                    </View>
+                  );
+                }
+
+                return validMiners.map((miner, index) => (
+                  <View key={miner.id} style={styles.professionalMinerCard}>
+                    {/* Card Header */}
+                    <View style={styles.professionalMinerHeader}>
+                      <View style={styles.minerNumberBadge}>
+                        <Text style={styles.minerNumberText}>{index + 1}</Text>
+                      </View>
+                      <View style={styles.minerHeaderInfo}>
+                        <Text style={styles.professionalMinerName}>{miner.name || 'Unknown Miner'}</Text>
+                        <Text style={styles.professionalMinerPhone}>{miner.phoneNumber || 'No contact'}</Text>
+                      </View>
+                    </View>
+
+                    {/* Card Body - Grid Layout */}
+                    <View style={styles.minerInfoGrid}>
+                      <View style={styles.minerInfoItem}>
+                        <Text style={styles.minerInfoLabel}>Department</Text>
+                        <Text style={styles.minerInfoValue}>
+                          {miner.department ? 
+                            (miner.department === 'mining_ops' ? 'Mining Operations' :
+                             miner.department === 'blasting' ? 'Blasting' :
+                             miner.department === 'maintenance' ? 'Maintenance' :
+                             miner.department === 'safety' ? 'Safety' : miner.department) 
+                            : 'Not assigned'}
+                        </Text>
+                      </View>
+
+                      <View style={styles.minerInfoItem}>
+                        <Text style={styles.minerInfoLabel}>Shift</Text>
+                        <Text style={styles.minerInfoValue}>
+                          {miner.shift ? 
+                            (miner.shift === 'day' ? 'Day (6AM-6PM)' : 
+                             miner.shift === 'night' ? 'Night (6PM-6AM)' : 
+                             miner.shift === 'rotating' ? 'Rotating' : miner.shift)
+                            : 'Not assigned'}
+                        </Text>
+                      </View>
+
+                      <View style={styles.minerInfoItem}>
+                        <Text style={styles.minerInfoLabel}>Age</Text>
+                        <Text style={styles.minerInfoValue}>{miner.age || 'N/A'}</Text>
+                      </View>
+
+                      <View style={styles.minerInfoItem}>
+                        <Text style={styles.minerInfoLabel}>Experience</Text>
+                        <Text style={styles.minerInfoValue}>
+                          {miner.experience !== undefined ? `${miner.experience} yrs` : 'N/A'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Training Status */}
+                    <View style={styles.minerTrainingStatus}>
+                      <View style={[
+                        styles.trainingBadge,
+                        miner.trainingCompleted ? styles.trainingCompleted : styles.trainingPending
+                      ]}>
+                        <Text style={[
+                          styles.trainingBadgeText,
+                          miner.trainingCompleted ? styles.trainingCompletedText : styles.trainingPendingText
+                        ]}>
+                          {miner.trainingCompleted ? 'Training Completed' : 'Training Pending'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Address if available */}
+                    {miner.address && (
+                      <View style={styles.minerAddressSection}>
+                        <Text style={styles.minerAddressLabel}>Address</Text>
+                        <Text style={styles.minerAddressText}>{miner.address}</Text>
+                      </View>
+                    )}
+                  </View>
+                ));
+              })()}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Miner's Supervisor Modal */}
+      <Modal
+        visible={showMinerSupervisorModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowMinerSupervisorModal(false);
+          setSelectedSupervisor(null);
+          setSelectedMinerForSupervisor(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.supervisorDetailsModalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Supervisor Details
+              </Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setShowMinerSupervisorModal(false);
+                  setSelectedSupervisor(null);
+                  setSelectedMinerForSupervisor(null);
+                }}
+              >
+                <Icon name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Miner Info Banner */}
+            <View style={styles.minerInfoBanner}>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                <Icon name="account-hard-hat" size={16} color="#FFFFFF" />
+                <Text style={styles.minerInfoTitle}>Viewing supervisor for:</Text>
+              </View>
+              <Text style={styles.minerInfoName}>{selectedMinerForSupervisor?.name || 'Unknown Miner'}</Text>
+            </View>
+
+            {/* Supervisor Details */}
+            <ScrollView 
+              style={styles.supervisorDetailsScroll} 
+              contentContainerStyle={styles.supervisorDetailsContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {selectedSupervisor ? (
+                <View style={styles.supervisorDetailsCard}>
+                  {/* Supervisor Header */}
+                  <View style={styles.supervisorDetailsHeader}>
+                    <View style={styles.supervisorIconContainer}>
+                      <Icon name="account-tie" size={32} color="#FF6B00" />
+                    </View>
+                    <View style={styles.supervisorHeaderInfo}>
+                      <Text style={styles.supervisorDetailsName}>{selectedSupervisor.name || 'Unnamed Supervisor'}</Text>
+                      <Text style={styles.supervisorDetailsRole}>Supervisor</Text>
+                    </View>
+                  </View>
+
+                  {/* Contact Information Section */}
+                  <View style={styles.detailsSection}>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                      <Icon name="phone" size={16} color="#FF6B00" />
+                      <Text style={styles.detailsSectionTitle}>Contact Information</Text>
+                    </View>
+                    <View style={styles.detailsRow}>
+                      <Text style={styles.detailsLabel}>Phone Number:</Text>
+                      <Text style={styles.detailsValue}>{selectedSupervisor.phoneNumber || 'Not provided'}</Text>
+                    </View>
+                    {selectedSupervisor.email && (
+                      <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Email:</Text>
+                        <Text style={styles.detailsValue}>{selectedSupervisor.email}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Work Information Section */}
+                  <View style={styles.detailsSection}>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                      <Icon name="briefcase" size={16} color="#FF6B00" />
+                      <Text style={styles.detailsSectionTitle}>Work Information</Text>
+                    </View>
+                    {selectedSupervisor.empId && (
+                      <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Employee ID:</Text>
+                        <Text style={styles.detailsValue}>{selectedSupervisor.empId}</Text>
+                      </View>
+                    )}
+                    {selectedSupervisor.department && (
+                      <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Department:</Text>
+                        <Text style={styles.detailsValue}>
+                          {selectedSupervisor.department === 'mining_ops' ? 'Mining Operations' :
+                           selectedSupervisor.department === 'blasting' ? 'Blasting' :
+                           selectedSupervisor.department === 'maintenance' ? 'Equipment Maintenance' :
+                           selectedSupervisor.department === 'safety' ? 'Safety' : selectedSupervisor.department}
+                        </Text>
+                      </View>
+                    )}
+                    {selectedSupervisor.shift && (
+                      <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Shift:</Text>
+                        <Text style={styles.detailsValue}>
+                          {selectedSupervisor.shift === 'day' ? 'Day Shift (6AM-6PM)' :
+                           selectedSupervisor.shift === 'night' ? 'Night Shift (6PM-6AM)' :
+                           selectedSupervisor.shift === 'rotating' ? 'Rotating Shift' : selectedSupervisor.shift}
+                        </Text>
+                      </View>
+                    )}
+                    {selectedSupervisor.experience !== undefined && (
+                      <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Experience:</Text>
+                        <Text style={styles.detailsValue}>{selectedSupervisor.experience} years</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Team Information Section */}
+                  <View style={styles.detailsSection}>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                      <Icon name="account-group" size={16} color="#FF6B00" />
+                      <Text style={styles.detailsSectionTitle}>Team Information</Text>
+                    </View>
+                    <View style={styles.detailsRow}>
+                      <Text style={styles.detailsLabel}>Total Assigned Miners:</Text>
+                      <Text style={[styles.detailsValue, styles.highlightValue]}>
+                        {selectedSupervisor.assignedMiners?.length || 0}
+                      </Text>
+                    </View>
+                    {selectedSupervisor.teamSize && (
+                      <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Team Size:</Text>
+                        <Text style={styles.detailsValue}>{selectedSupervisor.teamSize}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Personal Information Section */}
+                  {(selectedSupervisor.age || selectedSupervisor.address) && (
+                    <View style={styles.detailsSection}>
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                        <Icon name="account" size={16} color="#FF6B00" />
+                        <Text style={styles.detailsSectionTitle}>Personal Information</Text>
+                      </View>
+                      {selectedSupervisor.age && (
+                        <View style={styles.detailsRow}>
+                          <Text style={styles.detailsLabel}>Age:</Text>
+                          <Text style={styles.detailsValue}>{selectedSupervisor.age} years</Text>
+                        </View>
+                      )}
+                      {selectedSupervisor.address && (
+                        <View style={styles.detailsRow}>
+                          <Text style={styles.detailsLabel}>Address:</Text>
+                          <Text style={styles.detailsValue}>{selectedSupervisor.address}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {/* View All Miners Button */}
+                  <TouchableOpacity
+                    style={styles.viewAllMinersButton}
+                    onPress={() => {
+                      setShowMinerSupervisorModal(false);
+                      requestAnimationFrame(() => {
+                        setShowSupervisorMinersModal(true);
+                      });
+                    }}
+                  >
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                      <Icon name="account-group" size={16} color="#000000" />
+                      <Text style={styles.viewAllMinersButtonText}>
+                        View All {selectedSupervisor.assignedMiners?.length || 0} Assigned Miners
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyRoleText}>No supervisor found</Text>
+                  <Text style={styles.emptyRoleSubtext}>This miner is not assigned to any supervisor</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Loading Overlay */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FF6B00" />
+            <Text style={styles.loadingText}>Processing...</Text>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -1482,41 +2321,46 @@ export default function AdminHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#0F0F0F',
-    borderBottomWidth: 2,
-    borderBottomColor: '#0891B2',
-    shadowColor: '#0891B2',
+    backgroundColor: '#000000',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
     shadowOffset: {
       width: 0,
-      height: 3,
+      height: 4,
     },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#FF6B00',
+    letterSpacing: 1,
   },
   signOutButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#2563EB',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#3B82F6',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#FF6B00',
+    borderRadius: 12,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
   },
   signOutText: {
     color: '#000000',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 14,
   },
   content: {
     flex: 1,
@@ -1524,18 +2368,18 @@ const styles = StyleSheet.create({
   section: {
     margin: 16,
     padding: 20,
-    backgroundColor: '#121212',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#7C3AED',
-    shadowColor: '#7C3AED',
+    backgroundColor: '#0A0A0A',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
     shadowOffset: {
       width: 0,
-      height: 3,
+      height: 4,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1544,21 +2388,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFD700',
+    color: '#FF6B00',
     marginBottom: 16,
+    letterSpacing: 0.5,
   },
   refreshButton: {
-    padding: 8,
-    backgroundColor: '#164E63',
-    borderRadius: 8,
+    padding: 10,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#0891B2',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   refreshIcon: {
-    fontSize: 24,
-    color: '#0891B2',
+    fontSize: 22,
+    color: '#FF6B00',
     fontWeight: 'bold',
   },
   inputGroup: {
@@ -1567,70 +2412,72 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#FF6B00',
     marginBottom: 8,
+    letterSpacing: 0.3,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#FF6B00',
-    borderRadius: 10,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
     padding: 14,
     fontSize: 16,
     color: '#FFFFFF',
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#000000',
     shadowColor: '#FF6B00',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  roleGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  roleButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.background,
-  },
-  roleButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  roleButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  addButton: {
-    backgroundColor: '#059669',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 12,
-    shadowColor: '#059669',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
+  },
+  roleGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  roleButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#000000',
+  },
+  roleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF6B00',
+  },
+  roleButtonTextActive: {
+    color: '#000000',
+  },
+  addButton: {
+    backgroundColor: '#FF6B00',
+    padding: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginTop: 12,
+    shadowColor: '#FF6B00',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 5,
   },
   addButtonDisabled: {
-    opacity: 0.6,
-    shadowOpacity: 0.1,
+    opacity: 0.5,
+    shadowOpacity: 0.2,
   },
   addButtonText: {
     color: '#000000',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   usersList: {
     gap: 12,
@@ -1703,22 +2550,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#064E3B',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#059669',
-    borderStyle: 'dashed',
+    backgroundColor: '#000000',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     marginBottom: 16,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   roleSelectorText: {
     fontSize: 16,
-    color: '#F0F9FF',
+    color: '#FFFFFF',
     flex: 1,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   roleSelectorArrow: {
     fontSize: 18,
-    color: '#FFFFFF',
+    color: '#FF6B00',
     fontWeight: 'bold',
   },
   formContainer: {
@@ -1727,36 +2578,37 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 20,
   },
   modalContent: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 16,
+    backgroundColor: '#000000',
+    borderRadius: 20,
     padding: 24,
     width: '90%',
     maxWidth: 400,
     shadowColor: '#FF6B00',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 6,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 10,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FF6B00',
     textAlign: 'center',
     marginBottom: 20,
     flex: 1,
+    letterSpacing: 0.5,
   },
   modalRoleButton: {
     flexDirection: 'row',
@@ -1794,46 +2646,52 @@ const styles = StyleSheet.create({
   },
   modalCancelButton: {
     padding: 16,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 12,
+    backgroundColor: '#000000',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
   },
   modalCancelText: {
     fontSize: 16,
     color: '#FF6B00',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   // Simple role button styles
   simpleRoleButton: {
     padding: 16,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 12,
+    backgroundColor: '#000000',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     marginBottom: 12,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   simpleRoleText: {
     fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: '#FF6B00',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   // Additional Form styles
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#FF6B00',
-    borderRadius: 10,
-    backgroundColor: '#2A2A2A',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    backgroundColor: '#000000',
     shadowColor: '#FF6B00',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   picker: {
     color: '#FFFFFF',
@@ -1846,15 +2704,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderWidth: 2,
-    borderColor: '#FF6B00',
-    borderRadius: 6,
+    width: 24,
+    height: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 8,
     marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#000000',
   },
   checkboxChecked: {
     backgroundColor: '#FF6B00',
@@ -1902,37 +2760,41 @@ const styles = StyleSheet.create({
   },
   documentButton: {
     padding: 14,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 10,
+    backgroundColor: '#000000',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
-    borderStyle: 'dashed',
   },
   documentButtonText: {
     fontSize: 14,
-    color: '#FF6B00',
-    fontWeight: '500',
+    color: '#ffffffff',
+    fontWeight: '600',
   },
   assignMinersButton: {
     padding: 14,
     backgroundColor: '#FF6B00',
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     marginTop: 8,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
   },
   assignMinersButtonText: {
     fontSize: 14,
     color: '#000000',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   selectedMinersContainer: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 8,
+    backgroundColor: '#000000',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   selectedMinersLabel: {
     fontSize: 14,
@@ -1946,13 +2808,18 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   minerModalContent: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 15,
+    backgroundColor: '#000000',
+    borderRadius: 20,
     padding: 20,
     margin: 20,
     maxHeight: '80%',
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 10,
   },
   minerModalSubtitle: {
     fontSize: 14,
@@ -1967,15 +2834,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 15,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 10,
+    backgroundColor: '#0A0A0A',
+    borderRadius: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#333333',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   minerListItemSelected: {
     backgroundColor: '#FF6B00',
-    borderColor: '#FF8533',
+    borderColor: '#FF6B00',
   },
   minerInfo: {
     flex: 1,
@@ -1996,13 +2863,19 @@ const styles = StyleSheet.create({
   minerModalDoneButton: {
     backgroundColor: '#FF6B00',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 5,
   },
   minerModalDoneText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#000000',
+    letterSpacing: 0.3,
   },
   roleCategories: {
     flexDirection: 'row',
@@ -2011,74 +2884,82 @@ const styles = StyleSheet.create({
   },
   roleCategoryCard: {
     width: '48%',
-    backgroundColor: '#0F0F0F',
+    backgroundColor: '#0A0A0A',
     borderRadius: 16,
-    padding: 18,
+    padding: 20,
     marginBottom: 16,
-    borderWidth: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     shadowColor: '#FF6B00',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 8,
   },
   roleCategoryIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    backgroundColor: '#FF6B00',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 4,
   },
   roleCategoryIconText: {
-    fontSize: 24,
-    color: '#000000',
+    fontSize: 28,
   },
   roleCategoryInfo: {
     alignItems: 'center',
   },
   roleCategoryTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    color: '#FF6B00',
     marginBottom: 4,
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
   roleCategoryCount: {
     fontSize: 14,
-    color: '#E0E0E0',
+    color: '#FFFFFF',
     textAlign: 'center',
+    fontWeight: '600',
   },
   roleDetailsModalContent: {
-    backgroundColor: '#0F0F0F',
+    backgroundColor: '#000000',
     borderRadius: 20,
     width: '95%',
     maxWidth: 400,
     maxHeight: Dimensions.get('window').height * 0.85,
-    borderWidth: 2,
-    borderColor: '#0891B2',
-    shadowColor: '#0891B2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
     shadowRadius: 12,
-    elevation: 8,
+    elevation: 10,
   },
   roleDetailsList: {
     maxHeight: Dimensions.get('window').height * 0.6,
   },
   roleDetailCard: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
+    backgroundColor: '#0A0A0A',
+    borderRadius: 14,
     padding: 18,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     shadowColor: '#FF6B00',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 5,
   },
   roleDetailHeader: {
     flexDirection: 'row',
@@ -2093,15 +2974,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   roleDetailDeleteButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: '#FF6B00',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   roleDetailDeleteText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    fontSize: 14,
+    color: '#000000',
+    fontWeight: '700',
   },
   roleDetailInfo: {
     fontSize: 14,
@@ -2122,7 +3003,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#059669',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
     position: 'relative',
   },
   modalSubtitle: {
@@ -2138,9 +3019,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#FF6B00',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 4,
   },
   modalCloseText: {
     fontSize: 18,
@@ -2170,15 +3056,296 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
+  supervisorCardWrapper: {
+    position: 'relative',
+  },
+  supervisorClickableArea: {
+    flex: 1,
+  },
+  clickToViewMiners: {
+    fontSize: 12,
+    color: '#0891B2',
+    fontStyle: 'italic',
+    marginTop: 8,
+  },
+  roleDetailDeleteButtonAbsolute: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FF6B00',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    zIndex: 10,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  cardActionButtons: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    gap: 6,
+    zIndex: 100,
+    elevation: 100,
+  },
+  roleDetailEditButtonAbsolute: {
+    backgroundColor: '#a6e4cfff',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+    minWidth: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roleDetailEditText: {
+    fontSize: 16,
+    color: '#000000',
+    fontWeight: '700',
+  },
+  roleDetailDeleteButtonAbsoluteSmall: {
+    backgroundColor: '#FF6B00',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+    minWidth: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  supervisorMinersModalContent: {
+    backgroundColor: '#000000',
+    borderRadius: 20,
+    width: '90%',
+    maxWidth: 500,
+    height: Dimensions.get('window').height * 0.80,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  supervisorInfoBanner: {
+    backgroundColor: '#0A0A0A',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 20,
+  },
+  supervisorInfoItem: {
+    alignItems: 'center',
+  },
+  supervisorInfoLabel: {
+    fontSize: 11,
+    color: '#CCCCCC',
+    marginBottom: 4,
+  },
+  supervisorInfoValue: {
+    fontSize: 14,
+    color: '#FF6B00',
+    fontWeight: '600',
+  },
+  supervisorMinersList: {
+    flex: 1,
+  },
+  minersListContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  supervisorMinerCard: {
+    backgroundColor: '#0A0A0A',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  minerCardHeader: {
+    marginBottom: 8,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  minerCardName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FF6B00',
+    letterSpacing: 0.3,
+  },
+  minerCardDetails: {
+    gap: 4,
+  },
+  minerCardDetail: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    lineHeight: 16,
+  },
+  // Professional Miner Card Styles
+  professionalMinerCard: {
+    backgroundColor: '#0A0A0A',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  professionalMinerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  minerNumberBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FF6B00',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  minerNumberText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  minerHeaderInfo: {
+    flex: 1,
+  },
+  professionalMinerName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  professionalMinerPhone: {
+    fontSize: 13,
+    color: '#CCCCCC',
+    fontWeight: '500',
+  },
+  minerInfoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+    gap: 12,
+  },
+  minerInfoItem: {
+    width: '47%',
+    backgroundColor: '#000000',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  minerInfoLabel: {
+    fontSize: 11,
+    color: '#999999',
+    marginBottom: 4,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  minerInfoValue: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  minerTrainingStatus: {
+    marginBottom: 12,
+  },
+  trainingBadge: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  trainingCompleted: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  trainingPending: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  trainingBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  trainingCompletedText: {
+    color: '#10B981',
+  },
+  trainingPendingText: {
+    color: '#F59E0B',
+  },
+  minerAddressSection: {
+    backgroundColor: '#000000',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  minerAddressLabel: {
+    fontSize: 11,
+    color: '#999999',
+    marginBottom: 4,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  minerAddressText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    lineHeight: 18,
+    fontWeight: '500',
+  },
   userDetailsModalContent: {
-    backgroundColor: '#0F0F0F',
+    backgroundColor: '#000000',
     borderRadius: 20,
     width: '95%',
     maxWidth: 400,
-    maxHeight: Dimensions.get('window').height * 0.9,
+    height: Dimensions.get('window').height * 0.85,
     borderWidth: 2,
-    borderColor: '#0891B2',
-    shadowColor: '#0891B2',
+    borderColor: '#FF6B00',
+    shadowColor: '#FF6B00',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -2188,17 +3355,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 16,
   },
+  bottomActions: {
+    marginTop: 24,
+    marginBottom: 20,
+    gap: 12,
+  },
   editButton: {
-    backgroundColor: '#059669',
+    backgroundColor: '#FF6B00',
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
   },
   editButtonText: {
-    color: '#FFFFFF',
+    color: '#000000',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   editActions: {
     flexDirection: 'row',
@@ -2207,29 +3384,36 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#059669',
+    backgroundColor: '#FF6B00',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
   },
   saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '700',
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#DC2626',
+    backgroundColor: 'transparent',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FF6B00',
   },
   cancelButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#ffffffff',
+    fontSize: 16,
+    fontWeight: '700',
   },
   userDetailsScroll: {
     flex: 1,
@@ -2241,7 +3425,7 @@ const styles = StyleSheet.create({
   formSectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFD700',
+    color: '#FF6B00',
     marginTop: 20,
     marginBottom: 16,
   },
@@ -2250,9 +3434,203 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 10,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#333333',
+    borderColor: 'rgba(255, 107, 0, 0.3)',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  loadingContainer: {
+    backgroundColor: '#000000',
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  loadingText: {
+    color: '#FF6B00',
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  // Miner Card Wrapper Styles
+  minerCardWrapper: {
+    position: 'relative',
+  },
+  minerClickableArea: {
+    flex: 1,
+  },
+  minerClickableAreaWithButtons: {
+    flex: 1,
+    paddingRight: 80,
+  },
+  // Supervisor Details Modal Styles
+  supervisorDetailsModalContent: {
+    backgroundColor: '#000000',
+    borderRadius: 20,
+    width: '90%',
+    maxWidth: 500,
+    height: Dimensions.get('window').height * 0.85,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  minerInfoBanner: {
+    backgroundColor: '#0A0A0A',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    gap: 8,
+  },
+  minerInfoTitle: {
+    fontSize: 12,
+    color: '#CCCCCC',
+    fontWeight: '600',
+  },
+  minerInfoName: {
+    fontSize: 16,
+    color: '#FF6B00',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  supervisorDetailsScroll: {
+    flex: 1,
+  },
+  supervisorDetailsContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  supervisorDetailsCard: {
+    backgroundColor: '#0A0A0A',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  supervisorDetailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  supervisorIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FF6B00',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  supervisorIcon: {
+    fontSize: 30,
+  },
+  supervisorHeaderInfo: {
+    flex: 1,
+  },
+  supervisorDetailsName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  supervisorDetailsRole: {
+    fontSize: 14,
+    color: '#FF6B00',
+    fontWeight: '600',
+  },
+  detailsSection: {
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  detailsSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FF6B00',
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  detailsLabel: {
+    fontSize: 13,
+    color: '#CCCCCC',
+    flex: 1,
+    fontWeight: '600',
+  },
+  detailsValue: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    flex: 1.2,
+    textAlign: 'right',
+    fontWeight: '500',
+  },
+  highlightValue: {
+    color: '#FF6B00',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  viewAllMinersButton: {
+    backgroundColor: '#FF6B00',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  viewAllMinersButtonText: {
+    color: '#000000',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

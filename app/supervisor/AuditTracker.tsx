@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Plus, CheckCircle, XCircle, AlertTriangle, Calendar, MapPin, User, FileText, Clock } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
+import { useSupervisor } from '@/contexts/SupervisorContext';
 
 interface AuditItem {
   id: string;
@@ -40,10 +41,12 @@ const defaultAuditChecklist: Omit<AuditItem, 'status' | 'notes'>[] = [
 
 export default function AuditTracker() {
   const router = useRouter();
+  const { assignedMiners, loading: minersLoading } = useSupervisor();
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'in-progress' | 'completed'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedAudit, setSelectedAudit] = useState<Audit | null>(null);
+  const [audits, setAudits] = useState<Audit[]>([]);
   
   const [newAudit, setNewAudit] = useState({
     title: '',
@@ -52,57 +55,43 @@ export default function AuditTracker() {
     time: new Date().toTimeString().slice(0, 5),
   });
 
-  // Mock data
-  const [audits, setAudits] = useState<Audit[]>([
-    {
-      id: '1',
-      title: 'Monthly Safety Inspection',
-      location: 'Section A',
-      auditor: 'Supervisor John',
-      date: '2025-12-01',
-      time: '10:00',
-      status: 'completed',
-      score: 92,
-      items: defaultAuditChecklist.map(item => ({
-        ...item,
-        status: Math.random() > 0.2 ? 'pass' : 'fail' as 'pass' | 'fail',
-        notes: '',
-      })),
-      overallNotes: 'Overall good compliance. Minor issues with housekeeping in storage area.',
-    },
-    {
-      id: '2',
-      title: 'Weekly Equipment Check',
-      location: 'Section B',
-      auditor: 'Supervisor John',
-      date: '2025-12-02',
-      time: '14:00',
-      status: 'in-progress',
-      score: 0,
-      items: defaultAuditChecklist.map(item => ({
-        ...item,
-        status: 'na' as 'na',
-        notes: '',
-      })),
-      overallNotes: '',
-    },
-    {
-      id: '3',
-      title: 'PPE Compliance Audit',
-      location: 'Section C',
-      auditor: 'Supervisor John',
-      date: '2025-12-03',
-      time: '09:00',
-      status: 'pending',
-      score: 0,
-      items: defaultAuditChecklist.map(item => ({
-        ...item,
-        status: 'na' as 'na',
-        notes: '',
-      })),
-      overallNotes: '',
-    },
-  ]);
+  useEffect(() => {
+    if (assignedMiners.length > 0) {
+      generateAudits();
+    }
+  }, [assignedMiners]);
+
+  const generateAudits = () => {
+    console.log('📋 Generating audit data for', assignedMiners.length, 'miners');
+    
+    const statuses: ('pending' | 'in-progress' | 'completed')[] = ['completed', 'in-progress', 'pending'];
+    const titles = ['Monthly Safety Inspection', 'Weekly Equipment Check', 'PPE Compliance Audit'];
+    
+    const auditsData: Audit[] = assignedMiners.slice(0, 3).map((miner, index) => {
+      const status = statuses[index % 3];
+      const isCompleted = status === 'completed';
+      
+      return {
+        id: miner.id + '_audit',
+        title: titles[index % 3],
+        location: miner.location || 'Section A',
+        auditor: miner.name,
+        date: new Date().toISOString().split('T')[0],
+        time: '10:00',
+        status,
+        score: isCompleted ? 85 + Math.floor(Math.random() * 15) : 0,
+        items: defaultAuditChecklist.map(item => ({
+          ...item,
+          status: isCompleted ? (Math.random() > 0.2 ? 'pass' : 'fail') : 'na',
+          notes: '',
+        })),
+        overallNotes: isCompleted ? 'Audit completed successfully' : '',
+      };
+    });
+    
+    setAudits(auditsData);
+    console.log('✅ Generated', auditsData.length, 'audits');
+  };
 
   const handleCreateAudit = () => {
     if (!newAudit.title.trim()) {

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Plus, CheckCircle, Clock, AlertTriangle, User, Calendar } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
+import { useSupervisor } from '@/contexts/SupervisorContext';
 
 interface Task {
   id: string;
@@ -25,9 +26,12 @@ interface Miner {
 
 export default function TaskAssignment() {
   const router = useRouter();
+  const { assignedMiners, loading: minersLoading } = useSupervisor();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'in-progress' | 'completed'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [miners, setMiners] = useState<Miner[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   
   // New task form state
   const [newTask, setNewTask] = useState({
@@ -38,47 +42,52 @@ export default function TaskAssignment() {
     dueDate: new Date().toISOString().split('T')[0],
   });
 
-  // Mock data
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: '1',
-      title: 'Safety Equipment Check',
-      description: 'Inspect all safety equipment in Section A',
-      assignedTo: ['miner1', 'miner2'],
-      priority: 'high',
-      status: 'in-progress',
-      dueDate: '2025-12-03',
-      createdAt: '2025-12-02',
-    },
-    {
-      id: '2',
-      title: 'Tunnel Wall Inspection',
-      description: 'Check for cracks and structural issues',
-      assignedTo: ['miner3'],
-      priority: 'medium',
-      status: 'pending',
-      dueDate: '2025-12-04',
-      createdAt: '2025-12-02',
-    },
-    {
-      id: '3',
-      title: 'Ventilation System Maintenance',
-      description: 'Clean and test ventilation fans',
-      assignedTo: ['miner4', 'miner5'],
-      priority: 'high',
-      status: 'completed',
-      dueDate: '2025-12-02',
-      createdAt: '2025-12-01',
-    },
-  ]);
+  useEffect(() => {
+    if (assignedMiners.length > 0) {
+      generateData();
+    }
+  }, [assignedMiners]);
 
-  const [miners] = useState<Miner[]>([
-    { id: 'miner1', name: 'Rajesh Kumar', role: 'Miner', status: 'active' },
-    { id: 'miner2', name: 'Amit Sharma', role: 'Miner', status: 'active' },
-    { id: 'miner3', name: 'Suresh Patel', role: 'Miner', status: 'active' },
-    { id: 'miner4', name: 'Vikram Rao', role: 'Miner', status: 'active' },
-    { id: 'miner5', name: 'Karan Mehta', role: 'Miner', status: 'active' },
-  ]);
+  const generateData = () => {
+    console.log('📋 Generating task assignment data for', assignedMiners.length, 'miners');
+    
+    // Convert to Miner[] format
+    const minerData: Miner[] = assignedMiners.map((miner) => ({
+      id: miner.id,
+      name: miner.name,
+      role: miner.role || 'Miner',
+      status: 'active' as const,
+    }));
+    setMiners(minerData);
+    
+    // Generate sample tasks
+    const taskTitles = [
+      'Safety Equipment Check',
+      'Tunnel Wall Inspection',
+      'Ventilation System Maintenance',
+    ];
+    const taskDescriptions = [
+      'Inspect all safety equipment in assigned section',
+      'Check for cracks and structural issues',
+      'Clean and test ventilation fans',
+    ];
+    const priorities: ('high' | 'medium' | 'low')[] = ['high', 'medium', 'high'];
+    const statuses: ('in-progress' | 'pending' | 'completed')[] = ['in-progress', 'pending', 'completed'];
+    
+    const tasksData: Task[] = minerData.slice(0, 3).map((miner, index) => ({
+      id: miner.id + '_task',
+      title: taskTitles[index % 3],
+      description: taskDescriptions[index % 3],
+      assignedTo: [miner.id],
+      priority: priorities[index % 3],
+      status: statuses[index % 3],
+      dueDate: new Date(Date.now() + (index + 1) * 86400000).toISOString().split('T')[0],
+      createdAt: new Date().toISOString().split('T')[0],
+    }));
+    
+    setTasks(tasksData);
+    console.log('✅ Generated', tasksData.length, 'tasks for', minerData.length, 'miners');
+  };
 
   const handleCreateTask = () => {
     if (!newTask.title.trim()) {

@@ -43,6 +43,12 @@ interface VideoAssignment {
   assignedAt: Timestamp;
   description?: string;
   status: 'active' | 'completed' | 'expired' | 'cancelled';
+  progress?: Record<string, {
+    status: 'pending' | 'completed';
+    watchedDuration: number;
+    totalDuration: number;
+    completedAt: Timestamp | null;
+  }>;
 }
 
 interface AssignmentProgress {
@@ -99,28 +105,37 @@ export default function VideoProgressDashboard() {
     loadData();
     initializeAutoNotificationSystem();
     
-    // Set up real-time listener for progress updates
-    const progressRef = collection(db, 'assignmentProgress');
-    const unsubscribe = onSnapshot(progressRef, (snapshot) => {
-      const allProgress: AssignmentProgress[] = [];
+    // Set up real-time listener for assignment updates (including progress map)
+    if (!user?.phone) return;
+    
+    const assignmentsRef = collection(db, 'videoAssignments');
+    const assignmentsQuery = query(
+      assignmentsRef,
+      where('assignedBy', '==', user.phone),
+      where('status', '==', 'active')
+    );
+    
+    const unsubscribe = onSnapshot(assignmentsQuery, (snapshot) => {
+      const updatedAssignments: VideoAssignment[] = [];
       snapshot.forEach((doc) => {
-        allProgress.push({
+        updatedAssignments.push({
           id: doc.id,
           ...doc.data(),
-        } as AssignmentProgress);
+        } as VideoAssignment);
       });
       
-      // Filter to only our miners' progress
-      if (miners.length > 0) {
-        const minerIds = miners.map(m => m.id);
-        const relevantProgress = allProgress.filter(progress => minerIds.includes(progress.minerId));
-        setProgressData(relevantProgress);
-        console.log('🔄 Real-time update: Progress data refreshed');
-      }
+      setAssignments(updatedAssignments);
+      console.log('🔄 Real-time update: Assignment progress maps refreshed');
+      console.log('📊 Total assignments:', updatedAssignments.length);
+      
+      // Log progress for debugging
+      updatedAssignments.forEach((assignment) => {
+        console.log(`Assignment ${assignment.id} progress:`, assignment.progress);
+      });
     });
     
     return () => unsubscribe();
-  }, [miners]);
+  }, [user?.phone]);
 
   const initializeAutoNotificationSystem = async () => {
     if (!user?.id) return;
@@ -152,46 +167,51 @@ export default function VideoProgressDashboard() {
       // Get list of miner IDs for filtering assignments
       const minerIds = loadedMiners.map(m => m.id);
 
-      // Load ALL active assignments (we'll filter by miner IDs)
+      // Load assignments created by this supervisor with real-time listener
       const assignmentsRef = collection(db, 'videoAssignments');
       const assignmentsQuery = query(
         assignmentsRef,
+        where('assignedBy', '==', user.id || user.phone),
         where('status', '==', 'active')
       );
-      const assignmentsSnapshot = await getDocs(assignmentsQuery);
       
-      const allAssignments: VideoAssignment[] = [];
-      assignmentsSnapshot.forEach((doc) => {
-        allAssignments.push({
-          id: doc.id,
-          ...doc.data(),
-        } as VideoAssignment);
+      // Use onSnapshot for real-time updates
+      const unsubscribe = onSnapshot(assignmentsQuery, (snapshot) => {
+        const loadedAssignments: VideoAssignment[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          loadedAssignments.push({
+            id: doc.id,
+            videoId: data.videoId,
+            videoTopic: data.videoTopic,
+            assignedTo: data.assignedTo || [],
+            assignedBy: data.assignedBy,
+            deadline: data.deadline,
+            isMandatory: data.isMandatory || false,
+            isDailyTask: data.isDailyTask || false,
+            taskDate: data.taskDate,
+            assignedAt: data.assignedAt,
+            description: data.description,
+            status: data.status,
+            progress: data.progress || {}, // Include progress map from Firestore
+          } as any);
+        });
+        
+        setAssignments(loadedAssignments);
+        console.log(`✅ Loaded ${loadedMiners.length} miners, ${loadedAssignments.length} assignments`);
+        
+        // Log progress maps for debugging
+        loadedAssignments.forEach((assignment) => {
+          console.log(`📋 Assignment ${assignment.id}:`, {
+            videoTopic: assignment.videoTopic,
+            assignedTo: assignment.assignedTo,
+            progress: (assignment as any).progress,
+          });
+        });
       });
-
-      // Filter assignments to only those that include our miners
-      const relevantAssignments = allAssignments.filter(assignment => 
-        assignment.assignedTo && assignment.assignedTo.some(minerId => minerIds.includes(minerId))
-      );
       
-      setAssignments(relevantAssignments);
-
-      // Load progress data for all miners
-      const progressRef = collection(db, 'assignmentProgress');
-      const progressSnapshot = await getDocs(progressRef);
-      
-      const allProgress: AssignmentProgress[] = [];
-      progressSnapshot.forEach((doc) => {
-        allProgress.push({
-          id: doc.id,
-          ...doc.data(),
-        } as AssignmentProgress);
-      });
-
-      // Filter progress to only our miners
-      const relevantProgress = allProgress.filter(progress => minerIds.includes(progress.minerId));
-      setProgressData(relevantProgress);
-
-      console.log(`✅ Loaded ${loadedMiners.length} miners, ${relevantAssignments.length} assignments, ${relevantProgress.length} progress records`);
+      // Return cleanup function
+      return unsubscribe;
     } catch (error) {
       console.error('Error loading data:', error);
       Alert.alert('Error', 'Failed to load progress data from database');
@@ -225,23 +245,49 @@ export default function VideoProgressDashboard() {
       }> = [];
 
       minerAssignments.forEach((assignment) => {
-        const progress = progressData.find(
-          (p) => p.assignmentId === assignment.id && p.minerId === miner.id
-        );
+        // Read progress from the progress map in the assignment document
+        const progressMap = (assignment as any).progress || {};
+        const minerKey = miner.id; // Always use miner.id as key
+        const minerProgress = progressMap[minerKey];
+        
+        console.log(`📊 Checking progress for ${miner.name} (${minerKey}):`, {
+          assignmentId: assignment.id,
+          videoTopic: assignment.videoTopic,
+          progressMap: progressMap,
+          minerProgress: minerProgress,
+        });
+        
+        const isCompleted = minerProgress && minerProgress.status === 'completed';
+        const isOverdue = !isCompleted && assignment.deadline.toDate() < new Date();
 
-        const isOverdue = assignment.deadline.toDate() < new Date();
-
-        if (progress && progress.watched) {
+        if (isCompleted) {
           completedCount++;
+          console.log(`✅ ${miner.name} completed ${assignment.videoTopic}`);
         } else if (isOverdue) {
           overdueCount++;
+          console.log(`⏰ ${miner.name} overdue on ${assignment.videoTopic}`);
         } else {
           pendingCount++;
+          console.log(`⏳ ${miner.name} pending on ${assignment.videoTopic}`);
         }
+
+        // Convert progress map entry to AssignmentProgress format for compatibility
+        const progressObj: AssignmentProgress | null = minerProgress ? {
+          id: `${assignment.id}_${miner.id}`,
+          assignmentId: assignment.id,
+          minerId: miner.id,
+          videoId: assignment.videoId,
+          watched: minerProgress.status === 'completed',
+          completedAt: minerProgress.completedAt || undefined,
+          progress: minerProgress.watchedDuration || 0,
+          watchTime: minerProgress.totalDuration || 0,
+          status: minerProgress.status === 'completed' ? 'completed' : 
+                  isOverdue ? 'overdue' : 'in_progress',
+        } : null;
 
         assignmentDetails.push({
           assignment,
-          progress: progress || null,
+          progress: progressObj,
         });
       });
 

@@ -29,11 +29,7 @@ interface MinerVitals {
 
 export default function HealthMonitoring() {
   const router = useRouter();
-  const [miners, setMiners] = useState<MinerVitals[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'fit' | 'monitor' | 'unfit'>('all');
-
+  
   // Mock data
   const mockMiners: MinerVitals[] = [
     {
@@ -82,20 +78,17 @@ export default function HealthMonitoring() {
     },
   ];
 
-  useEffect(() => {
-    loadMiners();
-  }, []);
+  const [miners, setMiners] = useState<MinerVitals[]>(mockMiners);
+  const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'fit' | 'monitor' | 'unfit'>('all');
 
   const loadMiners = async () => {
-    setLoading(true);
     try {
       const data = await getMinerVitals();
       setMiners(data);
     } catch (error) {
       console.error('Error loading miner vitals:', error);
       setMiners(mockMiners);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -188,17 +181,6 @@ export default function HealthMonitoring() {
     }
     return COLORS.textMuted;
   };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading health data...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>

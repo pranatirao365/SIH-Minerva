@@ -83,14 +83,6 @@ export default function SupervisorHome() {
       gradient: false,
     },
     {
-      icon: Video,
-      title: 'AI Video Generator',
-      description: 'Create safety training videos with AI',
-      route: '/supervisor/VideoGenerationModule',
-      color: COLORS.primary,
-      gradient: true,
-    },
-    {
       icon: Youtube,
       title: 'Video Library',
       description: 'Manage training video library',

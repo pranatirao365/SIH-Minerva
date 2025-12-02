@@ -53,7 +53,7 @@ export default function VideoRequestManager() {
     try {
       setLoading(true);
       const [videosData, requestsData] = await Promise.all([
-        VideoLibraryService.getAllVideos(),
+        VideoLibraryService.getVideos(),
         VideoLibraryService.getSupervisorRequests(user.id || user.phone || 'supervisor'),
       ]);
       setVideos(videosData);

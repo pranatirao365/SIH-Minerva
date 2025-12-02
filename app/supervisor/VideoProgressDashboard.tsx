@@ -15,9 +15,9 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, AlertTriangle } from '@/components/Icons';
+import { ArrowLeft, AlertTriangle, Bell } from '@/components/Icons';
 import { COLORS } from '@/constants/styles';
-import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { useRoleStore } from '@/hooks/useRoleStore';
 import {
@@ -98,7 +98,29 @@ export default function VideoProgressDashboard() {
   useEffect(() => {
     loadData();
     initializeAutoNotificationSystem();
-  }, []);
+    
+    // Set up real-time listener for progress updates
+    const progressRef = collection(db, 'assignmentProgress');
+    const unsubscribe = onSnapshot(progressRef, (snapshot) => {
+      const allProgress: AssignmentProgress[] = [];
+      snapshot.forEach((doc) => {
+        allProgress.push({
+          id: doc.id,
+          ...doc.data(),
+        } as AssignmentProgress);
+      });
+      
+      // Filter to only our miners' progress
+      if (miners.length > 0) {
+        const minerIds = miners.map(m => m.id);
+        const relevantProgress = allProgress.filter(progress => minerIds.includes(progress.minerId));
+        setProgressData(relevantProgress);
+        console.log('🔄 Real-time update: Progress data refreshed');
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [miners]);
 
   const initializeAutoNotificationSystem = async () => {
     if (!user?.id) return;
@@ -296,9 +318,9 @@ export default function VideoProgressDashboard() {
         [{ text: 'OK' }]
       );
     } catch (error) {
-      console.error('❌ Error sending notification:', error);
+      console.error(' Error sending notification:', error);
       Alert.alert(
-        '❌ Error',
+        ' Error',
         'Failed to send notification. Please try again.',
         [{ text: 'OK' }]
       );
@@ -311,7 +333,7 @@ export default function VideoProgressDashboard() {
     const minersWithPending = filteredSummaries.filter((s) => s.pendingCount > 0);
     
     if (minersWithPending.length === 0) {
-      Alert.alert('ℹ️ No Pending Assignments', 'All miners have completed their assignments!', [{ text: 'OK' }]);
+      Alert.alert('No Pending Assignments', 'All miners have completed their assignments!', [{ text: 'OK' }]);
       return;
     }
 
@@ -342,12 +364,12 @@ export default function VideoProgressDashboard() {
               }
 
               Alert.alert(
-                '✅ Reminders Sent',
+                ' Reminders Sent',
                 `Successfully sent reminders to ${successCount} out of ${minersWithPending.length} miners.`,
                 [{ text: 'OK' }]
               );
             } catch (error) {
-              Alert.alert('❌ Error', 'Failed to send bulk reminders', [{ text: 'OK' }]);
+              Alert.alert(' Error', 'Failed to send bulk reminders', [{ text: 'OK' }]);
             }
           },
         },
@@ -369,12 +391,12 @@ export default function VideoProgressDashboard() {
             try {
               const count = await checkAndSendDailyReminders(user.id);
               Alert.alert(
-                '✅ Daily Reminders Sent',
+                ' Daily Reminders Sent',
                 `Sent reminders to ${count} miner${count !== 1 ? 's' : ''}.`,
                 [{ text: 'OK' }]
               );
             } catch (error) {
-              Alert.alert('❌ Error', 'Failed to send daily reminders', [{ text: 'OK' }]);
+              Alert.alert(' Error', 'Failed to send daily reminders', [{ text: 'OK' }]);
             }
           },
         },
@@ -399,7 +421,7 @@ export default function VideoProgressDashboard() {
           </View>
           {hasOverdue && (
             <View style={styles.overdueBadge}>
-              <Text style={styles.overdueText}>⚠ {item.overdueCount} OVERDUE</Text>
+              <Text style={styles.overdueText}>{item.overdueCount} OVERDUE</Text>
             </View>
           )}
         </View>
@@ -449,7 +471,7 @@ export default function VideoProgressDashboard() {
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <>
-                <Text style={styles.notifyButtonText}>📨 SEND REMINDER</Text>
+                <Text style={styles.notifyButtonText}>SEND REMINDER</Text>
                 {hasOverdue && (
                   <Text style={styles.notifyButtonSubtext}>Urgent</Text>
                 )}
@@ -466,14 +488,14 @@ export default function VideoProgressDashboard() {
     const isOverdue = !isCompleted && item.assignment.deadline.toDate() < new Date();
     const progressValue = item.progress?.progress || 0;
     
-    // Determine status badge with emoji and colors
-    let statusBadge = { text: '⏳ Pending', color: COLORS.textMuted, bgColor: '#e5e7eb' };
+    // Determine status badge with colors
+    let statusBadge = { text: 'Pending', color: '#FFFFFF', bgColor: '#FFA726' };
     if (isCompleted) {
-      statusBadge = { text: '✅ Completed', color: '#10b981', bgColor: '#d1fae5' };
+      statusBadge = { text: 'Completed', color: '#FFFFFF', bgColor: '#4CAF50' };
     } else if (isOverdue) {
-      statusBadge = { text: '⚠️ Overdue', color: COLORS.destructive, bgColor: '#fee2e2' };
+      statusBadge = { text: 'Overdue', color: '#FFFFFF', bgColor: '#EF5350' };
     } else if (progressValue > 0 && progressValue < 100) {
-      statusBadge = { text: '▶️ Watching', color: '#3b82f6', bgColor: '#dbeafe' };
+      statusBadge = { text: 'Watching', color: '#FFFFFF', bgColor: '#42A5F5' };
     }
 
     return (
@@ -493,7 +515,7 @@ export default function VideoProgressDashboard() {
 
         <View style={styles.assignmentMeta}>
           <Text style={styles.assignmentMetaText}>
-            📅 Deadline: {item.assignment.deadline.toDate().toLocaleDateString()}
+            Deadline: {item.assignment.deadline.toDate().toLocaleDateString()}
           </Text>
           {isCompleted && item.progress?.completedAt && (
             <Text style={[styles.assignmentMetaText, styles.completedText]}>
@@ -547,69 +569,23 @@ export default function VideoProgressDashboard() {
           <Text style={styles.headerTitle}>Progress Tracker</Text>
           <Text style={styles.headerSubtitle}>Monitor Training Status</Text>
         </View>
-        <TouchableOpacity onPress={() => setShowFilters(!showFilters)} style={styles.filterButton}>
-          <Text style={styles.filterButtonText}>{showFilters ? '✕' : '⚙️'}</Text>
-        </TouchableOpacity>
       </View>
-
-      {/* Auto-Notification Status Banner */}
-      {autoNotificationsEnabled && (
-        <View style={styles.autoNotifBanner}>
-          <Text style={styles.autoNotifIcon}>🔔</Text>
-          <View style={styles.autoNotifContent}>
-            <Text style={styles.autoNotifTitle}>Auto-Reminders Active</Text>
-            <Text style={styles.autoNotifText}>Notifications sent 8hrs before shift daily</Text>
-          </View>
-          <TouchableOpacity onPress={triggerDailyReminders} style={styles.triggerButton}>
-            <Text style={styles.triggerButtonText}>Send Now</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Overall Stats */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.statsScrollContainer}
-        style={styles.statsContainer}
-      >
-        <View style={styles.statCard}>
-          <Text style={styles.statCardIcon}>👥</Text>
-          <Text style={styles.statCardValue}>{miners.length}</Text>
-          <Text style={styles.statCardLabel}>Miners</Text>
-        </View>
-        <View style={[styles.statCard, styles.statCardSuccess]}>
-          <Text style={styles.statCardIcon}>✅</Text>
-          <Text style={styles.statCardValue}>
-            {minerProgressSummaries.reduce((sum, s) => sum + s.completedCount, 0)}
-          </Text>
-          <Text style={styles.statCardLabel}>Completed</Text>
-        </View>
-        <View style={[styles.statCard, styles.statCardWarning]}>
-          <Text style={styles.statCardIcon}>⏳</Text>
-          <Text style={styles.statCardValue}>
-            {minerProgressSummaries.reduce((sum, s) => sum + s.pendingCount, 0)}
-          </Text>
-          <Text style={styles.statCardLabel}>Pending</Text>
-        </View>
-        <View style={[styles.statCard, styles.statCardDanger]}>
-          <Text style={styles.statCardIcon}>⚠️</Text>
-          <Text style={styles.statCardValue}>
-            {minerProgressSummaries.reduce((sum, s) => sum + s.overdueCount, 0)}
-          </Text>
-          <Text style={styles.statCardLabel}>Overdue</Text>
-        </View>
-      </ScrollView>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search miners..."
-          placeholderTextColor={COLORS.textMuted}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+        <View style={styles.searchInputContainer}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search miners by name..."
+            placeholderTextColor={COLORS.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+        <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilters(!showFilters)}>
+          <Text style={styles.filterButtonText}>{showFilters ? '✕' : '≡'}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Filters */}
@@ -649,9 +625,9 @@ export default function VideoProgressDashboard() {
       {minerProgressSummaries.some((s) => s.pendingCount > 0) && (
         <View style={styles.bulkActionsContainer}>
           <TouchableOpacity style={styles.bulkNotifyButton} onPress={sendBulkNotifications}>
-            <Text style={styles.bulkNotifyIcon}>📢</Text>
+            <Bell size={24} color="#fff" style={styles.bulkNotifyIcon} />
             <View style={styles.bulkNotifyContent}>
-              <Text style={styles.bulkNotifyButtonText}>Send Bulk Reminders</Text>
+              <Text style={styles.bulkNotifyButtonText}>SEND BULK REMINDERS</Text>
               <Text style={styles.bulkNotifySubtext}>
                 {minerProgressSummaries.filter(s => s.pendingCount > 0).length} miners with pending tasks
               </Text>
@@ -669,7 +645,6 @@ export default function VideoProgressDashboard() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>👥</Text>
             <Text style={styles.emptyTitle}>No Miners Found</Text>
             <Text style={styles.emptySubtitle}>
               {searchQuery || statusFilter !== 'all' 
@@ -900,17 +875,32 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   searchContainer: {
+    flexDirection: 'row',
     paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 12,
+    gap: 10,
   },
-  searchInput: {
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.card,
     borderRadius: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  searchIcon: {
+    fontSize: 16,
+    marginRight: 8,
+    color: COLORS.textMuted,
+  },
+  searchInput: {
+    flex: 1,
     padding: 14,
     fontSize: 15,
     color: COLORS.text,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   filtersContainer: {
     paddingHorizontal: 16,
@@ -970,8 +960,7 @@ const styles = StyleSheet.create({
     }),
   },
   bulkNotifyIcon: {
-    fontSize: 28,
-    marginRight: 14,
+    marginRight: 12,
   },
   bulkNotifyContent: {
     flex: 1,
@@ -1036,14 +1025,14 @@ const styles = StyleSheet.create({
   },
   overdueBadge: {
     backgroundColor: COLORS.destructive,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
   },
   overdueText: {
     color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
   progressSection: {
@@ -1079,33 +1068,40 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
     borderRadius: 10,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   statBoxSuccess: {
-    backgroundColor: '#E6F7ED',
+    backgroundColor: '#4CAF50',
+    borderColor: '#2E7D32',
   },
   statBoxWarning: {
-    backgroundColor: '#FFF4E6',
+    backgroundColor: '#FFA726',
+    borderColor: '#F57C00',
   },
   statBoxDanger: {
-    backgroundColor: '#FFE6E6',
+    backgroundColor: '#EF5350',
+    borderColor: '#C62828',
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
     marginBottom: 2,
   },
   statLabel: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    fontWeight: '600',
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontWeight: '700',
     textTransform: 'uppercase',
+    textAlign: 'center',
   },
   notifyButton: {
-    backgroundColor: COLORS.destructive,
+    backgroundColor: '#FF6B35',
     padding: isSmallScreen ? 12 : 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -1115,18 +1111,18 @@ const styles = StyleSheet.create({
     gap: 8,
     ...Platform.select({
       ios: {
-        shadowColor: COLORS.destructive,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
+        shadowColor: '#FF6B35',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.4,
+        shadowRadius: 5,
       },
       android: {
-        elevation: 3,
+        elevation: 4,
       },
     }),
   },
   notifyButtonSecondary: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#4A90E2',
   },
   notifyButtonText: {
     color: '#fff',
@@ -1267,16 +1263,18 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   statusBadgeSmall: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 10,
     minWidth: 90,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
   },
   statusBadgeTextSmall: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.4,
   },
   assignmentMeta: {
     marginBottom: 10,

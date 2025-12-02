@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useRoleStore } from '../../hooks/useRoleStore';
 import {
     ActivityIndicator,
     RefreshControl,
@@ -30,6 +31,8 @@ interface MinerPerformance {
 
 export default function PerformanceTracking() {
   const router = useRouter();
+  const { user } = useRoleStore();
+  const [loading, setLoading] = useState(false);
   
   // Mock data
   const mockMiners: MinerPerformance[] = [
@@ -117,18 +120,18 @@ export default function PerformanceTracking() {
       const assignedMiners = await getMinersBySupervisor(user.id);
 
       // Transform to MinerPerformance format
-      const minerPerformance: MinerPerformance[] = assignedMiners.map((miner) => ({
+      const minerPerformance: MinerPerformance[] = assignedMiners.map((miner, index) => ({
         id: miner.id,
-        name: miner.name || 'Unknown',
+        minerId: miner.id,
+        minerName: miner.name || 'Unknown',
         safetyScore: 85, // Would fetch real data from backend
-        tasksCompleted: 0,
-        totalTasks: 0,
-        incidentsFree: 0,
-        lastIncident: 'None',
-        trend: 'up' as const,
+        badges: ['Active'],
+        taskCompletionRate: 0,
+        ppeComplianceRate: 0,
         incidentFreeStreak: 0,
         trainingScore: 80,
-        rank: 0,
+        rank: index + 1,
+        trend: 'up' as const,
       }));
 
       setMiners(minerPerformance);

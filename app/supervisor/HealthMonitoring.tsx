@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useRoleStore } from '../../hooks/useRoleStore';
 import {
     ActivityIndicator,
     Alert,
@@ -29,6 +30,7 @@ interface MinerVitals {
 
 export default function HealthMonitoring() {
   const router = useRouter();
+  const { user } = useRoleStore();
   
   // Mock data
   const mockMiners: MinerVitals[] = [
@@ -98,13 +100,14 @@ export default function HealthMonitoring() {
       // Transform to MinerVitals format
       const minerVitals: MinerVitals[] = assignedMiners.map((miner) => ({
         id: miner.id,
-        name: miner.name || 'Unknown',
+        minerId: miner.id,
+        minerName: miner.name || 'Unknown',
         heartRate: 0, // Would fetch real data from IoT devices
-        oxygenLevel: 0,
+        spO2: 0,
         temperature: 0,
-        status: 'normal' as const,
-        lastUpdate: new Date().toISOString(),
-        location: miner.department || 'Unknown',
+        fitnessStatus: 'fit' as const,
+        lastUpdate: 'Just now',
+        trend: 'stable' as const,
       }));
 
       setMiners(minerVitals);

@@ -18,6 +18,7 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { auth, db } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
 
@@ -150,7 +151,7 @@ const MinerForm = ({ formData, setFormData }: { formData: any, setFormData: any 
         onPress={() => setFormData({ ...formData, trainingCompleted: !formData.trainingCompleted })}
       >
         <View style={[styles.checkbox, formData.trainingCompleted && styles.checkboxChecked]}>
-          {formData.trainingCompleted && <Text style={styles.checkboxMark}>✓</Text>}
+          {formData.trainingCompleted && <Icon name="check" size={16} color="#000000" style={styles.checkboxMark} />}
         </View>
         <Text style={styles.checkboxLabel}>Safety Training Completed</Text>
       </TouchableOpacity>
@@ -174,9 +175,12 @@ const MinerForm = ({ formData, setFormData }: { formData: any, setFormData: any 
           }
         }}
       >
-        <Text style={styles.documentButtonText}>
-          {formData.healthCheckup ? '✓ Health Report Uploaded' : '📎 Upload Health Checkup Report'}
-        </Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+          <Icon name={formData.healthCheckup ? "check-circle" : "paperclip"} size={18} color="#ffffffff" />
+          <Text style={styles.documentButtonText}>
+            {formData.healthCheckup ? 'Health Report Uploaded' : 'Upload Health Checkup Report'}
+          </Text>
+        </View>
       </TouchableOpacity>
     </View>
   </View>
@@ -374,9 +378,12 @@ const SafetyOfficerForm = ({ formData, setFormData }: { formData: any, setFormDa
           }
         }}
       >
-        <Text style={styles.documentButtonText}>
-          {formData.certifications ? '✓ Certification Uploaded' : '📎 Upload Safety Certifications'}
-        </Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+          <Icon name={formData.certifications ? "check-circle" : "paperclip"} size={18} color="#ffffffff" />
+          <Text style={styles.documentButtonText}>
+            {formData.certifications ? 'Certification Uploaded' : 'Upload Safety Certifications'}
+          </Text>
+        </View>
       </TouchableOpacity>
     </View>
   </View>
@@ -492,9 +499,12 @@ const EngineerForm = ({ formData, setFormData }: { formData: any, setFormData: a
           }
         }}
       >
-        <Text style={styles.documentButtonText}>
-          {formData.qualifications ? '✓ Qualifications Uploaded' : '📎 Upload Engineering Qualifications'}
-        </Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+          <Icon name={formData.qualifications ? "check-circle" : "paperclip"} size={18} color="#ffffffff" />
+          <Text style={styles.documentButtonText}>
+            {formData.qualifications ? 'Qualifications Uploaded' : 'Upload Engineering Qualifications'}
+          </Text>
+        </View>
       </TouchableOpacity>
     </View>
   </View>
@@ -550,29 +560,29 @@ export default function AdminHome() {
     {
       value: 'miner',
       label: 'Miner',
-      color: '#FF6B00', // Blue
-      icon: '⛏️',
+      color: '#FF6B00',
+      icon: 'pickaxe',
       description: 'Field workers responsible for mining operations and safety compliance'
     },
     {
       value: 'supervisor',
       label: 'Supervisor',
-      color: '#FF6B00', // Green
-      icon: '👔',
+      color: '#FF6B00',
+      icon: 'account-tie',
       description: 'Oversees mining teams, manages operations, and coordinates with management'
     },
     {
       value: 'safety_officer',
       label: 'Safety Officer',
-      color: '#FF6B00', // Orange
-      icon: '🛡️',
+      color: '#FF6B00',
+      icon: 'shield-check',
       description: 'Ensures workplace safety, conducts inspections, and manages compliance'
     },
     {
       value: 'engineer',
       label: 'Engineer',
-      color: '#FF6B00', // Purple
-      icon: '⚙️',
+      color: '#FF6B00',
+      icon: 'cog',
       description: 'Technical experts handling equipment, systems, and engineering solutions'
     },
   ];
@@ -1049,7 +1059,7 @@ export default function AdminHome() {
                     }}
                   >
                     <View style={[styles.roleCategoryIcon, { backgroundColor: role.color }]}>
-                      <Text style={styles.roleCategoryIconText}>{role.icon}</Text>
+                      <Icon name={role.icon} size={32} color="#FFFFFF" />
                     </View>
                     <View style={styles.roleCategoryInfo}>
                       <Text style={styles.roleCategoryTitle}>{role.label}</Text>
@@ -1107,32 +1117,40 @@ export default function AdminHome() {
             <FlatList
               data={minersList}
               keyExtractor={(item) => item.id}
-              renderItem={({ item: miner }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.minerListItem,
-                    formData.assignedMiners?.includes(miner.id) && styles.minerListItemSelected
-                  ]}
-                  onPress={() => {
-                    const assigned = formData.assignedMiners || [];
-                    const updated = assigned.includes(miner.id)
-                      ? assigned.filter((id: string) => id !== miner.id)
-                      : [...assigned, miner.id];
-                    setFormData({ ...formData, assignedMiners: updated });
-                  }}
-                >
-                  <View style={styles.minerInfo}>
-                    <Text style={styles.minerName}>{miner.name}</Text>
-                    <Text style={styles.minerPhone}>{miner.phoneNumber}</Text>
-                  </View>
-                  <View style={[
-                    styles.checkbox,
-                    formData.assignedMiners?.includes(miner.id) && styles.checkboxChecked
-                  ]}>
-                    {formData.assignedMiners?.includes(miner.id) && <Text style={styles.checkboxMark}>✓</Text>}
-                  </View>
-                </TouchableOpacity>
-              )}
+              renderItem={({ item: miner }) => {
+                const currentData = isEditingUser ? editedUserData : formData;
+                const isSelected = currentData.assignedMiners?.includes(miner.id);
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.minerListItem,
+                      isSelected && styles.minerListItemSelected
+                    ]}
+                    onPress={() => {
+                      const assigned = currentData.assignedMiners || [];
+                      const updated = assigned.includes(miner.id)
+                        ? assigned.filter((id: string) => id !== miner.id)
+                        : [...assigned, miner.id];
+                      if (isEditingUser) {
+                        setEditedUserData({ ...editedUserData, assignedMiners: updated });
+                      } else {
+                        setFormData({ ...formData, assignedMiners: updated });
+                      }
+                    }}
+                  >
+                    <View style={styles.minerInfo}>
+                      <Text style={styles.minerName}>{miner.name}</Text>
+                      <Text style={styles.minerPhone}>{miner.phoneNumber}</Text>
+                    </View>
+                    <View style={[
+                      styles.checkbox,
+                      isSelected && styles.checkboxChecked
+                    ]}>
+                      {isSelected && <Icon name="check" size={16} color="#000000" style={styles.checkboxMark} />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
               style={styles.minerList}
               showsVerticalScrollIndicator={false}
               maxToRenderPerBatch={10}
@@ -1146,7 +1164,9 @@ export default function AdminHome() {
                 style={styles.minerModalDoneButton}
                 onPress={() => setShowMinerModal(false)}
               >
-                <Text style={styles.minerModalDoneText}>Done ({formData.assignedMiners?.length || 0} selected)</Text>
+                <Text style={styles.minerModalDoneText}>
+                  Done ({(isEditingUser ? editedUserData.assignedMiners?.length : formData.assignedMiners?.length) || 0} selected)
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1174,7 +1194,7 @@ export default function AdminHome() {
                   setSelectedRoleForDetails('');
                 }}
               >
-                <Text style={styles.modalCloseText}>✕</Text>
+                <Icon name="close" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
@@ -1185,16 +1205,16 @@ export default function AdminHome() {
               style={styles.roleDetailsList}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
+              initialNumToRender={10}
               maxToRenderPerBatch={10}
-              initialNumToRender={15}
-              windowSize={7}
+              windowSize={5}
               removeClippedSubviews={true}
               renderItem={({ item: user }) => (
                 <View style={styles.roleDetailCard}>
                   {selectedRoleForDetails === 'miner' && (
                     <View style={styles.minerCardWrapper}>
                       <TouchableOpacity
-                        style={styles.minerClickableArea}
+                        style={styles.minerClickableAreaWithButtons}
                         onPress={() => {
                           try {
                             const supervisor = getSupervisorDetails(user.id);
@@ -1217,30 +1237,55 @@ export default function AdminHome() {
                         <View style={styles.roleDetailHeader}>
                           <View style={styles.userInfoSection}>
                             <Text style={styles.roleDetailName}>{user.name || 'Unnamed Miner'}</Text>
-                            <Text style={styles.roleDetailSubInfo}>
-                              📱 {user.phoneNumber || 'No phone'}
-                            </Text>
+                            <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                              <Icon name="phone" size={12} color="#CCCCCC" />
+                              <Text style={styles.roleDetailSubInfo}>
+                                {user.phoneNumber || 'No phone'}
+                              </Text>
+                            </View>
                           </View>
                         </View>
-                        <Text style={styles.roleDetailInfo}>
-                          👔 Supervisor: {getSupervisorName(user.id) || 'Unassigned'}
-                        </Text>
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                          <Icon name="account-tie" size={14} color="#E0E0E0" />
+                          <Text style={styles.roleDetailInfo}>
+                            Supervisor: {getSupervisorName(user.id) || 'Unassigned'}
+                          </Text>
+                        </View>
                       </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.roleDetailDeleteButtonAbsolute}
-                        onPress={(e) => {
-                          handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
-                        }}
-                      >
-                        <Text style={styles.roleDetailDeleteText}>🗑️</Text>
-                      </TouchableOpacity>
+                      <View style={styles.cardActionButtons} pointerEvents="box-none">
+                        <TouchableOpacity
+                          style={styles.roleDetailEditButtonAbsolute}
+                          onPress={() => {
+                            console.log('Edit button clicked for miner:', user.name);
+                            setSelectedUserForDetails(user);
+                            setEditedUserData({...user});
+                            setIsEditingUser(true);
+                            setShowRoleDetailsModal(false);
+                            setTimeout(() => {
+                              setShowUserDetailsModal(true);
+                            }, 100);
+                          }}
+                          activeOpacity={0.6}
+                        >
+                          <Icon name="pencil" size={16} color="#000000" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.roleDetailDeleteButtonAbsoluteSmall}
+                          onPress={() => {
+                            handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
+                          }}
+                          activeOpacity={0.6}
+                        >
+                          <Icon name="delete" size={16} color="#000000" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   )}
 
                   {selectedRoleForDetails === 'supervisor' && (
                     <View style={styles.supervisorCardWrapper}>
                       <TouchableOpacity
-                        style={styles.supervisorClickableArea}
+                        style={styles.minerClickableAreaWithButtons}
                         onPress={() => {
                           try {
                             setSelectedSupervisor(user);
@@ -1257,54 +1302,103 @@ export default function AdminHome() {
                         <View style={styles.roleDetailHeader}>
                           <View style={styles.userInfoSection}>
                             <Text style={styles.roleDetailName}>{user.name || 'Unnamed Supervisor'}</Text>
-                            <Text style={styles.roleDetailSubInfo}>
-                              📱 {user.phoneNumber || 'No phone'}
-                            </Text>
+                            <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                              <Icon name="phone" size={12} color="#CCCCCC" />
+                              <Text style={styles.roleDetailSubInfo}>
+                                {user.phoneNumber || 'No phone'}
+                              </Text>
+                            </View>
                           </View>
                         </View>
-                        <Text style={styles.roleDetailInfo}>
-                          👷 Assigned Miners: {getAssignedMinersCount(user.id)}
-                        </Text>
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                          <Icon name="account-hard-hat" size={14} color="#E0E0E0" />
+                          <Text style={styles.roleDetailInfo}>
+                            Assigned Miners: {getAssignedMinersCount(user.id)}
+                          </Text>
+                        </View>
                       </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.roleDetailDeleteButtonAbsolute}
-                        onPress={(e) => {
-                          handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
-                        }}
-                      >
-                        <Text style={styles.roleDetailDeleteText}>🗑️</Text>
-                      </TouchableOpacity>
+                      <View style={styles.cardActionButtons} pointerEvents="box-none">
+                        <TouchableOpacity
+                          style={styles.roleDetailEditButtonAbsolute}
+                          onPress={() => {
+                            console.log('Edit button clicked for supervisor:', user.name);
+                            setSelectedUserForDetails(user);
+                            setEditedUserData({...user});
+                            setIsEditingUser(true);
+                            setShowRoleDetailsModal(false);
+                            setTimeout(() => {
+                              setShowUserDetailsModal(true);
+                            }, 100);
+                          }}
+                          activeOpacity={0.6}
+                        >
+                          <Icon name="pencil" size={16} color="#000000" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.roleDetailDeleteButtonAbsoluteSmall}
+                          onPress={() => {
+                            handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
+                          }}
+                          activeOpacity={0.6}
+                        >
+                          <Icon name="delete" size={16} color="#000000" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   )}
 
                   {(selectedRoleForDetails === 'safety_officer' || selectedRoleForDetails === 'engineer') && (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedUserForDetails(user);
-                        setEditedUserData({...user});
-                        setIsEditingUser(false);
-                        setShowUserDetailsModal(true);
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.roleDetailHeader}>
-                        <View style={styles.userInfoSection}>
-                          <Text style={styles.roleDetailName}>{user.name || `Unnamed ${getRoleLabel(selectedRoleForDetails)}`}</Text>
-                          <Text style={styles.roleDetailSubInfo}>
-                            📱 {user.phoneNumber || 'No phone'}
-                          </Text>
+                    <View style={styles.minerCardWrapper}>
+                      <TouchableOpacity
+                        style={styles.minerClickableAreaWithButtons}
+                        onPress={() => {
+                          setSelectedUserForDetails(user);
+                          setEditedUserData({...user});
+                          setIsEditingUser(false);
+                          setShowUserDetailsModal(true);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.roleDetailHeader}>
+                          <View style={styles.userInfoSection}>
+                            <Text style={styles.roleDetailName}>{user.name || `Unnamed ${getRoleLabel(selectedRoleForDetails)}`}</Text>
+                            <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                              <Icon name="phone" size={12} color="#CCCCCC" />
+                              <Text style={styles.roleDetailSubInfo}>
+                                {user.phoneNumber || 'No phone'}
+                              </Text>
+                            </View>
+                          </View>
                         </View>
+                      </TouchableOpacity>
+                      <View style={styles.cardActionButtons} pointerEvents="box-none">
                         <TouchableOpacity
-                          style={styles.roleDetailDeleteButton}
-                          onPress={(e) => {
-                            e.stopPropagation();
+                          style={styles.roleDetailEditButtonAbsolute}
+                          onPress={() => {
+                            console.log('Edit button clicked for:', user.role, user.name);
+                            setSelectedUserForDetails(user);
+                            setEditedUserData({...user});
+                            setIsEditingUser(true);
+                            setShowRoleDetailsModal(false);
+                            setTimeout(() => {
+                              setShowUserDetailsModal(true);
+                            }, 100);
+                          }}
+                          activeOpacity={0.6}
+                        >
+                          <Icon name="pencil" size={16} color="#000000" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.roleDetailDeleteButtonAbsoluteSmall}
+                          onPress={() => {
                             handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
                           }}
+                          activeOpacity={0.6}
                         >
-                          <Text style={styles.roleDetailDeleteText}>🗑️</Text>
+                          <Icon name="delete" size={16} color="#000000" />
                         </TouchableOpacity>
                       </View>
-                    </TouchableOpacity>
+                    </View>
                   )}
                 </View>
               )}
@@ -1323,11 +1417,13 @@ export default function AdminHome() {
       <Modal
         visible={showUserDetailsModal}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => {
           setShowUserDetailsModal(false);
           setIsEditingUser(false);
+          setSelectedUserForDetails(null);
         }}
+        statusBarTranslucent
       >
         <View style={styles.modalOverlay}>
           <View style={styles.userDetailsModalContent}>
@@ -1345,38 +1441,8 @@ export default function AdminHome() {
                   setEditedUserData({});
                 }}
               >
-                <Text style={styles.modalCloseText}>✕</Text>
+                <Icon name="close" size={24} color="#FFFFFF" />
               </TouchableOpacity>
-            </View>
-
-            {/* Action Buttons */}
-            <View style={styles.userActions}>
-              {!isEditingUser ? (
-                <TouchableOpacity
-                  style={styles.editButton}
-                  onPress={() => setIsEditingUser(true)}
-                >
-                  <Text style={styles.editButtonText}>✏️ Edit</Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.editActions}>
-                  <TouchableOpacity
-                    style={styles.saveButton}
-                    onPress={handleSaveUserChanges}
-                  >
-                    <Text style={styles.saveButtonText}>💾 Save Changes</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => {
-                      setIsEditingUser(false);
-                      setEditedUserData({...selectedUserForDetails});
-                    }}
-                  >
-                    <Text style={styles.cancelButtonText}>❌ Cancel</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
             </View>
 
             {/* User Details Form */}
@@ -1533,7 +1599,7 @@ export default function AdminHome() {
                           onPress={() => setEditedUserData({ ...editedUserData, trainingCompleted: !editedUserData.trainingCompleted })}
                         >
                           <View style={[styles.checkbox, editedUserData.trainingCompleted && styles.checkboxChecked]}>
-                            {editedUserData.trainingCompleted && <Text style={styles.checkboxMark}>✓</Text>}
+                            {editedUserData.trainingCompleted && <Icon name="check" size={16} color="#000000" style={styles.checkboxMark} />}
                           </View>
                           <Text style={styles.checkboxLabel}>Safety Training Completed</Text>
                         </TouchableOpacity>
@@ -1555,6 +1621,37 @@ export default function AdminHome() {
                         />
                       ) : (
                         <Text style={styles.readOnlyText}>{selectedUserForDetails?.experience || 'Not provided'}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Health Checkup Report</Text>
+                      {isEditingUser ? (
+                        <TouchableOpacity
+                          style={styles.documentButton}
+                          onPress={async () => {
+                            try {
+                              const result = await DocumentPicker.getDocumentAsync({
+                                type: ['application/pdf', 'image/*'],
+                                copyToCacheDirectory: true,
+                              });
+                              if (result.assets && result.assets.length > 0) {
+                                setEditedUserData({ ...editedUserData, healthCheckup: result.assets[0] });
+                              }
+                            } catch (error) {
+                              console.error('Document picker error:', error);
+                            }
+                          }}
+                        >
+                          <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                            <Icon name={editedUserData.healthCheckup ? "check-circle" : "paperclip"} size={18} color="rgba(255, 255, 255, 1)" />
+                            <Text style={styles.documentButtonText}>
+                              {editedUserData.healthCheckup ? 'Health Report Uploaded' : 'Upload Health Checkup Report'}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={styles.readOnlyText}>{selectedUserForDetails?.healthCheckup ? 'Uploaded' : 'Not provided'}</Text>
                       )}
                     </View>
                   </>
@@ -1615,12 +1712,80 @@ export default function AdminHome() {
                         <Text style={styles.readOnlyText}>{selectedUserForDetails?.department || 'Not provided'}</Text>
                       )}
                     </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Assigned Miners</Text>
+                      {isEditingUser ? (
+                        <>
+                          <Text style={styles.helperText}>Select miners to assign to this supervisor</Text>
+                          <TouchableOpacity
+                            style={styles.assignMinersButton}
+                            onPress={() => {
+                              fetchMiners(true);
+                              setShowMinerModal(true);
+                            }}
+                          >
+                            <Text style={styles.assignMinersButtonText}>
+                              Select Miners ({editedUserData.assignedMiners?.length || 0} selected)
+                            </Text>
+                          </TouchableOpacity>
+                          {editedUserData.assignedMiners && editedUserData.assignedMiners.length > 0 && (
+                            <View style={styles.selectedMinersContainer}>
+                              <Text style={styles.selectedMinersLabel}>Selected Miners:</Text>
+                              {editedUserData.assignedMiners.map((minerId: string) => {
+                                const miner = users.find(m => m.id === minerId);
+                                return miner ? (
+                                  <Text key={minerId} style={styles.selectedMinerText}>• {miner.name}</Text>
+                                ) : null;
+                              })}
+                            </View>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <Text style={styles.readOnlyText}>
+                            {selectedUserForDetails?.assignedMiners?.length || 0} miners assigned
+                          </Text>
+                          {selectedUserForDetails?.assignedMiners && selectedUserForDetails.assignedMiners.length > 0 && (
+                            <View style={styles.selectedMinersContainer}>
+                              {selectedUserForDetails.assignedMiners.map((minerId: string) => {
+                                const miner = users.find(m => m.id === minerId);
+                                return miner ? (
+                                  <Text key={minerId} style={styles.selectedMinerText}>• {miner.name}</Text>
+                                ) : null;
+                              })}
+                            </View>
+                          )}
+                        </>
+                      )}
+                    </View>
                   </>
                 )}
 
-                {(selectedUserForDetails?.role === 'safety_officer' || selectedUserForDetails?.role === 'engineer') && (
+                {selectedUserForDetails?.role === 'safety_officer' && (
                   <>
-                    <Text style={styles.formSectionTitle}>{selectedUserForDetails?.role === 'safety_officer' ? 'Safety Officer' : 'Engineer'} Details</Text>
+                    <Text style={styles.formSectionTitle}>Safety Officer Details</Text>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Department</Text>
+                      {isEditingUser ? (
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={editedUserData.department || ''}
+                            onValueChange={(value) => setEditedUserData({ ...editedUserData, department: value })}
+                            style={styles.picker}
+                          >
+                            <Picker.Item label="Select Department" value="" />
+                            <Picker.Item label="Safety & Compliance" value="safety_compliance" />
+                            <Picker.Item label="Risk Assessment" value="risk_assessment" />
+                            <Picker.Item label="Training" value="training" />
+                            <Picker.Item label="Audit" value="audit" />
+                          </Picker>
+                        </View>
+                      ) : (
+                        <Text style={styles.readOnlyText}>{selectedUserForDetails?.department || 'Not provided'}</Text>
+                      )}
+                    </View>
 
                     <View style={styles.inputGroup}>
                       <Text style={styles.label}>Experience (years)</Text>
@@ -1629,12 +1794,71 @@ export default function AdminHome() {
                           style={styles.input}
                           value={editedUserData.experience?.toString() || ''}
                           onChangeText={(text) => setEditedUserData({ ...editedUserData, experience: parseInt(text) || '' })}
-                          placeholder="Enter years of experience"
+                          placeholder="Years of safety experience"
                           keyboardType="numeric"
                           placeholderTextColor="#CCCCCC"
                         />
                       ) : (
                         <Text style={styles.readOnlyText}>{selectedUserForDetails?.experience || 'Not provided'}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Certifications</Text>
+                      {isEditingUser ? (
+                        <TouchableOpacity
+                          style={styles.documentButton}
+                          onPress={async () => {
+                            try {
+                              const result = await DocumentPicker.getDocumentAsync({
+                                type: ['application/pdf', 'image/*'],
+                                copyToCacheDirectory: true,
+                              });
+                              if (result.assets && result.assets.length > 0) {
+                                setEditedUserData({ ...editedUserData, certifications: result.assets[0] });
+                              }
+                            } catch (error) {
+                              console.error('Document picker error:', error);
+                            }
+                          }}
+                        >
+                          <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                            <Icon name={editedUserData.certifications ? "check-circle" : "paperclip"} size={18} color="#ffffffff" />
+                            <Text style={styles.documentButtonText}>
+                              {editedUserData.certifications ? 'Certification Uploaded' : 'Upload Safety Certifications'}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={styles.readOnlyText}>{selectedUserForDetails?.certifications ? 'Uploaded' : 'Not provided'}</Text>
+                      )}
+                    </View>
+                  </>
+                )}
+
+                {selectedUserForDetails?.role === 'engineer' && (
+                  <>
+                    <Text style={styles.formSectionTitle}>Engineer Details</Text>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Specialization</Text>
+                      {isEditingUser ? (
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={editedUserData.specialization || ''}
+                            onValueChange={(value) => setEditedUserData({ ...editedUserData, specialization: value })}
+                            style={styles.picker}
+                          >
+                            <Picker.Item label="Select Specialization" value="" />
+                            <Picker.Item label="Mining Engineering" value="mining_engineering" />
+                            <Picker.Item label="Geotechnical Engineering" value="geotechnical" />
+                            <Picker.Item label="Environmental Engineering" value="environmental" />
+                            <Picker.Item label="Mechanical Engineering" value="mechanical" />
+                            <Picker.Item label="Electrical Engineering" value="electrical" />
+                          </Picker>
+                        </View>
+                      ) : (
+                        <Text style={styles.readOnlyText}>{selectedUserForDetails?.specialization || 'Not provided'}</Text>
                       )}
                     </View>
 
@@ -1648,18 +1872,93 @@ export default function AdminHome() {
                             style={styles.picker}
                           >
                             <Picker.Item label="Select Department" value="" />
-                            <Picker.Item label="Mining Operations" value="mining_ops" />
-                            <Picker.Item label="Blasting" value="blasting" />
-                            <Picker.Item label="Equipment Maintenance" value="maintenance" />
-                            <Picker.Item label="Safety" value="safety" />
                             <Picker.Item label="Engineering" value="engineering" />
+                            <Picker.Item label="R&D" value="research_development" />
+                            <Picker.Item label="Operations" value="operations" />
+                            <Picker.Item label="Maintenance" value="maintenance" />
                           </Picker>
                         </View>
                       ) : (
                         <Text style={styles.readOnlyText}>{selectedUserForDetails?.department || 'Not provided'}</Text>
                       )}
                     </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Experience (years)</Text>
+                      {isEditingUser ? (
+                        <TextInput
+                          style={styles.input}
+                          value={editedUserData.experience?.toString() || ''}
+                          onChangeText={(text) => setEditedUserData({ ...editedUserData, experience: parseInt(text) || '' })}
+                          placeholder="Years of engineering experience"
+                          keyboardType="numeric"
+                          placeholderTextColor="#CCCCCC"
+                        />
+                      ) : (
+                        <Text style={styles.readOnlyText}>{selectedUserForDetails?.experience || 'Not provided'}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Qualifications</Text>
+                      {isEditingUser ? (
+                        <TouchableOpacity
+                          style={styles.documentButton}
+                          onPress={async () => {
+                            try {
+                              const result = await DocumentPicker.getDocumentAsync({
+                                type: ['application/pdf', 'image/*'],
+                                copyToCacheDirectory: true,
+                              });
+                              if (result.assets && result.assets.length > 0) {
+                                setEditedUserData({ ...editedUserData, qualifications: result.assets[0] });
+                              }
+                            } catch (error) {
+                              console.error('Document picker error:', error);
+                            }
+                          }}
+                        >
+                          <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                            <Icon name={editedUserData.qualifications ? "check-circle" : "paperclip"} size={18} color="#ffffffff" />
+                            <Text style={styles.documentButtonText}>
+                              {editedUserData.qualifications ? 'Qualifications Uploaded' : 'Upload Engineering Qualifications'}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={styles.readOnlyText}>{selectedUserForDetails?.qualifications ? 'Uploaded' : 'Not provided'}</Text>
+                      )}
+                    </View>
                   </>
+                )}
+
+                {/* Action Buttons at the End */}
+                {isEditingUser && (
+                  <View style={styles.bottomActions}>
+                    <TouchableOpacity
+                      style={styles.saveButton}
+                      onPress={handleSaveUserChanges}
+                    >
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                        <Icon name="content-save" size={18} color="#000000" />
+                        <Text style={styles.saveButtonText}>Save Changes</Text>
+                      </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.cancelButton}
+                      onPress={() => {
+                        setShowUserDetailsModal(false);
+                        setIsEditingUser(false);
+                        setSelectedUserForDetails(null);
+                        setEditedUserData({});
+                      }}
+                    >
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                        <Icon name="close" size={18} color="#FF6B00" />
+                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             </ScrollView>
@@ -1691,7 +1990,7 @@ export default function AdminHome() {
                   setSelectedSupervisor(null);
                 }}
               >
-                <Text style={styles.modalCloseText}>✕</Text>
+                <Icon name="close" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
@@ -1841,13 +2140,16 @@ export default function AdminHome() {
                   setSelectedMinerForSupervisor(null);
                 }}
               >
-                <Text style={styles.modalCloseText}>✕</Text>
+                <Icon name="close" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
             {/* Miner Info Banner */}
             <View style={styles.minerInfoBanner}>
-              <Text style={styles.minerInfoTitle}>👷 Viewing supervisor for:</Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                <Icon name="account-hard-hat" size={16} color="#FFFFFF" />
+                <Text style={styles.minerInfoTitle}>Viewing supervisor for:</Text>
+              </View>
               <Text style={styles.minerInfoName}>{selectedMinerForSupervisor?.name || 'Unknown Miner'}</Text>
             </View>
 
@@ -1862,7 +2164,7 @@ export default function AdminHome() {
                   {/* Supervisor Header */}
                   <View style={styles.supervisorDetailsHeader}>
                     <View style={styles.supervisorIconContainer}>
-                      <Text style={styles.supervisorIcon}>👔</Text>
+                      <Icon name="account-tie" size={32} color="#FF6B00" />
                     </View>
                     <View style={styles.supervisorHeaderInfo}>
                       <Text style={styles.supervisorDetailsName}>{selectedSupervisor.name || 'Unnamed Supervisor'}</Text>
@@ -1872,7 +2174,10 @@ export default function AdminHome() {
 
                   {/* Contact Information Section */}
                   <View style={styles.detailsSection}>
-                    <Text style={styles.detailsSectionTitle}>📞 Contact Information</Text>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                      <Icon name="phone" size={16} color="#FF6B00" />
+                      <Text style={styles.detailsSectionTitle}>Contact Information</Text>
+                    </View>
                     <View style={styles.detailsRow}>
                       <Text style={styles.detailsLabel}>Phone Number:</Text>
                       <Text style={styles.detailsValue}>{selectedSupervisor.phoneNumber || 'Not provided'}</Text>
@@ -1887,7 +2192,10 @@ export default function AdminHome() {
 
                   {/* Work Information Section */}
                   <View style={styles.detailsSection}>
-                    <Text style={styles.detailsSectionTitle}>💼 Work Information</Text>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                      <Icon name="briefcase" size={16} color="#FF6B00" />
+                      <Text style={styles.detailsSectionTitle}>Work Information</Text>
+                    </View>
                     {selectedSupervisor.empId && (
                       <View style={styles.detailsRow}>
                         <Text style={styles.detailsLabel}>Employee ID:</Text>
@@ -1925,7 +2233,10 @@ export default function AdminHome() {
 
                   {/* Team Information Section */}
                   <View style={styles.detailsSection}>
-                    <Text style={styles.detailsSectionTitle}>👥 Team Information</Text>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                      <Icon name="account-group" size={16} color="#FF6B00" />
+                      <Text style={styles.detailsSectionTitle}>Team Information</Text>
+                    </View>
                     <View style={styles.detailsRow}>
                       <Text style={styles.detailsLabel}>Total Assigned Miners:</Text>
                       <Text style={[styles.detailsValue, styles.highlightValue]}>
@@ -1943,7 +2254,10 @@ export default function AdminHome() {
                   {/* Personal Information Section */}
                   {(selectedSupervisor.age || selectedSupervisor.address) && (
                     <View style={styles.detailsSection}>
-                      <Text style={styles.detailsSectionTitle}>👤 Personal Information</Text>
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                        <Icon name="account" size={16} color="#FF6B00" />
+                        <Text style={styles.detailsSectionTitle}>Personal Information</Text>
+                      </View>
                       {selectedSupervisor.age && (
                         <View style={styles.detailsRow}>
                           <Text style={styles.detailsLabel}>Age:</Text>
@@ -1969,9 +2283,12 @@ export default function AdminHome() {
                       });
                     }}
                   >
-                    <Text style={styles.viewAllMinersButtonText}>
-                      👥 View All {selectedSupervisor.assignedMiners?.length || 0} Assigned Miners
-                    </Text>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                      <Icon name="account-group" size={16} color="#000000" />
+                      <Text style={styles.viewAllMinersButtonText}>
+                        View All {selectedSupervisor.assignedMiners?.length || 0} Assigned Miners
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -2448,7 +2765,7 @@ const styles = StyleSheet.create({
   },
   documentButtonText: {
     fontSize: 14,
-    color: '#FF6B00',
+    color: '#ffffffff',
     fontWeight: '600',
   },
   assignMinersButton: {
@@ -2763,6 +3080,48 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
+  cardActionButtons: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    gap: 6,
+    zIndex: 100,
+    elevation: 100,
+  },
+  roleDetailEditButtonAbsolute: {
+    backgroundColor: '#a6e4cfff',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+    minWidth: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roleDetailEditText: {
+    fontSize: 16,
+    color: '#000000',
+    fontWeight: '700',
+  },
+  roleDetailDeleteButtonAbsoluteSmall: {
+    backgroundColor: '#FF6B00',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+    minWidth: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   supervisorMinersModalContent: {
     backgroundColor: '#000000',
     borderRadius: 20,
@@ -2976,14 +3335,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   userDetailsModalContent: {
-    backgroundColor: '#0F0F0F',
+    backgroundColor: '#000000',
     borderRadius: 20,
     width: '95%',
     maxWidth: 400,
-    maxHeight: Dimensions.get('window').height * 0.9,
+    height: Dimensions.get('window').height * 0.85,
     borderWidth: 2,
-    borderColor: '#0891B2',
-    shadowColor: '#0891B2',
+    borderColor: '#FF6B00',
+    shadowColor: '#FF6B00',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -2992,6 +3351,11 @@ const styles = StyleSheet.create({
   userActions: {
     paddingHorizontal: 24,
     paddingBottom: 16,
+  },
+  bottomActions: {
+    marginTop: 24,
+    marginBottom: 20,
+    gap: 12,
   },
   editButton: {
     backgroundColor: '#FF6B00',
@@ -3030,22 +3394,22 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: '#000000',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: 'transparent',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 2,
+    borderColor: '#FF6B00',
   },
   cancelButtonText: {
-    color: '#FF6B00',
-    fontSize: 14,
+    color: '#ffffffff',
+    fontSize: 16,
     fontWeight: '700',
   },
   userDetailsScroll: {
@@ -3058,7 +3422,7 @@ const styles = StyleSheet.create({
   formSectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFD700',
+    color: '#FF6B00',
     marginTop: 20,
     marginBottom: 16,
   },
@@ -3067,10 +3431,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: '#000000',
+    backgroundColor: 'transparent',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 107, 0, 0.3)',
   },
   loadingOverlay: {
     position: 'absolute',
@@ -3109,6 +3473,10 @@ const styles = StyleSheet.create({
   },
   minerClickableArea: {
     flex: 1,
+  },
+  minerClickableAreaWithButtons: {
+    flex: 1,
+    paddingRight: 80,
   },
   // Supervisor Details Modal Styles
   supervisorDetailsModalContent: {

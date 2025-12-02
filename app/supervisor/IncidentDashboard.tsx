@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Modal, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { Video as VideoPlayer } from 'expo-av';
-import { ArrowLeft, AlertTriangle, Camera, Mic, FileText, CheckSquare } from '../../components/Icons';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AudioPlayer from '../../components/AudioPlayer';
-import { subscribeToIncidents, updateIncidentStatus } from '../../services/incidentService';
+import { AlertTriangle, ArrowLeft, Camera, CheckSquare, FileText, Mic } from '../../components/Icons';
 import type { Incident } from '../../services/incidentService';
+import { subscribeToIncidents, updateIncidentStatus } from '../../services/incidentService';
 
 export default function IncidentDashboard() {
   const router = useRouter();

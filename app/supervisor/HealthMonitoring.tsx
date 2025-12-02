@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useRoleStore } from '../../hooks/useRoleStore';
 import {
     ActivityIndicator,
     Alert,
@@ -29,6 +30,7 @@ interface MinerVitals {
 
 export default function HealthMonitoring() {
   const router = useRouter();
+  const { user } = useRoleStore();
   
   // Mock data
   const mockMiners: MinerVitals[] = [
@@ -81,14 +83,40 @@ export default function HealthMonitoring() {
   const [miners, setMiners] = useState<MinerVitals[]>(mockMiners);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'fit' | 'monitor' | 'unfit'>('all');
+  const [loading, setLoading] = useState(false);
 
   const loadMiners = async () => {
     try {
-      const data = await getMinerVitals();
-      setMiners(data);
+      if (!user?.id) {
+        console.error('Supervisor ID not found');
+        setMiners([]);
+        return;
+      }
+
+      // Load only miners assigned to this supervisor
+      const { getMinersBySupervisor } = await import('@/services/minerService');
+      const assignedMiners = await getMinersBySupervisor(user.id);
+
+      // Transform to MinerVitals format
+      const minerVitals: MinerVitals[] = assignedMiners.map((miner) => ({
+        id: miner.id,
+        minerId: miner.id,
+        minerName: miner.name || 'Unknown',
+        heartRate: 0, // Would fetch real data from IoT devices
+        spO2: 0,
+        temperature: 0,
+        fitnessStatus: 'fit' as const,
+        lastUpdate: 'Just now',
+        trend: 'stable' as const,
+      }));
+
+      setMiners(minerVitals);
+      console.log(`✅ Loaded ${minerVitals.length} miners for supervisor ${user.id}`);
     } catch (error) {
       console.error('Error loading miner vitals:', error);
-      setMiners(mockMiners);
+      setMiners([]);
+    } finally {
+      setLoading(false);
     }
   };
 

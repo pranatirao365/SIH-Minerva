@@ -11,8 +11,9 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Play, Trash2, Video as VideoIcon, Search, Filter, Send, Calendar } from '@/components/Icons';
+import { ArrowLeft, Play, Trash2, Video as VideoIcon, Search, Filter, RefreshCw } from '@/components/Icons';
 import { COLORS } from '@/constants/styles';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface VideoItem {
   id: string;
@@ -28,16 +29,23 @@ export default function VideoLibrary() {
   const router = useRouter();
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
-  const [selectedDateFilter, setSelectedDateFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     loadVideos();
   }, []);
+
+  // Reload videos when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadVideos();
+    }, [])
+  );
 
   // Filter videos based on current filter states
   const filteredVideos = useMemo(() => {
@@ -58,14 +66,26 @@ export default function VideoLibrary() {
 
   const loadVideos = async () => {
     try {
-      const storedVideos = await AsyncStorage.getItem('videoLibrary');
-      if (storedVideos) {
-        const parsedVideos = JSON.parse(storedVideos);
-        setVideos(parsedVideos);
-      }
+      // Load videos from Firestore
+      const { VideoLibraryService } = await import('@/services/videoLibraryService');
+      const fetchedVideos = await VideoLibraryService.getVideos({ status: 'active' });
+      
+      // Transform to match VideoItem interface
+      const transformedVideos: VideoItem[] = fetchedVideos.map(video => ({
+        id: video.id,
+        topic: video.topic,
+        language: video.language,
+        languageName: video.languageName,
+        videoUrl: video.videoUrl,
+        timestamp: video.createdAt.toMillis(),
+        thumbnail: video.thumbnailUrl,
+      }));
+      
+      setVideos(transformedVideos);
+      console.log(`✅ Loaded ${transformedVideos.length} videos from Firestore`);
     } catch (error) {
       console.error('Error loading videos:', error);
-      Alert.alert('Error', 'Failed to load video library');
+      Alert.alert('Error', 'Failed to load video library from database');
     } finally {
       setLoading(false);
     }
@@ -82,33 +102,18 @@ export default function VideoLibrary() {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Delete from Firestore
+              const { VideoLibraryService } = await import('@/services/videoLibraryService');
+              await VideoLibraryService.deleteVideo(videoId);
+              
+              // Update local state
               const updatedVideos = videos.filter(v => v.id !== videoId);
               setVideos(updatedVideos);
-              await AsyncStorage.setItem('videoLibrary', JSON.stringify(updatedVideos));
 
-              // Clean up related assignments and progress
-              const existingAssignments = await AsyncStorage.getItem('videoAssignments');
-              if (existingAssignments) {
-                const assignments = JSON.parse(existingAssignments);
-                const filteredAssignments = assignments.filter((a: any) => a.videoId !== videoId);
-                await AsyncStorage.setItem('videoAssignments', JSON.stringify(filteredAssignments));
-              }
-
-              const existingProgress = await AsyncStorage.getItem('assignmentProgress');
-              if (existingProgress) {
-                const progress = JSON.parse(existingProgress);
-                const filteredProgress = progress.filter((p: any) => {
-                  // Find the assignment to check if it matches the videoId
-                  const assignment = existingAssignments ? JSON.parse(existingAssignments).find((a: any) => a.id === p.assignmentId) : null;
-                  return !assignment || assignment.videoId !== videoId;
-                });
-                await AsyncStorage.setItem('assignmentProgress', JSON.stringify(filteredProgress));
-              }
-
-              Alert.alert('Success', 'Video and related assignments deleted successfully');
+              Alert.alert('Success', 'Video deleted successfully from database');
             } catch (error) {
               console.error('Error deleting video:', error);
-              Alert.alert('Error', 'Failed to delete video');
+              Alert.alert('Error', 'Failed to delete video from database');
             }
           },
         },
@@ -116,91 +121,28 @@ export default function VideoLibrary() {
     );
   };
 
-  const playVideo = (videoUrl: string, topic: string) => {
-    // For now, just show an alert. In a real app, you'd navigate to a video player
-    Alert.alert(
-      'Play Video',
-      `Playing: ${topic}`,
-      [
-        {
-          text: 'Open in Browser',
-          onPress: () => {
-            // You could use Linking.openURL(videoUrl) here
-            Alert.alert('Info', 'Video URL: ' + videoUrl);
-          },
-        },
-        { text: 'OK' },
-      ]
-    );
-  };
-
-  const assignAsDailyTask = (video: VideoItem) => {
-    Alert.alert(
-      'Assign as Daily Task',
-      `Assign "${video.topic}" as a daily mandatory task for all miners?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Assign',
-          onPress: async () => {
-            try {
-              // Create a daily assignment for all miners
-              const assignment = {
-                id: `daily_${video.id}_${Date.now()}`,
-                videoId: video.id,
-                videoTopic: video.topic,
-                assignedTo: ['1', '2', '3', '4'], // All miner IDs
-                assignedBy: 'Supervisor', // In real app, get from user context
-                deadline: Date.now() + 24 * 60 * 60 * 1000, // 24 hours from now
-                isMandatory: true,
-                assignedAt: Date.now(),
-                description: `Daily mandatory safety training: ${video.topic}`,
-                isDailyTask: true,
-                taskDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
-              };
-
-              // Load existing assignments
-              const existingAssignments = await AsyncStorage.getItem('videoAssignments');
-              const assignments = existingAssignments ? JSON.parse(existingAssignments) : [];
-
-              // Check for existing daily task for today
-              const today = new Date().toISOString().split('T')[0];
-              const existingDailyTask = assignments.find((a: any) =>
-                a.isDailyTask && a.taskDate === today && a.videoId === video.id
-              );
-
-              if (existingDailyTask) {
-                Alert.alert('Info', 'This video is already assigned as today\'s daily task.');
-                return;
-              }
-
-              // Add new assignment
-              assignments.push(assignment);
-              await AsyncStorage.setItem('videoAssignments', JSON.stringify(assignments));
-
-              // Create progress entries for all miners
-              const existingProgress = await AsyncStorage.getItem('assignmentProgress');
-              const progress = existingProgress ? JSON.parse(existingProgress) : [];
-
-              const newProgress = ['1', '2', '3', '4'].map(minerId => ({
-                assignmentId: assignment.id,
-                minerId,
-                watched: false,
-                progress: 0,
-              }));
-
-              progress.push(...newProgress);
-              await AsyncStorage.setItem('assignmentProgress', JSON.stringify(progress));
-
-              Alert.alert('Success', `Daily task assigned to all miners!`);
-            } catch (error) {
-              console.error('Error assigning daily task:', error);
-              Alert.alert('Error', 'Failed to assign daily task');
-            }
-          },
-        },
-      ]
-    );
+  const playVideo = async (videoUrl: string, topic: string) => {
+    try {
+      const { Linking } = await import('react-native');
+      const canOpen = await Linking.canOpenURL(videoUrl);
+      
+      if (canOpen) {
+        await Linking.openURL(videoUrl);
+      } else {
+        Alert.alert(
+          'Cannot Play Video',
+          `Unable to open the video. URL: ${videoUrl}`,
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error playing video:', error);
+      Alert.alert(
+        'Error',
+        'Failed to play video. Please check your internet connection.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const formatDate = (timestamp: number) => {
@@ -240,14 +182,6 @@ export default function VideoLibrary() {
         >
           <Play size={16} color="#FFFFFF" />
           <Text style={styles.playButtonText}>Play</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionButton, styles.assignButton]}
-          onPress={() => assignAsDailyTask(item)}
-        >
-          <Calendar size={16} color="#FFFFFF" />
-          <Text style={styles.assignButtonText}>Daily Task</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -334,16 +268,16 @@ export default function VideoLibrary() {
         </View>
       )}
 
-      {videos.length === 0 ? (
+      {videos.length === 0 && !loading ? (
         <View style={styles.emptyContainer}>
           <VideoIcon size={64} color={COLORS.textMuted} />
-          <Text style={styles.emptyTitle}>No Videos Yet</Text>
+          <Text style={styles.emptyTitle}>No Videos in Database</Text>
           <Text style={styles.emptyText}>
-            Generate and save videos to build your training library
+            Generate videos using AI Video Generator to populate the library
           </Text>
           <TouchableOpacity
             style={styles.generateButton}
-            onPress={() => router.push('/supervisor/VideoGenerationModule')}
+            onPress={() => router.push('/safety-officer/VideoGenerationModule')}
           >
             <Text style={styles.generateButtonText}>Generate Video</Text>
           </TouchableOpacity>
@@ -355,10 +289,27 @@ export default function VideoLibrary() {
           renderItem={renderVideoItem}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
+          refreshing={refreshing}
+          onRefresh={async () => {
+            setRefreshing(true);
+            await loadVideos();
+            setRefreshing(false);
+          }}
           ListEmptyComponent={
-            <View style={styles.emptyFilterContainer}>
-              <Text style={styles.emptyFilterText}>No videos found</Text>
-            </View>
+            searchQuery || selectedLanguage !== 'all' ? (
+              <View style={styles.emptyFilterContainer}>
+                <Text style={styles.emptyFilterText}>No videos match your filters</Text>
+                <TouchableOpacity
+                  style={styles.clearFiltersButton}
+                  onPress={() => {
+                    setSearchQuery('');
+                    setSelectedLanguage('all');
+                  }}
+                >
+                  <Text style={styles.clearFiltersText}>Clear Filters</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null
           }
         />
       )}
@@ -487,22 +438,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  deleteButton: {
-    backgroundColor: COLORS.destructive,
-    flex: 0.3,
-  },
   deleteButtonTop: {
     padding: 8,
     borderRadius: 6,
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
-  },
-  assignButton: {
-    backgroundColor: COLORS.accent,
-  },
-  assignButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   headerFilterButton: {
     padding: 4,
@@ -575,12 +514,6 @@ const styles = StyleSheet.create({
   },
   filterOptionButtonTextActive: {
     color: '#FFFFFF',
-  },
-  resultsCount: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    marginTop: 8,
-    textAlign: 'center',
   },
   emptyFilterContainer: {
     alignItems: 'center',

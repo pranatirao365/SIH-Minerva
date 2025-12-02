@@ -4,6 +4,8 @@ export const COLORS = {
   primary: '#FF6B00',
   secondary: '#1E40AF',
   accent: '#10B981',
+  success: '#10B981',
+  warning: '#F59E0B',
   destructive: '#EF4444',
   background: '#0A0A0A',
   card: '#1A1A1A',

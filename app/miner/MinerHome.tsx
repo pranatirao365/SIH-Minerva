@@ -125,6 +125,7 @@ export default function MinerHome() {
     { icon: AlertTriangle, label: 'Report', route: '/miner/IncidentReport', color: '#F59E0B' },
     { icon: Trophy, label: 'Fire Safety', route: '/miner/SimulationScreen', color: '#DC2626' },
     { icon: Trophy, label: 'Blasting', route: '/miner/BlastingGame', color: '#F59E0B' },
+    { icon: Trophy, label: 'Roof Fall', route: '/miner/RoofInstabilityGame', color: '#7C2D12' },
   ];
 
   const trainingModules = [

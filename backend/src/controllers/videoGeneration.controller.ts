@@ -78,6 +78,37 @@ export class VideoGenerationController {
       });
     }
   }
+
+  /**
+   * Delete video file from server after Firebase upload
+   * DELETE /api/video/delete/:filename
+   */
+  async deleteVideo(req: Request, res: Response): Promise<void> {
+    try {
+      const { filename } = req.params;
+
+      if (!filename) {
+        res.status(400).json({
+          success: false,
+          error: 'Filename is required',
+        });
+        return;
+      }
+
+      await videoGenerationService.deleteVideoFile(filename);
+
+      res.status(200).json({
+        success: true,
+        message: 'Video deleted successfully',
+      });
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to delete video',
+      });
+    }
+  }
 }
 
 export const videoGenerationController = new VideoGenerationController();

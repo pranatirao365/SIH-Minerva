@@ -8,7 +8,8 @@ import {
     Shield,
     Users,
     Video,
-    Youtube
+    Youtube,
+    Sparkles
 } from '@/components/Icons';
 import { COLORS } from '@/constants/styles';
 import { useRouter } from 'expo-router';
@@ -83,18 +84,20 @@ export default function SupervisorHome() {
       gradient: false,
     },
     {
-      icon: Youtube,
-      title: 'Video Library',
-      description: 'Manage training video library',
-      route: '/supervisor/VideoLibrary',
-      color: '#EC4899',
+      icon: Sparkles,
+      title: 'Smart Work Assignment',
+      description: 'AI-powered video matching & assignment',
+      route: '/supervisor/SmartWorkAssignment',
+      color: COLORS.primary,
+      gradient: true,
     },
     {
       icon: BarChart3,
       title: 'Video Progress Dashboard',
-      description: 'Monitor mandatory video completion',
+      description: 'Track completion & send reminders',
       route: '/supervisor/VideoProgressDashboard',
       color: '#06B6D4',
+      gradient: true,
     },
     {
       icon: Users,
@@ -116,13 +119,6 @@ export default function SupervisorHome() {
       description: 'Review and manage incidents',
       route: '/supervisor/IncidentDashboard',
       color: COLORS.destructive,
-    },
-    {
-      icon: CheckCircle,
-      title: 'Task Assignments',
-      description: 'Assign and track tasks',
-      route: '/supervisor/TaskAssignment',
-      color: '#8B5CF6',
     },
     {
       icon: Shield,

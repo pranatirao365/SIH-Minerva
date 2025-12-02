@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState, useMemo } from 'react';
 import {
@@ -6,23 +5,30 @@ import {
   FlatList,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
   ScrollView,
+  RefreshControl,
+  ActivityIndicator,
+  Dimensions,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  ArrowLeft,
-  User,
-  Video as VideoIcon,
-  CheckCircle,
-  Clock,
-  AlertTriangle,
-  BarChart3,
-  Filter,
-  Search,
-} from '@/components/Icons';
+import { ArrowLeft, AlertTriangle, Bell } from '@/components/Icons';
 import { COLORS } from '@/constants/styles';
+import { collection, query, where, getDocs, addDoc, Timestamp, onSnapshot } from 'firebase/firestore';
+import { db } from '@/config/firebase';
+import { useRoleStore } from '@/hooks/useRoleStore';
+import {
+  initializeAutoNotifications,
+  checkAndSendDailyReminders,
+  sendImmediateReminder,
+} from '@/services/autoNotificationService';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const isSmallScreen = SCREEN_WIDTH < 380;
+const isMediumScreen = SCREEN_WIDTH >= 380 && SCREEN_WIDTH < 768;
 
 interface VideoAssignment {
   id: string;
@@ -30,203 +36,513 @@ interface VideoAssignment {
   videoTopic: string;
   assignedTo: string[];
   assignedBy: string;
-  deadline: number;
+  deadline: Timestamp;
   isMandatory: boolean;
-  assignedAt: number;
+  isDailyTask: boolean;
+  taskDate?: string;
+  assignedAt: Timestamp;
   description?: string;
+  status: 'active' | 'completed' | 'expired' | 'cancelled';
 }
 
 interface AssignmentProgress {
+  id: string;
   assignmentId: string;
   minerId: string;
+  videoId: string;
   watched: boolean;
-  watchedAt?: number;
+  completedAt?: Timestamp;
   progress: number;
+  watchTime: number;
+  status: 'not_started' | 'in_progress' | 'completed' | 'overdue';
 }
 
 interface Miner {
   id: string;
   name: string;
-  shift: string;
-  location: string;
+  email?: string;
+  department?: string;
+  shift?: string;
 }
 
-const mockMiners: Miner[] = [
-  { id: '1', name: 'Rajesh Kumar', shift: 'Morning', location: 'Section A' },
-  { id: '2', name: 'Amit Singh', shift: 'Morning', location: 'Section B' },
-  { id: '3', name: 'Suresh Patel', shift: 'Afternoon', location: 'Section A' },
-  { id: '4', name: 'Vikram Rao', shift: 'Afternoon', location: 'Section C' },
-  { id: '5', name: 'Karan Mehta', shift: 'Night', location: 'Section B' },
-];
+interface MinerProgressSummary {
+  miner: Miner;
+  totalAssignments: number;
+  completedCount: number;
+  pendingCount: number;
+  overdueCount: number;
+  completionRate: number;
+  assignments: Array<{
+    assignment: VideoAssignment;
+    progress: AssignmentProgress | null;
+  }>;
+}
 
 export default function VideoProgressDashboard() {
   const router = useRouter();
+  const { user } = useRoleStore();
+  const [miners, setMiners] = useState<Miner[]>([]);
   const [assignments, setAssignments] = useState<VideoAssignment[]>([]);
-  const [assignmentProgress, setAssignmentProgress] = useState<AssignmentProgress[]>([]);
+  const [progressData, setProgressData] = useState<AssignmentProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [sendingNotification, setSendingNotification] = useState<string | null>(null);
+  const [autoNotificationsEnabled, setAutoNotificationsEnabled] = useState(false);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'overdue' | 'completed' | 'in-progress'>('all');
-  const [shiftFilter, setShiftFilter] = useState<'all' | 'Morning' | 'Afternoon' | 'Night'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending' | 'overdue'>('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedMiner, setSelectedMiner] = useState<MinerProgressSummary | null>(null);
 
   useEffect(() => {
     loadData();
-  }, []);
+    initializeAutoNotificationSystem();
+    
+    // Set up real-time listener for progress updates
+    const progressRef = collection(db, 'assignmentProgress');
+    const unsubscribe = onSnapshot(progressRef, (snapshot) => {
+      const allProgress: AssignmentProgress[] = [];
+      snapshot.forEach((doc) => {
+        allProgress.push({
+          id: doc.id,
+          ...doc.data(),
+        } as AssignmentProgress);
+      });
+      
+      // Filter to only our miners' progress
+      if (miners.length > 0) {
+        const minerIds = miners.map(m => m.id);
+        const relevantProgress = allProgress.filter(progress => minerIds.includes(progress.minerId));
+        setProgressData(relevantProgress);
+        console.log('🔄 Real-time update: Progress data refreshed');
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [miners]);
 
-  const loadData = async () => {
+  const initializeAutoNotificationSystem = async () => {
+    if (!user?.id) return;
+    
     try {
-      // Load assignments
-      const storedAssignments = await AsyncStorage.getItem('videoAssignments');
-      if (storedAssignments) {
-        setAssignments(JSON.parse(storedAssignments));
-      }
-
-      // Load progress
-      const storedProgress = await AsyncStorage.getItem('assignmentProgress');
-      if (storedProgress) {
-        setAssignmentProgress(JSON.parse(storedProgress));
-      }
+      console.log('🚀 Initializing auto-notification system...');
+      await initializeAutoNotifications(user.id);
+      setAutoNotificationsEnabled(true);
+      console.log('✅ Auto-notifications enabled: Reminders will be sent 8 hours before shift');
     } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setLoading(false);
+      console.error('❌ Failed to initialize auto-notifications:', error);
     }
   };
 
-  const getMinerProgress = (minerId: string) => {
-    const minerAssignments = assignments.filter(assignment =>
-      assignment.assignedTo.includes(minerId)
-    );
-
-    const completedAssignments = minerAssignments.filter(assignment => {
-      const progress = assignmentProgress.find(p =>
-        p.assignmentId === assignment.id && p.minerId === minerId
-      );
-      return progress?.watched;
-    });
-
-    const overdueAssignments = minerAssignments.filter(assignment => {
-      const progress = assignmentProgress.find(p =>
-        p.assignmentId === assignment.id && p.minerId === minerId
-      );
-      return !progress?.watched && assignment.deadline < Date.now();
-    });
-
-    return {
-      total: minerAssignments.length,
-      completed: completedAssignments.length,
-      overdue: overdueAssignments.length,
-      percentage: minerAssignments.length > 0
-        ? Math.round((completedAssignments.length / minerAssignments.length) * 100)
-        : 0,
-    };
-  };
-
-  const getOverallStats = () => {
-    const allAssignments = assignments.filter(a => a.isMandatory);
-    const totalAssignments = allAssignments.reduce((sum, a) => sum + a.assignedTo.length, 0);
-
-    const completedProgress = assignmentProgress.filter(p => {
-      const assignment = assignments.find(a => a.id === p.assignmentId);
-      return assignment?.isMandatory && p.watched;
-    }).length;
-
-    const overdueAssignments = allAssignments.filter(a => a.deadline < Date.now());
-    const overdueCount = overdueAssignments.reduce((sum, a) => {
-      const incomplete = a.assignedTo.filter(minerId => {
-        const progress = assignmentProgress.find(p =>
-          p.assignmentId === a.id && p.minerId === minerId
-        );
-        return !progress?.watched;
-      });
-      return sum + incomplete.length;
-    }, 0);
-
-    return {
-      totalAssignments,
-      completedAssignments: completedProgress,
-      overdueCount,
-      completionRate: totalAssignments > 0 ? Math.round((completedProgress / totalAssignments) * 100) : 0,
-    };
-  };
-
-  const filteredMiners = useMemo(() => {
-    return mockMiners.filter(miner => {
-      // Search filter
-      if (searchQuery && !miner.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false;
+  const loadData = async () => {
+    try {
+      if (!user?.id) {
+        console.error('Supervisor ID not found');
+        setMiners([]);
+        setLoading(false);
+        return;
       }
 
-      // Shift filter
-      if (shiftFilter !== 'all' && miner.shift !== shiftFilter) {
+      // Load miners assigned to this supervisor using the service
+      const { getMinersBySupervisor } = await import('@/services/minerService');
+      const loadedMiners = await getMinersBySupervisor(user.id);
+      setMiners(loadedMiners);
+
+      // Get list of miner IDs for filtering assignments
+      const minerIds = loadedMiners.map(m => m.id);
+
+      // Load ALL active assignments (we'll filter by miner IDs)
+      const assignmentsRef = collection(db, 'videoAssignments');
+      const assignmentsQuery = query(
+        assignmentsRef,
+        where('status', '==', 'active')
+      );
+      const assignmentsSnapshot = await getDocs(assignmentsQuery);
+      
+      const allAssignments: VideoAssignment[] = [];
+      assignmentsSnapshot.forEach((doc) => {
+        allAssignments.push({
+          id: doc.id,
+          ...doc.data(),
+        } as VideoAssignment);
+      });
+
+      // Filter assignments to only those that include our miners
+      const relevantAssignments = allAssignments.filter(assignment => 
+        assignment.assignedTo && assignment.assignedTo.some(minerId => minerIds.includes(minerId))
+      );
+      
+      setAssignments(relevantAssignments);
+
+      // Load progress data for all miners
+      const progressRef = collection(db, 'assignmentProgress');
+      const progressSnapshot = await getDocs(progressRef);
+      
+      const allProgress: AssignmentProgress[] = [];
+      progressSnapshot.forEach((doc) => {
+        allProgress.push({
+          id: doc.id,
+          ...doc.data(),
+        } as AssignmentProgress);
+      });
+
+      // Filter progress to only our miners
+      const relevantProgress = allProgress.filter(progress => minerIds.includes(progress.minerId));
+      setProgressData(relevantProgress);
+
+      console.log(`✅ Loaded ${loadedMiners.length} miners, ${relevantAssignments.length} assignments, ${relevantProgress.length} progress records`);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      Alert.alert('Error', 'Failed to load progress data from database');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+  };
+
+  // Calculate progress summary for each miner
+  const minerProgressSummaries = useMemo(() => {
+    const summaries: MinerProgressSummary[] = [];
+
+    miners.forEach((miner) => {
+      // Find all assignments for this miner
+      const minerAssignments = assignments.filter((assignment) =>
+        assignment.assignedTo.includes(miner.id)
+      );
+
+      let completedCount = 0;
+      let pendingCount = 0;
+      let overdueCount = 0;
+      const assignmentDetails: Array<{
+        assignment: VideoAssignment;
+        progress: AssignmentProgress | null;
+      }> = [];
+
+      minerAssignments.forEach((assignment) => {
+        const progress = progressData.find(
+          (p) => p.assignmentId === assignment.id && p.minerId === miner.id
+        );
+
+        const isOverdue = assignment.deadline.toDate() < new Date();
+
+        if (progress && progress.watched) {
+          completedCount++;
+        } else if (isOverdue) {
+          overdueCount++;
+        } else {
+          pendingCount++;
+        }
+
+        assignmentDetails.push({
+          assignment,
+          progress: progress || null,
+        });
+      });
+
+      const totalAssignments = minerAssignments.length;
+      const completionRate =
+        totalAssignments > 0
+          ? Math.round((completedCount / totalAssignments) * 100)
+          : 0;
+
+      summaries.push({
+        miner,
+        totalAssignments,
+        completedCount,
+        pendingCount,
+        overdueCount,
+        completionRate,
+        assignments: assignmentDetails,
+      });
+    });
+
+    return summaries;
+  }, [miners, assignments, progressData]);
+
+  // Filter summaries
+  const filteredSummaries = useMemo(() => {
+    return minerProgressSummaries.filter((summary) => {
+      // Search filter
+      if (
+        searchQuery &&
+        !summary.miner.name.toLowerCase().includes(searchQuery.toLowerCase())
+      ) {
         return false;
       }
 
       // Status filter
-      if (statusFilter !== 'all') {
-        const progress = getMinerProgress(miner.id);
-        switch (statusFilter) {
-          case 'completed':
-            return progress.percentage === 100;
-          case 'overdue':
-            return progress.overdue > 0;
-          case 'in-progress':
-            return progress.percentage > 0 && progress.percentage < 100;
-          default:
-            return true;
-        }
+      if (statusFilter === 'completed' && summary.completedCount === 0) {
+        return false;
+      }
+      if (statusFilter === 'pending' && summary.pendingCount === 0) {
+        return false;
+      }
+      if (statusFilter === 'overdue' && summary.overdueCount === 0) {
+        return false;
       }
 
       return true;
     });
-  }, [searchQuery, shiftFilter, statusFilter, assignments, assignmentProgress]);
+  }, [minerProgressSummaries, searchQuery, statusFilter]);
 
-  const stats = getOverallStats();
+  const sendNotificationToMiner = async (minerId: string, minerName: string, pendingCount: number, overdueCount: number) => {
+    setSendingNotification(minerId);
+    
+    try {
+      if (!user?.id || !user?.name) {
+        throw new Error('Supervisor information not found');
+      }
 
-  const renderMinerItem = ({ item }: { item: Miner }) => {
-    const progress = getMinerProgress(item.id);
-    const hasOverdue = progress.overdue > 0;
+      const message = overdueCount > 0
+        ? `⚠️ Urgent: You have ${overdueCount} overdue and ${pendingCount - overdueCount} pending video training assignments. Please complete them immediately.`
+        : `📚 You have ${pendingCount} pending video training assignments. Please complete them before your shift ends.`;
+
+      await sendImmediateReminder(
+        minerId,
+        minerName,
+        user.id,
+        user.name,
+        pendingCount,
+        message
+      );
+
+      Alert.alert(
+        '✅ Notification Sent',
+        `Immediate reminder sent to ${minerName} about ${pendingCount} assignment${pendingCount > 1 ? 's' : ''}.`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error(' Error sending notification:', error);
+      Alert.alert(
+        ' Error',
+        'Failed to send notification. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setSendingNotification(null);
+    }
+  };
+
+  const sendBulkNotifications = async () => {
+    const minersWithPending = filteredSummaries.filter((s) => s.pendingCount > 0);
+    
+    if (minersWithPending.length === 0) {
+      Alert.alert('No Pending Assignments', 'All miners have completed their assignments!', [{ text: 'OK' }]);
+      return;
+    }
+
+    Alert.alert(
+      '📢 Send Bulk Reminders',
+      `Send reminders to ${minersWithPending.length} miner${minersWithPending.length > 1 ? 's' : ''} with pending assignments?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: `Send to ${minersWithPending.length}`,
+          onPress: async () => {
+            try {
+              let successCount = 0;
+              for (const summary of minersWithPending) {
+                try {
+                  await sendNotificationToMiner(
+                    summary.miner.id,
+                    summary.miner.name,
+                    summary.pendingCount,
+                    summary.overdueCount
+                  );
+                  successCount++;
+                  // Small delay to avoid overwhelming the system
+                  await new Promise(resolve => setTimeout(resolve, 300));
+                } catch (error) {
+                  console.error(`Failed to send to ${summary.miner.name}:`, error);
+                }
+              }
+
+              Alert.alert(
+                ' Reminders Sent',
+                `Successfully sent reminders to ${successCount} out of ${minersWithPending.length} miners.`,
+                [{ text: 'OK' }]
+              );
+            } catch (error) {
+              Alert.alert(' Error', 'Failed to send bulk reminders', [{ text: 'OK' }]);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const triggerDailyReminders = async () => {
+    if (!user?.id) return;
+
+    Alert.alert(
+      '⏰ Trigger Daily Reminders',
+      'Send daily reminders to all miners with pending assignments now? (Normally sent automatically 8 hours before shift)',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Now',
+          onPress: async () => {
+            try {
+              const count = await checkAndSendDailyReminders(user.id);
+              Alert.alert(
+                ' Daily Reminders Sent',
+                `Sent reminders to ${count} miner${count !== 1 ? 's' : ''}.`,
+                [{ text: 'OK' }]
+              );
+            } catch (error) {
+              Alert.alert(' Error', 'Failed to send daily reminders', [{ text: 'OK' }]);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renderMinerCard = ({ item }: { item: MinerProgressSummary }) => {
+    const hasOverdue = item.overdueCount > 0;
 
     return (
-      <View style={styles.minerCard}>
+      <TouchableOpacity
+        style={[styles.minerCard, hasOverdue && styles.minerCardOverdue]}
+        onPress={() => setSelectedMiner(item)}
+      >
         <View style={styles.minerHeader}>
           <View style={styles.minerInfo}>
-            <View style={styles.minerNameRow}>
-              <User size={20} color={COLORS.primary} />
-              <Text style={styles.minerName}>{item.name}</Text>
+            <Text style={styles.minerName}>{item.miner.name}</Text>
+            <Text style={styles.minerMeta}>
+              {item.miner.department || 'General'} • {item.miner.shift || 'Day Shift'}
+            </Text>
+          </View>
+          {hasOverdue && (
+            <View style={styles.overdueBadge}>
+              <Text style={styles.overdueText}>{item.overdueCount} OVERDUE</Text>
             </View>
-            <Text style={styles.minerDetails}>
-              {item.shift} Shift • {item.location}
-            </Text>
+          )}
+        </View>
+
+        <View style={styles.progressSection}>
+          <View style={styles.progressBarWrapper}>
+            <View style={styles.progressBarBackground}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: `${item.completionRate}%`,
+                    backgroundColor: hasOverdue ? COLORS.destructive : COLORS.accent,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={styles.progressText}>{item.completionRate}%</Text>
           </View>
-          <View style={styles.minerStats}>
-            <Text style={styles.progressText}>
-              {progress.completed}/{progress.total} completed
-            </Text>
-            <Text style={styles.percentageText}>
-              {progress.percentage}%
-            </Text>
-            {hasOverdue && <AlertTriangle size={16} color={COLORS.destructive} />}
+
+          <View style={styles.statsRow}>
+            <View style={[styles.statBox, styles.statBoxSuccess]}>
+              <Text style={styles.statValue}>{item.completedCount}</Text>
+              <Text style={styles.statLabel}>Completed</Text>
+            </View>
+            <View style={[styles.statBox, styles.statBoxWarning]}>
+              <Text style={styles.statValue}>{item.pendingCount}</Text>
+              <Text style={styles.statLabel}>Pending</Text>
+            </View>
+            <View style={[styles.statBox, styles.statBoxDanger]}>
+              <Text style={styles.statValue}>{item.overdueCount}</Text>
+              <Text style={styles.statLabel}>Overdue</Text>
+            </View>
           </View>
         </View>
 
-        <View style={styles.progressBar}>
-          <View
+        {(hasOverdue || item.pendingCount > 0) && (
+          <TouchableOpacity
             style={[
-              styles.progressFill,
-              { width: `${progress.percentage}%` },
-              progress.percentage === 100 ? styles.progressComplete : null,
-              hasOverdue ? styles.progressOverdue : null,
+              styles.notifyButton,
+              !hasOverdue && styles.notifyButtonSecondary
             ]}
-          />
+            onPress={() => sendNotificationToMiner(item.miner.id, item.miner.name, item.pendingCount, item.overdueCount)}
+            disabled={sendingNotification === item.miner.id}
+          >
+            {sendingNotification === item.miner.id ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Text style={styles.notifyButtonText}>SEND REMINDER</Text>
+                {hasOverdue && (
+                  <Text style={styles.notifyButtonSubtext}>Urgent</Text>
+                )}
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  const renderAssignmentDetail = (item: { assignment: VideoAssignment; progress: AssignmentProgress | null }) => {
+    const isCompleted = item.progress?.watched || false;
+    const isOverdue = !isCompleted && item.assignment.deadline.toDate() < new Date();
+    const progressValue = item.progress?.progress || 0;
+    
+    // Determine status badge with colors
+    let statusBadge = { text: 'Pending', color: '#FFFFFF', bgColor: '#FFA726' };
+    if (isCompleted) {
+      statusBadge = { text: 'Completed', color: '#FFFFFF', bgColor: '#4CAF50' };
+    } else if (isOverdue) {
+      statusBadge = { text: 'Overdue', color: '#FFFFFF', bgColor: '#EF5350' };
+    } else if (progressValue > 0 && progressValue < 100) {
+      statusBadge = { text: 'Watching', color: '#FFFFFF', bgColor: '#42A5F5' };
+    }
+
+    return (
+      <View style={[
+        styles.assignmentDetailCard,
+        isCompleted && styles.assignmentCompleted,
+        isOverdue && styles.assignmentOverdue
+      ]}>
+        <View style={styles.assignmentHeaderRow}>
+          <Text style={styles.assignmentTitle} numberOfLines={2}>{item.assignment.videoTopic}</Text>
+          <View style={[styles.statusBadgeSmall, { backgroundColor: statusBadge.bgColor }]}>
+            <Text style={[styles.statusBadgeTextSmall, { color: statusBadge.color }]}>
+              {statusBadge.text}
+            </Text>
+          </View>
         </View>
 
-        {hasOverdue && (
-          <Text style={styles.overdueText}>
-            {progress.overdue} overdue assignment{progress.overdue !== 1 ? 's' : ''}
+        <View style={styles.assignmentMeta}>
+          <Text style={styles.assignmentMetaText}>
+            Deadline: {item.assignment.deadline.toDate().toLocaleDateString()}
           </Text>
-        )}
+          {isCompleted && item.progress?.completedAt && (
+            <Text style={[styles.assignmentMetaText, styles.completedText]}>
+              ✓ Completed on {item.progress.completedAt.toDate().toLocaleDateString()}
+            </Text>
+          )}
+          {isOverdue && (
+            <Text style={[styles.assignmentMetaText, styles.overdueStatusText]}>
+              ⚠ OVERDUE - Action Required
+            </Text>
+          )}
+        </View>
+
+        <View style={styles.progressBarWrapper}>
+          <View style={styles.progressBarBackground}>
+            <View
+              style={[
+                styles.progressBarFill,
+                {
+                  width: `${progressValue}%`,
+                  backgroundColor: isCompleted ? COLORS.accent : isOverdue ? COLORS.destructive : COLORS.primary,
+                },
+              ]}
+            />
+          </View>
+          <Text style={styles.progressText}>{progressValue}%</Text>
+        </View>
       </View>
     );
   };
@@ -235,7 +551,8 @@ export default function VideoProgressDashboard() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text>Loading...</Text>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading progress data...</Text>
         </View>
       </SafeAreaView>
     );
@@ -243,134 +560,138 @@ export default function VideoProgressDashboard() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={COLORS.text} />
+          <ArrowLeft size={isSmallScreen ? 20 : 24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Video Progress Dashboard</Text>
-        <TouchableOpacity style={styles.statsButton}>
-          <BarChart3 size={20} color={COLORS.primary} />
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>Progress Tracker</Text>
+          <Text style={styles.headerSubtitle}>Monitor Training Status</Text>
+        </View>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search miners by name..."
+            placeholderTextColor={COLORS.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+        <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilters(!showFilters)}>
+          <Text style={styles.filterButtonText}>{showFilters ? '✕' : '≡'}</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
-        {/* Overall Stats */}
-        <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>Overall Progress</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{stats.totalAssignments}</Text>
-              <Text style={styles.statLabel}>Total Assignments</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{stats.completedAssignments}</Text>
-              <Text style={styles.statLabel}>Completed</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={[styles.statValue, { color: COLORS.destructive }]}>
-                {stats.overdueCount}
-              </Text>
-              <Text style={styles.statLabel}>Overdue</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{stats.completionRate}%</Text>
-              <Text style={styles.statLabel}>Completion Rate</Text>
-            </View>
+      {/* Filters */}
+      {showFilters && (
+        <View style={styles.filtersContainer}>
+          <Text style={styles.filtersTitle}>Filter by Status</Text>
+          <View style={styles.filterButtons}>
+            {[
+              { label: 'All', value: 'all' },
+              { label: 'Completed', value: 'completed' },
+              { label: 'Pending', value: 'pending' },
+              { label: 'Overdue', value: 'overdue' },
+            ].map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.filterChip,
+                  statusFilter === option.value && styles.filterChipActive,
+                ]}
+                onPress={() => setStatusFilter(option.value as any)}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    statusFilter === option.value && styles.filterChipTextActive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
+      )}
 
-        {/* Filters */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Miner Progress</Text>
-
-          <View style={styles.filtersContainer}>
-            <View style={styles.searchContainer}>
-              <Search size={16} color={COLORS.textMuted} />
-              <Text style={styles.searchInput}>
-                {searchQuery || 'Search miners...'}
+      {/* Bulk Actions */}
+      {minerProgressSummaries.some((s) => s.pendingCount > 0) && (
+        <View style={styles.bulkActionsContainer}>
+          <TouchableOpacity style={styles.bulkNotifyButton} onPress={sendBulkNotifications}>
+            <Bell size={24} color="#fff" style={styles.bulkNotifyIcon} />
+            <View style={styles.bulkNotifyContent}>
+              <Text style={styles.bulkNotifyButtonText}>SEND BULK REMINDERS</Text>
+              <Text style={styles.bulkNotifySubtext}>
+                {minerProgressSummaries.filter(s => s.pendingCount > 0).length} miners with pending tasks
               </Text>
             </View>
-
-            <View style={styles.filterRow}>
-              <Text style={styles.filterLabel}>Status:</Text>
-              <View style={styles.filterButtons}>
-                {[
-                  { label: 'All', value: 'all' },
-                  { label: 'In Progress', value: 'in-progress' },
-                  { label: 'Completed', value: 'completed' },
-                  { label: 'Overdue', value: 'overdue' },
-                ].map((filter) => (
-                  <TouchableOpacity
-                    key={filter.value}
-                    style={[
-                      styles.filterButton,
-                      statusFilter === filter.value && styles.filterButtonActive,
-                    ]}
-                    onPress={() => setStatusFilter(filter.value as any)}
-                  >
-                    <Text
-                      style={[
-                        styles.filterButtonText,
-                        statusFilter === filter.value && styles.filterButtonTextActive,
-                      ]}
-                    >
-                      {filter.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.filterRow}>
-              <Text style={styles.filterLabel}>Shift:</Text>
-              <View style={styles.filterButtons}>
-                {[
-                  { label: 'All', value: 'all' },
-                  { label: 'Morning', value: 'Morning' },
-                  { label: 'Afternoon', value: 'Afternoon' },
-                  { label: 'Night', value: 'Night' },
-                ].map((filter) => (
-                  <TouchableOpacity
-                    key={filter.value}
-                    style={[
-                      styles.filterButton,
-                      shiftFilter === filter.value && styles.filterButtonActive,
-                    ]}
-                    onPress={() => setShiftFilter(filter.value as any)}
-                  >
-                    <Text
-                      style={[
-                        styles.filterButtonText,
-                        shiftFilter === filter.value && styles.filterButtonTextActive,
-                      ]}
-                    >
-                      {filter.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </View>
-
-          {filteredMiners.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <User size={48} color={COLORS.textMuted} />
-              <Text style={styles.emptyTitle}>No miners found</Text>
-              <Text style={styles.emptyText}>
-                Try adjusting your filters or search criteria
-              </Text>
-            </View>
-          ) : (
-            <FlatList
-              data={filteredMiners}
-              renderItem={renderMinerItem}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-              scrollEnabled={false}
-            />
-          )}
+          </TouchableOpacity>
         </View>
-      </ScrollView>
+      )}
+
+      {/* Miner List */}
+      <FlatList
+        data={filteredSummaries}
+        keyExtractor={(item) => item.miner.id}
+        renderItem={renderMinerCard}
+        contentContainerStyle={styles.listContainer}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>No Miners Found</Text>
+            <Text style={styles.emptySubtitle}>
+              {searchQuery || statusFilter !== 'all' 
+                ? 'Try adjusting your filters' 
+                : 'No miners are assigned to you yet'}
+            </Text>
+          </View>
+        }
+      />
+
+      {/* Miner Detail Modal */}
+      {selectedMiner && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{selectedMiner.miner.name}</Text>
+              <TouchableOpacity onPress={() => setSelectedMiner(null)} style={styles.closeButton}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalStats}>
+              <Text style={styles.modalStatsText}>
+                Completion Rate: {selectedMiner.completionRate}%
+              </Text>
+              <Text style={styles.modalStatsText}>
+                {selectedMiner.completedCount} of {selectedMiner.totalAssignments} completed
+              </Text>
+            </View>
+
+            <ScrollView style={styles.modalScroll}>
+              {selectedMiner.assignments.map((item, index) => (
+                <View key={index}>
+                  {renderAssignmentDetail(item)}
+                </View>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setSelectedMiner(null)}
+            >
+              <Text style={styles.modalCloseButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -380,207 +701,608 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  statsButton: {
-    padding: 8,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  statsSection: {
-    marginBottom: 24,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 16,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-  },
-  filtersContainer: {
-    marginBottom: 16,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.card,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    marginBottom: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: COLORS.text,
-  },
-  filterRow: {
-    marginBottom: 12,
-  },
-  filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 8,
-  },
-  filterButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: COLORS.card,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  filterButtonActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  filterButtonText: {
-    fontSize: 14,
-    color: COLORS.text,
-  },
-  filterButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  minerCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  minerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  minerInfo: {
-    flex: 1,
-  },
-  minerNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  minerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginLeft: 8,
-  },
-  minerDetails: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-  },
-  minerStats: {
-    alignItems: 'flex-end',
-  },
-  progressText: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginBottom: 2,
-  },
-  percentageText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: COLORS.border,
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: COLORS.primary,
-    borderRadius: 3,
-  },
-  progressComplete: {
-    backgroundColor: COLORS.accent,
-  },
-  progressOverdue: {
-    backgroundColor: COLORS.destructive,
-  },
-  overdueText: {
-    fontSize: 12,
-    color: COLORS.destructive,
-    fontWeight: '500',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLORS.textMuted,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: isSmallScreen ? 12 : 16,
+    paddingVertical: isSmallScreen ? 12 : 16,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    marginHorizontal: 12,
+  },
+  headerTitle: {
+    fontSize: isSmallScreen ? 16 : 20,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  headerSubtitle: {
+    fontSize: isSmallScreen ? 11 : 12,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  filterButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: isSmallScreen ? 12 : 16,
+    paddingVertical: isSmallScreen ? 8 : 10,
+    borderRadius: 10,
+    minWidth: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterButtonText: {
+    color: '#fff',
+    fontSize: isSmallScreen ? 16 : 18,
+    fontWeight: '600',
+  },
+  // Auto-Notification Banner
+  autoNotifBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.accent,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  autoNotifIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  autoNotifContent: {
+    flex: 1,
+  },
+  autoNotifTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2E7D32',
+    marginBottom: 2,
+  },
+  autoNotifText: {
+    fontSize: 11,
+    color: '#4CAF50',
+  },
+  triggerButton: {
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  triggerButtonText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  // Stats Container
+  statsContainer: {
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  statsScrollContainer: {
+    gap: 12,
+    paddingRight: 16,
+  },
+  statCard: {
+    minWidth: isSmallScreen ? 90 : 110,
+    backgroundColor: COLORS.card,
+    padding: isSmallScreen ? 12 : 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  statCardSuccess: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#4CAF50',
+  },
+  statCardWarning: {
+    backgroundColor: '#FFF8E1',
+    borderColor: '#FFC107',
+  },
+  statCardDanger: {
+    backgroundColor: '#FFEBEE',
+    borderColor: '#F44336',
+  },
+  statCardIcon: {
+    fontSize: 24,
+    marginBottom: 6,
+  },
+  statCardValue: {
+    fontSize: isSmallScreen ? 22 : 26,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  statCardLabel: {
+    fontSize: isSmallScreen ? 10 : 11,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    gap: 10,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  searchIcon: {
+    fontSize: 16,
+    marginRight: 8,
+    color: COLORS.textMuted,
+  },
+  searchInput: {
+    flex: 1,
+    padding: 14,
+    fontSize: 15,
+    color: COLORS.text,
+  },
+  filtersContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  filtersTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 10,
+  },
+  filterButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  filterChip: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  filterChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  filterChipText: {
+    fontSize: 14,
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  filterChipTextActive: {
+    color: '#fff',
+  },
+  bulkActionsContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  bulkNotifyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    padding: 16,
+    borderRadius: 14,
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  bulkNotifyIcon: {
+    marginRight: 12,
+  },
+  bulkNotifyContent: {
+    flex: 1,
+  },
+  bulkNotifyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  bulkNotifySubtext: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  listContainer: {
+    padding: isSmallScreen ? 12 : 16,
+  },
+  minerCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    padding: isSmallScreen ? 14 : 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  minerCardOverdue: {
+    borderColor: COLORS.destructive,
+    borderWidth: 2,
+    borderLeftWidth: 6,
+    backgroundColor: '#FFF5F5',
+  },
+  minerHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 14,
+    justifyContent: 'space-between',
+  },
+  minerInfo: {
+    flex: 1,
+  },
+  minerName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  minerMeta: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+  },
+  overdueBadge: {
+    backgroundColor: COLORS.destructive,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  overdueText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  progressSection: {
+    marginBottom: 14,
+  },
+  progressBarWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+    gap: 10,
+  },
+  progressBarBackground: {
+    flex: 1,
+    height: 10,
+    backgroundColor: COLORS.border,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 5,
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+    minWidth: 45,
+    textAlign: 'right',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  statBox: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  statBoxSuccess: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#2E7D32',
+  },
+  statBoxWarning: {
+    backgroundColor: '#FFA726',
+    borderColor: '#F57C00',
+  },
+  statBoxDanger: {
+    backgroundColor: '#EF5350',
+    borderColor: '#C62828',
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  notifyButton: {
+    backgroundColor: '#FF6B35',
+    padding: isSmallScreen ? 12 : 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#FF6B35',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.4,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  notifyButtonSecondary: {
+    backgroundColor: '#4A90E2',
+  },
+  notifyButtonText: {
+    color: '#fff',
+    fontSize: isSmallScreen ? 13 : 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  notifyButtonSubtext: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    position: 'absolute',
+    right: 12,
+    top: 4,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 15,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: COLORS.textMuted,
+    marginTop: 16,
+  },
+  // Modal Styles
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalContent: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 18,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.text,
+    flex: 1,
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: COLORS.textMuted,
+    fontWeight: '600',
+  },
+  modalStats: {
+    backgroundColor: COLORS.background,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 18,
+  },
+  modalStatsText: {
+    fontSize: 15,
+    color: COLORS.text,
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  modalScroll: {
+    maxHeight: 400,
+  },
+  assignmentDetailCard: {
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  assignmentCompleted: {
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.accent,
+  },
+  assignmentOverdue: {
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.destructive,
+  },
+  assignmentHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    gap: 8,
+  },
+  assignmentTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  statusBadgeSmall: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    minWidth: 90,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+  },
+  statusBadgeTextSmall: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  assignmentMeta: {
+    marginBottom: 10,
+  },
+  assignmentMetaText: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginBottom: 4,
+  },
+  completedText: {
+    color: COLORS.accent,
+    fontWeight: '600',
+  },
+  overdueStatusText: {
+    color: COLORS.destructive,
+    fontWeight: '700',
+  },
+  modalCloseButton: {
+    backgroundColor: COLORS.primary,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 18,
+  },
+  modalCloseButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

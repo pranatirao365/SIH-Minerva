@@ -31,9 +31,16 @@ export default function SafetyOfficerHome() {
       icon: Video,
       title: 'AI Video Generator',
       description: 'Create safety training videos with AI',
-      route: '/supervisor/VideoGenerationModule',
+      route: '/safety-officer/VideoGenerationModule',
       color: COLORS.primary,
       gradient: true,
+    },
+    {
+      icon: Youtube,
+      title: 'Video Library',
+      description: 'Browse all generated videos',
+      route: '/safety-officer/VideoLibrary',
+      color: '#EC4899',
     },
     {
       icon: BarChart3,
@@ -65,17 +72,10 @@ export default function SafetyOfficerHome() {
     },
     {
       icon: Video,
-      title: 'Mandatory Video Manager',
-      description: 'Assign required training videos to miners',
-      route: '/safety-officer/MandatoryVideoManager',
+      title: 'Video Requests',
+      description: 'Handle supervisor video requests',
+      route: '/safety-officer/VideoRequestHandler',
       color: '#10B981',
-    },
-    {
-      icon: Youtube,
-      title: 'Video Library',
-      description: 'Manage training video library',
-      route: '/supervisor/VideoLibrary',
-      color: '#EC4899',
     },
     {
       icon: FileText,

@@ -66,3 +66,11 @@ export const Volume2 = (props: any) => <Ionicons name="volume-high" {...props} /
 export const Mail = (props: any) => <Ionicons name="mail" {...props} />;
 export const Plus = (props: any) => <Ionicons name="add" {...props} />;
 export const Edit2 = (props: any) => <Ionicons name="create-outline" {...props} />;
+export const BookOpen = (props: any) => <Ionicons name="book-outline" {...props} />;
+export const Clipboard = (props: any) => <Ionicons name="clipboard-outline" {...props} />;
+export const Tool = (props: any) => <Ionicons name="build-outline" {...props} />;
+export const Wind = (props: any) => <MaterialCommunityIcons name="weather-windy" {...props} />;
+export const Bot = (props: any) => <Ionicons name="chatbot" {...props} />;
+export const Crown = (props: any) => <Ionicons name="trophy" {...props} />;
+export const Medal = (props: any) => <Ionicons name="medal" {...props} />;
+export const Share2 = (props: any) => <Ionicons name="share-social" {...props} />;

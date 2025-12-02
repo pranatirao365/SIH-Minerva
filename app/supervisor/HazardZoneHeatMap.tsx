@@ -32,12 +32,7 @@ const cellSize = screenWidth / GRID_SIZE;
 
 export default function HazardZoneHeatMap() {
   const router = useRouter();
-  const [zones, setZones] = useState<HazardZone[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [selectedZone, setSelectedZone] = useState<HazardZone | null>(null);
-  const [filter, setFilter] = useState<'all' | 'low' | 'medium' | 'high' | 'critical'>('all');
-
+  
   // Mock data
   const mockZones: HazardZone[] = [
     {
@@ -122,20 +117,26 @@ export default function HazardZoneHeatMap() {
     },
   ];
 
-  useEffect(() => {
-    loadZones();
-  }, []);
+  const [zones, setZones] = useState<HazardZone[]>(mockZones);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedZone, setSelectedZone] = useState<HazardZone | null>(null);
+  const [filter, setFilter] = useState<'all' | 'low' | 'medium' | 'high' | 'critical'>('all');
 
   const loadZones = async () => {
-    setLoading(true);
     try {
-      const data = await generateHeatMapData(24);
-      setZones(data);
-    } catch (error) {
-      console.error('Error loading hazard zones:', error);
+      // Set a timeout for the API call
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Network request timed out')), 3000)
+      );
+      
+      const data = await Promise.race([
+        generateHeatMapData(24),
+        timeoutPromise
+      ]);
+      setZones(data as any);
+    } catch (error: any) {
+      console.log('Using mock data for hazard zones:', error.message);
       setZones(mockZones);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -211,17 +212,6 @@ export default function HazardZoneHeatMap() {
       </View>
     ));
   };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading heat map...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>

@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Modal, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { Video as VideoPlayer } from 'expo-av';
-import { ArrowLeft, AlertTriangle, Camera, Mic, FileText, CheckSquare } from '../../components/Icons';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AudioPlayer from '../../components/AudioPlayer';
-import { subscribeToIncidents, updateIncidentStatus } from '../../services/incidentService';
+import { AlertTriangle, ArrowLeft, Camera, CheckSquare, FileText, Mic } from '../../components/Icons';
 import type { Incident } from '../../services/incidentService';
+import { subscribeToIncidents, updateIncidentStatus } from '../../services/incidentService';
 
 export default function IncidentDashboard() {
   const router = useRouter();
@@ -19,15 +19,23 @@ export default function IncidentDashboard() {
 
   useEffect(() => {
     console.log('📊 Subscribing to incidents...');
+    
+    // Set timeout to stop loading after 3 seconds
+    const loadingTimeout = setTimeout(() => {
+      console.log('⏱️ Loading timeout - using fallback');
+      setLoading(false);
+    }, 3000);
 
     const unsubscribe = subscribeToIncidents((newIncidents) => {
       console.log('📥 Received incidents:', newIncidents.length);
+      clearTimeout(loadingTimeout);
       setIncidents(newIncidents);
       setLoading(false);
     });
 
     return () => {
       console.log('🔌 Unsubscribing from incidents');
+      clearTimeout(loadingTimeout);
       unsubscribe();
     };
   }, []);
@@ -42,16 +50,6 @@ export default function IncidentDashboard() {
       case 'video': return <Camera size={16} color="#FF6B00" />;
       case 'audio': return <Mic size={16} color="#FF6B00" />;
       default: return <FileText size={16} color="#FF6B00" />;
-    }
-  };
-
-  const getSeverityColor = (severity?: string) => {
-    switch (severity?.toLowerCase()) {
-      case 'critical': return '#DC2626';
-      case 'high': return '#EF4444';
-      case 'medium': return '#F59E0B';
-      case 'low': return '#10B981';
-      default: return '#6B7280';
     }
   };
 
@@ -206,7 +204,7 @@ export default function IncidentDashboard() {
                 padding: 16,
                 marginBottom: 12,
                 borderLeftWidth: 4,
-                borderLeftColor: getSeverityColor(incident.severity)
+                borderLeftColor: '#FF6B00'
               }}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
@@ -245,30 +243,6 @@ export default function IncidentDashboard() {
                       <Text style={{ color: '#737373', marginTop: 8, fontSize: 12 }}>Video Attachment</Text>
                     </View>
                   ) : null}
-                </View>
-              )}
-
-              {incident.severity && (
-                <View style={{ 
-                  marginTop: 8, 
-                  flexDirection: 'row', 
-                  alignItems: 'center',
-                  backgroundColor: '#0A0A0A',
-                  alignSelf: 'flex-start',
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  borderRadius: 6
-                }}>
-                  <View style={{ 
-                    width: 6, 
-                    height: 6, 
-                    borderRadius: 3, 
-                    backgroundColor: getSeverityColor(incident.severity),
-                    marginRight: 6 
-                  }} />
-                  <Text style={{ color: getSeverityColor(incident.severity), fontSize: 11, fontWeight: '600', textTransform: 'uppercase' }}>
-                    {incident.severity} SEVERITY
-                  </Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -319,7 +293,7 @@ export default function IncidentDashboard() {
                 </View>
 
                 <View style={{ marginBottom: 20 }}>
-                  <Text style={{ color: '#737373', fontSize: 13, marginBottom: 4 }}>Type & Severity</Text>
+                  <Text style={{ color: '#737373', fontSize: 13, marginBottom: 4 }}>Type</Text>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0A0A0A', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
                       {getTypeIcon(selectedIncident.type)}
@@ -327,27 +301,6 @@ export default function IncidentDashboard() {
                         {selectedIncident.type}
                       </Text>
                     </View>
-                    {selectedIncident.severity && (
-                      <View style={{ 
-                        flexDirection: 'row', 
-                        alignItems: 'center',
-                        backgroundColor: '#0A0A0A',
-                        paddingHorizontal: 10,
-                        paddingVertical: 6,
-                        borderRadius: 8
-                      }}>
-                        <View style={{ 
-                          width: 6, 
-                          height: 6, 
-                          borderRadius: 3, 
-                          backgroundColor: getSeverityColor(selectedIncident.severity),
-                          marginRight: 6 
-                        }} />
-                        <Text style={{ color: getSeverityColor(selectedIncident.severity), fontSize: 13, fontWeight: '600', textTransform: 'capitalize' }}>
-                          {selectedIncident.severity}
-                        </Text>
-                      </View>
-                    )}
                   </View>
                 </View>
 

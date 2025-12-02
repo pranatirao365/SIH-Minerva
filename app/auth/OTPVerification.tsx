@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
 import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -16,6 +16,70 @@ import { translator } from '../../services/translator';
 // 🧪 TEST MODE - Remove this in production!
 const TEST_OTP = '123456';
 const IS_TEST_MODE = true; // Set to false in production
+
+/**
+ * Helper function to find user by phone number.
+ * Supports multiple storage formats:
+ * 1. Document ID = phone number (e.g., 918074540124)
+ * 2. Document ID = employee ID, with phoneNumber field query
+ * 
+ * @param phoneWithPrefix - Phone number in format +918074540124
+ * @returns User data with document ID, or null if not found
+ */
+async function getUserByPhone(phoneWithPrefix: string) {
+  // Remove + prefix for document ID lookup
+  const phone = phoneWithPrefix.replace('+', '');
+  
+  console.log('🔍 Searching for user with phone:', phoneWithPrefix);
+  console.log('📊 Strategy 1: Direct document ID lookup with:', phone);
+  
+  // Strategy 1: Try direct document lookup (for users stored as docId = phoneNumber)
+  try {
+    const userDoc = await getDoc(doc(db, 'users', phone));
+    if (userDoc.exists()) {
+      console.log('✅ User found via document ID:', phone);
+      return { id: userDoc.id, ...userDoc.data() };
+    }
+  } catch (error) {
+    console.log('⚠️ Direct lookup failed:', error);
+  }
+  
+  console.log('📊 Strategy 2: Query by phoneNumber field (with + prefix)');
+  
+  // Strategy 2: Query by phoneNumber field with +91 prefix
+  try {
+    const q = query(collection(db, 'users'), where('phoneNumber', '==', phoneWithPrefix));
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+      const userDoc = snapshot.docs[0];
+      console.log('✅ User found via phoneNumber query (with +):', userDoc.id);
+      return { id: userDoc.id, ...userDoc.data() };
+    }
+  } catch (error) {
+    console.log('⚠️ Query with + prefix failed:', error);
+  }
+  
+  console.log('📊 Strategy 3: Query by phoneNumber field (without + prefix)');
+  
+  // Strategy 3: Query by phoneNumber field without + prefix
+  try {
+    const phoneWithoutPlus = phoneWithPrefix.replace('+', '');
+    const q = query(collection(db, 'users'), where('phoneNumber', '==', phoneWithoutPlus));
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+      const userDoc = snapshot.docs[0];
+      console.log('✅ User found via phoneNumber query (no +):', userDoc.id);
+      return { id: userDoc.id, ...userDoc.data() };
+    }
+  } catch (error) {
+    console.log('⚠️ Query without + prefix failed:', error);
+  }
+  
+  console.log('❌ User not found with any strategy');
+  return null;
+}
 
 export default function OTPVerification() {
   const router = useRouter();
@@ -60,6 +124,83 @@ export default function OTPVerification() {
     setLoading(true);
 
     try {
+      // Test data OTP mapping
+      const testOTPs: { [key: string]: string } = {
+        '9000000001': '123456', // Ravi
+        '9000000002': '234567', // Suresh
+        '8000000001': '345678', // Arun
+        '8000000002': '456789', // Rakesh
+        '8000000003': '567890', // Mahesh
+        '8000000004': '678901', // Deepak
+        '8000000005': '789012', // Imran
+        '8000000006': '890123', // Harish
+        '8000000007': '901234', // Vijay
+        '8000000008': '012345', // Santosh
+        '8000000009': '123789', // Sunil
+        '8000000010': '234890', // Gopal
+        '7000000001': '345901', // Anita
+        '1234567890': '111111', // Test Miner
+        '1234567891': '222222', // Test Engineer
+        '1234567892': '333333', // Test Supervisor
+        '1234567893': '444444', // Test Safety Officer
+        '1234567894': '555555'  // Test Admin
+      };
+      
+      const phoneWithoutPrefix = phoneNumber.replace('+91', '');
+      if (testOTPs[phoneWithoutPrefix] && testOTPs[phoneWithoutPrefix] === otpCode) {
+        console.log('✅ Test data OTP verified for phone:', phoneNumber);
+        
+        console.log('📊 Fetching user data from Firestore for phone:', phoneNumber);
+        
+        // Fetch user using query-based approach
+        const userData = await getUserByPhone(phoneNumber);
+        
+        if (userData) {
+          const userRole = userData.role;
+          
+          console.log('✅ User found with role:', userRole);
+          
+          // Set the role in the store
+          setRole(userRole);
+          
+          // Navigate based on role
+          switch (userRole) {
+            case 'miner':
+              router.replace('/miner/MinerHome');
+              break;
+            case 'engineer':
+              router.replace('/engineer/EngineerHome');
+              break;
+            case 'safety_officer':
+            case 'safety-officer':
+              router.replace('/safety-officer/SafetyOfficerHome');
+              break;
+            case 'supervisor':
+              router.replace('/supervisor/SupervisorHome');
+              break;
+            case 'admin':
+              router.replace('/admin/AdminHome');
+              break;
+            default:
+              Alert.alert('Error', `Invalid user role: ${userRole}`);
+          }
+          setLoading(false);
+          return;
+        } else {
+          console.log('⚠️ User not found in database');
+          Alert.alert(
+            'Access Denied',
+            'Your phone number is not registered in the system. Please contact your administrator.',
+            [{ 
+              text: 'OK', 
+              onPress: () => router.replace('/auth/PhoneLogin')
+            }]
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
       // 🧪 TEST MODE: Bypass Firebase authentication for test mode
       if (IS_TEST_MODE && isTestMode && verificationId === 'TEST_VERIFICATION_ID') {
         console.log('🧪 TEST MODE: Bypassing Firebase authentication');
@@ -72,16 +213,12 @@ export default function OTPVerification() {
         
         console.log('✅ Test OTP verified!');
         
-        // Get phone without + to match Firestore document ID
-        const phone = phoneNumber.replace('+', '');
+        console.log('📊 Fetching user data from Firestore for phone:', phoneNumber);
         
-        console.log('📊 Fetching user data from Firestore for phone:', phone);
+        // Fetch user using query-based approach
+        const userData = await getUserByPhone(phoneNumber);
         
-        // Fetch user role from Firestore
-        const userDoc = await getDoc(doc(db, 'users', phone));
-        
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
+        if (userData) {
           const userRole = userData.role;
           
           console.log('✅ User found with role:', userRole);
@@ -143,17 +280,15 @@ export default function OTPVerification() {
       console.log('👤 User UID:', userCredential.user.uid);
       console.log('📞 Phone:', userCredential.user.phoneNumber);
       
-      // Get phone from authenticated user (already in format +917416013923)
-      // Remove + to match Firestore document ID (917416013923)
-      const phone = userCredential.user.phoneNumber?.replace('+', '') || phoneNumber.replace('+', '');
+      // Get phone from authenticated user (already in format +918074540124)
+      const authenticatedPhone = userCredential.user.phoneNumber || phoneNumber;
       
-      console.log('📊 Fetching user data from Firestore for phone:', phone);
+      console.log('📊 Fetching user data from Firestore for phone:', authenticatedPhone);
       
-      // Fetch user role from Firestore
-      const userDoc = await getDoc(doc(db, 'users', phone));
+      // Fetch user using query-based approach (supports both docId formats)
+      const userData = await getUserByPhone(authenticatedPhone);
       
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+      if (userData) {
         const userRole = userData.role;
         
         console.log('✅ User found with role:', userRole);

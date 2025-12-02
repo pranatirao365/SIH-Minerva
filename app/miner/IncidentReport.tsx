@@ -15,7 +15,6 @@ export default function IncidentReport() {
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [severity, setSeverity] = useState<'Low' | 'Medium' | 'High' | 'Critical'>('Medium');
   const [language, setLanguage] = useState<'en' | 'hi' | 'te'>('en');
   
   // Media state
@@ -37,8 +36,6 @@ export default function IncidentReport() {
   // Language detection state
   const [detectedLanguage, setDetectedLanguage] = useState<'en' | 'hi' | 'te' | null>(null);
   const [languageConfidence, setLanguageConfidence] = useState<number | null>(null);
-  const [showLanguageConfirmation, setShowLanguageConfirmation] = useState(false);
-  const [suggestedLanguage, setSuggestedLanguage] = useState<'en' | 'hi' | 'te' | null>(null);
   
   // Audio metadata for logging
   const [audioMetadata, setAudioMetadata] = useState<{
@@ -50,13 +47,6 @@ export default function IncidentReport() {
   
   // Loading state
   const [loading, setLoading] = useState(false);
-
-  const severityOptions = [
-    { level: 'Low' as const, label: 'Low', color: '#10B981' },
-    { level: 'Medium' as const, label: 'Medium', color: '#F59E0B' },
-    { level: 'High' as const, label: 'High', color: '#EF4444' },
-    { level: 'Critical' as const, label: 'Critical', color: '#DC2626' },
-  ];
 
   const languageOptions = [
     { code: 'en' as const, label: 'English', nativeLabel: 'English', flag: '🇬🇧', region: 'en-IN', description: 'Speak in English' },
@@ -217,18 +207,7 @@ export default function IncidentReport() {
     // Example: sendToLoggingService(logEntry);
   };
 
-  const confirmLanguageAndProceed = () => {
-    setShowLanguageConfirmation(false);
-    setShowTranscriptModal(true);
-  };
 
-  const changeLanguageAndRetry = async () => {
-    setShowLanguageConfirmation(false);
-    setShowTranscriptModal(false);
-    setEditableTranscript('');
-    setTranscript('');
-    setShowLanguageModal(true);
-  };
 
   const retryRecording = () => {
     setEditableTranscript('');
@@ -244,18 +223,11 @@ export default function IncidentReport() {
       console.log('\n🎤 ===== AUDIO TRANSCRIPTION START =====' );
       console.log('🌐 User-selected language:', language);
       console.log('📁 Audio URI:', audioUri);
+      console.log('⚡ Using fast polling (500ms intervals) for quick response');
       
       // ⏭️ TELUGU STT SKIP - Disable transcription completely for Telugu
-      if (language === 'te') {
-        console.log('⏭️ Telugu transcription disabled - uploading audio only, no STT');
-        console.log('📝 Setting empty transcript for Telugu - no API call');
-        setEditableTranscript('');
-        setTranscript('');
-        setShowTranscriptModal(true);
-        setIsTranscribing(false);
-        console.log('✅ Telugu mode: Audio upload mode, STT skipped, modal shown');
-        return; // ← Exit completely - do NOT call AssemblyAI API
-      }
+      // Note: Telugu is still available as a language option but STT is disabled
+      // Remove this check if Telugu STT support is added in the future
       
       const ASSEMBLYAI_API_KEY = process.env.EXPO_PUBLIC_ASSEMBLYAI_API_KEY || '';
 
@@ -356,9 +328,9 @@ export default function IncidentReport() {
       // Poll for completion with extended timeout
       let finalTranscript = '';
       let attempts = 0;
-      const maxAttempts = 60; // 60 attempts * 1 second = 60 seconds max
-      let detectedLang = language; // Default to user selection
+      const maxAttempts = 120; // 120 attempts * 500ms = 60 seconds max
       let confidence = null;
+      let lastStatus = '';
 
       while (attempts < maxAttempts) {
         const pollingResponse = await fetch(
@@ -367,7 +339,12 @@ export default function IncidentReport() {
         );
 
         const pollingData = await pollingResponse.json();
-        console.log(`📊 Attempt ${attempts + 1}/${maxAttempts} - Status: ${pollingData.status}`);
+        
+        // Only log when status changes to reduce console spam
+        if (pollingData.status !== lastStatus) {
+          console.log(`📊 Status: ${pollingData.status} (${Math.round((attempts / maxAttempts) * 100)}% of timeout)`);
+          lastStatus = pollingData.status;
+        }
 
         if (pollingData.status === 'completed') {
           finalTranscript = pollingData.text || '';
@@ -392,8 +369,8 @@ export default function IncidentReport() {
           throw new Error(`Transcription failed: ${errorMsg}`);
         }
 
-        // Wait 1 second before next poll
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait 500ms before next poll (faster response)
+        await new Promise(resolve => setTimeout(resolve, 500));
         attempts++;
       }
 
@@ -552,7 +529,7 @@ export default function IncidentReport() {
       console.log('\n📋 ===== PREPARING INCIDENT SUBMISSION =====');
       console.log('👤 User Object:', JSON.stringify(user, null, 2));
       console.log('📱 Miner ID (final):', minerId);
-      console.log('⚠️ Severity:', severity);
+      console.log('⚠️ Severity: Medium (default)');
 
       if (!minerId || minerId === 'unknown') {
         Alert.alert('Login Required', 'Your session is invalid. Please log out and log in again.');
@@ -576,17 +553,30 @@ export default function IncidentReport() {
       }
 
       console.log('📤 Submitting incident...');
-      await submitIncident(
+      console.log('📊 Final submission data:', {
+        minerId,
+        minerName,
+        type: finalType,
+        title: finalTitle,
+        hasDescription: !!description,
+        hasMedia: !!finalMediaUri,
+        hasTranscript: !!finalTranscript,
+        language
+      });
+
+      const incidentId = await submitIncident(
         minerId,
         minerName,
         finalType,
         finalTitle,
         description,
-        severity,
+        'Medium', // Default severity
         finalMediaUri || undefined,
         finalTranscript,
         language
       );
+
+      console.log('✅ Incident submitted successfully! ID:', incidentId);
 
       Alert.alert(
         'Report Submitted',
@@ -595,6 +585,11 @@ export default function IncidentReport() {
       );
     } catch (error: any) {
       console.error('❌ Error submitting report:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
       Alert.alert('Error', error.message || 'Failed to submit report. Please try again.');
     } finally {
       setLoading(false);
@@ -675,39 +670,6 @@ export default function IncidentReport() {
               textAlignVertical: 'top'
             }}
           />
-        </View>
-
-        {/* Severity Selection (MANDATORY) */}
-        <View style={{ marginBottom: 20 }}>
-          <Text style={{ color: '#E5E5E5', fontSize: 14, fontWeight: '700', marginBottom: 12, letterSpacing: 0.3 }}>
-            Severity Level <Text style={{ color: '#EF4444' }}>*</Text>
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            {severityOptions.map((item) => (
-              <TouchableOpacity
-                key={item.level}
-                onPress={() => setSeverity(item.level)}
-                style={{
-                  flex: 1,
-                  backgroundColor: severity === item.level ? item.color + '20' : '#1A1A1A',
-                  borderWidth: 2,
-                  borderColor: severity === item.level ? item.color : '#2A2A2A',
-                  borderRadius: 10,
-                  paddingVertical: 14,
-                  alignItems: 'center'
-                }}
-              >
-                <Text style={{ 
-                  color: severity === item.level ? item.color : '#737373',
-                  fontSize: 12,
-                  fontWeight: '700',
-                  textTransform: 'uppercase'
-                }}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
         </View>
 
         {/* Media Attachment Section (OPTIONAL) */}
@@ -941,18 +903,18 @@ export default function IncidentReport() {
         {/* Submit Button */}
         <TouchableOpacity
           onPress={handleSubmit}
-          disabled={loading || !description.trim()}
+          disabled={loading || !title.trim()}
           style={{
-            backgroundColor: description.trim() && !loading ? '#FF6B00' : '#3A3A3A',
+            backgroundColor: title.trim() && !loading ? '#FF6B00' : '#3A3A3A',
             borderRadius: 12,
             padding: 18,
             alignItems: 'center',
             marginBottom: 24,
             shadowColor: '#FF6B00',
             shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: description.trim() ? 0.3 : 0,
+            shadowOpacity: title.trim() ? 0.3 : 0,
             shadowRadius: 8,
-            elevation: description.trim() ? 4 : 0
+            elevation: title.trim() ? 4 : 0
           }}
         >
           {loading ? (
@@ -1026,92 +988,6 @@ export default function IncidentReport() {
         </View>
       </Modal>
 
-      {/* Language Confidence Confirmation Modal */}
-      <Modal
-        visible={showLanguageConfirmation}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowLanguageConfirmation(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: '#1F1F1F', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
-            <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
-              Confirm Language
-            </Text>
-            <Text style={{ color: '#737373', fontSize: 14, marginBottom: 20 }}>
-              We detected your speech language. Please confirm:
-            </Text>
-            
-            {/* User Selected Language */}
-            <View style={{ backgroundColor: '#0A0A0A', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#2A2A2A' }}>
-              <Text style={{ color: '#737373', fontSize: 12, marginBottom: 4 }}>You selected:</Text>
-              <Text style={{ color: '#FF6B00', fontSize: 18, fontWeight: 'bold' }}>
-                {languageOptions.find(l => l.code === language)?.label}
-              </Text>
-            </View>
-
-            {/* Detected Language */}
-            <View style={{ backgroundColor: '#0A0A0A', borderRadius: 12, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#3B82F6' }}>
-              <Text style={{ color: '#737373', fontSize: 12, marginBottom: 4 }}>We detected:</Text>
-              <Text style={{ color: '#3B82F6', fontSize: 18, fontWeight: 'bold' }}>
-                {languageOptions.find(l => l.code === suggestedLanguage)?.label}
-              </Text>
-              {languageConfidence && (
-                <Text style={{ color: '#10B981', fontSize: 12, marginTop: 8 }}>
-                  Confidence: {(languageConfidence * 100).toFixed(1)}%
-                </Text>
-              )}
-            </View>
-
-            <View style={{ gap: 12 }}>
-              <TouchableOpacity
-                onPress={confirmLanguageAndProceed}
-                style={{
-                  backgroundColor: '#10B981',
-                  borderRadius: 12,
-                  padding: 16,
-                  alignItems: 'center'
-                }}
-              >
-                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
-                  ✓ Confirm & Continue
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={changeLanguageAndRetry}
-                style={{
-                  backgroundColor: '#F59E0B',
-                  borderRadius: 12,
-                  padding: 16,
-                  alignItems: 'center'
-                }}
-              >
-                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
-                  🔄 Try Different Language
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setShowLanguageConfirmation(false)}
-                style={{
-                  backgroundColor: '#2A2A2A',
-                  borderRadius: 12,
-                  padding: 16,
-                  alignItems: 'center',
-                  borderWidth: 1,
-                  borderColor: '#3A3A3A'
-                }}
-              >
-                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       {/* Transcript Confirmation Modal */}
       <Modal
         visible={showTranscriptModal}
@@ -1150,6 +1026,9 @@ export default function IncidentReport() {
                 <ActivityIndicator size="large" color="#FF6B00" />
                 <Text style={{ color: '#E5E5E5', marginTop: 16, fontSize: 15, fontWeight: '600' }}>
                   Transcribing audio...
+                </Text>
+                <Text style={{ color: '#737373', marginTop: 8, fontSize: 13 }}>
+                  Using fast processing (usually 5-15 seconds)
                 </Text>
               </View>
             ) : language === 'te' ? (

@@ -4,22 +4,22 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmergencyButton } from '../../components/EmergencyButton';
 import {
-  Activity,
-  AlertTriangle,
-  Bell,
-  Camera,
-  CheckCircle,
-  ChevronRight,
-  Droplets,
-  Heart,
-  Lock,
-  Map,
-  Mic,
-  Shield,
-  Thermometer,
-  TrendingUp,
-  Trophy,
-  Video
+    Activity,
+    AlertTriangle,
+    Bell,
+    Camera,
+    CheckCircle,
+    ChevronRight,
+    Droplets,
+    Heart,
+    Lock,
+    Map,
+    Mic,
+    Shield,
+    Thermometer,
+    TrendingUp,
+    Trophy,
+    Video
 } from '../../components/Icons';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { getWebSocketURL } from '../../config/smartHelmetConfig';
@@ -111,6 +111,7 @@ export default function MinerHome() {
     { icon: AlertTriangle, label: 'Report', route: '/miner/IncidentReport', color: '#F59E0B' },
     { icon: Trophy, label: 'Fire Safety', route: '/miner/SimulationScreen', color: '#DC2626' },
     { icon: Trophy, label: 'Blasting', route: '/miner/BlastingGame', color: '#F59E0B' },
+    { icon: Trophy, label: 'Roof Fall', route: '/miner/RoofInstabilityGame', color: '#7C2D12' },
   ];
 
   const trainingModules = [

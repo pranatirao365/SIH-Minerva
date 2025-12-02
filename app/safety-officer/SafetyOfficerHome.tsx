@@ -7,6 +7,7 @@ import {
     BarChart3,
     CheckCircle,
     FileText,
+    MapPin,
     Settings,
     Shield,
     Video,
@@ -41,6 +42,13 @@ export default function SafetyOfficerHome() {
       description: 'Browse all generated videos',
       route: '/safety-officer/VideoLibrary',
       color: '#EC4899',
+    },
+    {
+      icon: MapPin,
+      title: 'Hazard Zone Visualization',
+      description: 'Explore 3D mine zone visualizations',
+      route: '/safety-officer/HazardZoneHeatMap',
+      color: '#06B6D4',
     },
     {
       icon: BarChart3,

@@ -1,0 +1,1007 @@
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    ImageBackground,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AlertTriangle, ArrowLeft, ChevronLeft, ChevronRight, MapPin } from '../../components/Icons';
+import { COLORS } from '../../constants/styles';
+import { generateHeatMapData } from '../../services/supervisorEnhancements';
+
+interface HazardZone {
+  id: string;
+  zoneName: string;
+  coordinates: { x: number; y: number };
+  hazardLevel: 'low' | 'medium' | 'high' | 'critical';
+  density: number;
+  incidents: number;
+  lastIncident: string;
+  hazardTypes: string[];
+}
+
+const GRID_SIZE = 6;
+const screenWidth = Dimensions.get('window').width - 32;
+const cellSize = screenWidth / GRID_SIZE;
+
+// Mining zone visualization images
+const miningZones = [
+  {
+    id: 1,
+    name: 'Mine Entrance',
+    description: 'Main entrance to Singareni Collieries',
+    image: 'https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?w=800&q=80', // Mine entrance
+    hazardLevel: 'low',
+    safetyRating: 85,
+  },
+  {
+    id: 2,
+    name: 'Underground Operations',
+    description: 'Active mining operations zone',
+    image: 'https://images.unsplash.com/photo-1594305256621-f0c90e61b0b9?w=800&q=80', // Mining operations
+    hazardLevel: 'medium',
+    safetyRating: 65,
+  },
+  {
+    id: 3,
+    name: 'Blasting Zone',
+    description: 'High-risk explosive operations area',
+    image: 'https://images.unsplash.com/photo-1504192010706-dd7f569ee2be?w=800&q=80', // Industrial/blasting
+    hazardLevel: 'critical',
+    safetyRating: 40,
+  },
+  {
+    id: 4,
+    name: 'Equipment Storage',
+    description: 'Heavy machinery and equipment zone',
+    image: 'https://images.unsplash.com/photo-1581094271901-8022df4466f9?w=800&q=80', // Industrial equipment
+    hazardLevel: 'medium',
+    safetyRating: 70,
+  },
+  {
+    id: 5,
+    name: 'Safety Control Room',
+    description: 'Centralized monitoring and safety hub',
+    image: 'https://images.unsplash.com/photo-1558346490-a72e53ae2d4f?w=800&q=80', // Control room
+    hazardLevel: 'low',
+    safetyRating: 95,
+  },
+];
+
+export default function HazardZoneHeatMap() {
+  const router = useRouter();
+  
+  // Carousel state
+  const [currentZoneIndex, setCurrentZoneIndex] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  
+  // Mock data
+  const mockZones: HazardZone[] = [
+    {
+      id: '1',
+      zoneName: 'Zone A1',
+      coordinates: { x: 0, y: 0 },
+      hazardLevel: 'low',
+      density: 15,
+      incidents: 2,
+      lastIncident: '3 days ago',
+      hazardTypes: ['Dust', 'Noise'],
+    },
+    {
+      id: '2',
+      zoneName: 'Zone A2',
+      coordinates: { x: 1, y: 0 },
+      hazardLevel: 'medium',
+      density: 45,
+      incidents: 5,
+      lastIncident: '12 hrs ago',
+      hazardTypes: ['Gas', 'Dust'],
+    },
+    {
+      id: '3',
+      zoneName: 'Zone A3',
+      coordinates: { x: 2, y: 0 },
+      hazardLevel: 'high',
+      density: 72,
+      incidents: 8,
+      lastIncident: '3 hrs ago',
+      hazardTypes: ['Gas', 'Temperature', 'Structural'],
+    },
+    {
+      id: '4',
+      zoneName: 'Zone A4',
+      coordinates: { x: 3, y: 0 },
+      hazardLevel: 'critical',
+      density: 95,
+      incidents: 12,
+      lastIncident: '30 mins ago',
+      hazardTypes: ['Gas', 'Fire', 'Structural'],
+    },
+    {
+      id: '5',
+      zoneName: 'Zone B1',
+      coordinates: { x: 0, y: 1 },
+      hazardLevel: 'low',
+      density: 20,
+      incidents: 3,
+      lastIncident: '5 days ago',
+      hazardTypes: ['Noise'],
+    },
+    {
+      id: '6',
+      zoneName: 'Zone B2',
+      coordinates: { x: 1, y: 1 },
+      hazardLevel: 'medium',
+      density: 50,
+      incidents: 6,
+      lastIncident: '1 day ago',
+      hazardTypes: ['Dust', 'Gas'],
+    },
+    {
+      id: '7',
+      zoneName: 'Zone C3',
+      coordinates: { x: 2, y: 2 },
+      hazardLevel: 'high',
+      density: 80,
+      incidents: 10,
+      lastIncident: '6 hrs ago',
+      hazardTypes: ['Gas', 'Temperature'],
+    },
+    {
+      id: '8',
+      zoneName: 'Zone D4',
+      coordinates: { x: 3, y: 3 },
+      hazardLevel: 'low',
+      density: 18,
+      incidents: 1,
+      lastIncident: '7 days ago',
+      hazardTypes: ['Dust'],
+    },
+  ];
+
+  const [zones, setZones] = useState<HazardZone[]>(mockZones);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedZone, setSelectedZone] = useState<HazardZone | null>(null);
+  const [filter, setFilter] = useState<'all' | 'low' | 'medium' | 'high' | 'critical'>('all');
+  
+  // Carousel navigation functions
+  const navigateToZone = (direction: 'left' | 'right') => {
+    // Fade out animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Update index
+      setCurrentZoneIndex((prevIndex) => {
+        if (direction === 'left') {
+          return prevIndex === 0 ? miningZones.length - 1 : prevIndex - 1;
+        } else {
+          return prevIndex === miningZones.length - 1 ? 0 : prevIndex + 1;
+        }
+      });
+      
+      // Fade in animation
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
+  const loadZones = async () => {
+    try {
+      // Set a timeout for the API call
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Network request timed out')), 3000)
+      );
+      
+      const data = await Promise.race([
+        generateHeatMapData(24),
+        timeoutPromise
+      ]);
+      setZones(data as any);
+    } catch (error: any) {
+      console.log('Using mock data for hazard zones:', error.message);
+      setZones(mockZones);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadZones();
+    setRefreshing(false);
+  };
+
+  const getHazardColor = (level: string, density: number) => {
+    switch (level) {
+      case 'low':
+        return `rgba(16, 185, 129, ${density / 100})`;
+      case 'medium':
+        return `rgba(245, 158, 11, ${density / 100})`;
+      case 'high':
+        return `rgba(239, 68, 68, ${density / 100})`;
+      case 'critical':
+        return `rgba(153, 27, 27, ${Math.max(density / 100, 0.8)})`;
+      default:
+        return '#E5E7EB';
+    }
+  };
+
+  const filteredZones = zones.filter(zone =>
+    filter === 'all' ? true : zone.hazardLevel === filter
+  );
+
+  const lowCount = zones.filter(z => z.hazardLevel === 'low').length;
+  const mediumCount = zones.filter(z => z.hazardLevel === 'medium').length;
+  const highCount = zones.filter(z => z.hazardLevel === 'high').length;
+  const criticalCount = zones.filter(z => z.hazardLevel === 'critical').length;
+
+  const renderGrid = () => {
+    const grid = Array(GRID_SIZE)
+      .fill(null)
+      .map(() => Array(GRID_SIZE).fill(null));
+
+    zones.forEach(zone => {
+      const { x, y } = zone.coordinates;
+      if (x < GRID_SIZE && y < GRID_SIZE) {
+        grid[y][x] = zone;
+      }
+    });
+
+    return grid.map((row, rowIndex) => (
+      <View key={rowIndex} style={styles.gridRow}>
+        {row.map((zone, colIndex) => (
+          <TouchableOpacity
+            key={`${rowIndex}-${colIndex}`}
+            style={[
+              styles.gridCell,
+              {
+                width: cellSize,
+                height: cellSize,
+                backgroundColor: zone
+                  ? getHazardColor(zone.hazardLevel, zone.density)
+                  : '#F3F4F6',
+              },
+            ]}
+            onPress={() => zone && setSelectedZone(zone)}
+          >
+            {zone && (
+              <View style={styles.cellContent}>
+                <Text style={styles.cellText}>{zone.zoneName}</Text>
+                {zone.hazardLevel === 'critical' && (
+                  <AlertTriangle size={16} color="#FFFFFF" />
+                )}
+              </View>
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+    ));
+  };
+
+  const currentZone = miningZones[currentZoneIndex];
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft size={24} color={COLORS.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Mine Visualization</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Immersive 3D Carousel Visualization */}
+        <View style={styles.visualizationContainer}>
+          <Animated.View
+            style={[
+              styles.imageContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }],
+              },
+            ]}
+          >
+            <ImageBackground
+              source={{ uri: currentZone.image }}
+              style={styles.backgroundImage}
+              imageStyle={styles.backgroundImageStyle}
+            >
+              {/* Dark overlay for better text visibility */}
+              <View style={styles.imageOverlay} />
+              
+              {/* Zone information overlay */}
+              <View style={styles.zoneInfoOverlay}>
+                <View style={styles.zoneInfoTop}>
+                  <View style={[
+                    styles.hazardBadge,
+                    {
+                      backgroundColor:
+                        currentZone.hazardLevel === 'low'
+                          ? 'rgba(16, 185, 129, 0.9)'
+                          : currentZone.hazardLevel === 'medium'
+                          ? 'rgba(245, 158, 11, 0.9)'
+                          : 'rgba(239, 68, 68, 0.9)',
+                    },
+                  ]}>
+                    <Text style={styles.hazardBadgeText}>
+                      {currentZone.hazardLevel.toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.safetyRatingContainer}>
+                    <Text style={styles.safetyRatingText}>
+                      Safety Rating: {currentZone.safetyRating}%
+                    </Text>
+                  </View>
+                </View>
+                
+                <View style={styles.zoneInfoBottom}>
+                  <Text style={styles.zoneName}>{currentZone.name}</Text>
+                  <Text style={styles.zoneDescription}>{currentZone.description}</Text>
+                </View>
+              </View>
+            </ImageBackground>
+          </Animated.View>
+
+          {/* Navigation Arrows */}
+          <TouchableOpacity
+            style={[styles.navButton, styles.navButtonLeft]}
+            onPress={() => navigateToZone('left')}
+          >
+            <ChevronLeft size={32} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.navButton, styles.navButtonRight]}
+            onPress={() => navigateToZone('right')}
+          >
+            <ChevronRight size={32} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {/* Carousel Indicators */}
+          <View style={styles.indicatorContainer}>
+            {miningZones.map((zone, index) => (
+              <TouchableOpacity
+                key={zone.id}
+                onPress={() => {
+                  Animated.timing(fadeAnim, {
+                    toValue: 0,
+                    duration: 150,
+                    useNativeDriver: true,
+                  }).start(() => {
+                    setCurrentZoneIndex(index);
+                    Animated.timing(fadeAnim, {
+                      toValue: 1,
+                      duration: 200,
+                      useNativeDriver: true,
+                    }).start();
+                  });
+                }}
+              >
+                <View
+                  style={[
+                    styles.indicator,
+                    index === currentZoneIndex && styles.indicatorActive,
+                  ]}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+        {/* Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: '#10B981' }]}>{lowCount}</Text>
+            <Text style={styles.statLabel}>Low Risk</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: '#F59E0B' }]}>{mediumCount}</Text>
+            <Text style={styles.statLabel}>Medium</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: '#EF4444' }]}>{highCount}</Text>
+            <Text style={styles.statLabel}>High</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: '#991B1B' }]}>{criticalCount}</Text>
+            <Text style={styles.statLabel}>Critical</Text>
+          </View>
+        </View>
+
+        {/* Heat Map Grid */}
+        <View style={styles.mapContainer}>
+          <Text style={styles.sectionTitle}>Mine Layout</Text>
+          <View style={styles.gridContainer}>{renderGrid()}</View>
+        </View>
+
+        {/* Legend */}
+        <View style={styles.legendContainer}>
+          <Text style={styles.sectionTitle}>Legend</Text>
+          <View style={styles.legendItems}>
+            {[
+              { level: 'low', label: 'Low Risk', color: '#10B981' },
+              { level: 'medium', label: 'Medium Risk', color: '#F59E0B' },
+              { level: 'high', label: 'High Risk', color: '#EF4444' },
+              { level: 'critical', label: 'Critical', color: '#991B1B' },
+            ].map(item => (
+              <View key={item.level} style={styles.legendItem}>
+                <View style={[styles.legendColor, { backgroundColor: item.color }]} />
+                <Text style={styles.legendLabel}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Selected Zone Details */}
+        {selectedZone && (
+          <View style={styles.detailsCard}>
+            <View style={styles.detailsHeader}>
+              <MapPin size={24} color={COLORS.primary} />
+              <Text style={styles.detailsTitle}>{selectedZone.zoneName}</Text>
+              <TouchableOpacity onPress={() => setSelectedZone(null)}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Hazard Level:</Text>
+              <View
+                style={[
+                  styles.levelBadge,
+                  { backgroundColor: getHazardColor(selectedZone.hazardLevel, 100) },
+                ]}
+              >
+                <Text style={styles.levelText}>
+                  {selectedZone.hazardLevel.toUpperCase()}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Density Score:</Text>
+              <Text style={styles.detailValue}>{selectedZone.density}%</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Total Incidents:</Text>
+              <Text style={styles.detailValue}>{selectedZone.incidents}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Last Incident:</Text>
+              <Text style={styles.detailValue}>{selectedZone.lastIncident}</Text>
+            </View>
+
+            <View style={styles.hazardTypesContainer}>
+              <Text style={styles.detailLabel}>Hazard Types:</Text>
+              <View style={styles.hazardTypesList}>
+                {selectedZone.hazardTypes.map((type, index) => (
+                  <View key={index} style={styles.hazardTypeChip}>
+                    <Text style={styles.hazardTypeText}>{type}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {selectedZone.hazardLevel === 'critical' && (
+              <View style={styles.warningBanner}>
+                <AlertTriangle size={16} color="#991B1B" />
+                <Text style={styles.warningText}>
+                  Restrict access to this zone immediately
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Zone List */}
+        <View style={styles.zoneListContainer}>
+          <Text style={styles.sectionTitle}>All Zones</Text>
+          {zones
+            .sort((a, b) => b.density - a.density)
+            .map(zone => (
+              <TouchableOpacity
+                key={zone.id}
+                style={styles.zoneCard}
+                onPress={() => setSelectedZone(zone)}
+              >
+                <View style={styles.zoneHeader}>
+                  <View style={styles.zoneHeaderLeft}>
+                    <View
+                      style={[
+                        styles.zoneIndicator,
+                        { backgroundColor: getHazardColor(zone.hazardLevel, zone.density) },
+                      ]}
+                    />
+                    <View>
+                      <Text style={styles.zoneName}>{zone.zoneName}</Text>
+                      <Text style={styles.zoneSubtext}>{zone.incidents} incidents</Text>
+                    </View>
+                  </View>
+                  <View style={styles.densityBadge}>
+                    <Text style={styles.densityText}>{zone.density}%</Text>
+                  </View>
+                </View>
+                <View style={styles.zoneFooter}>
+                  <Text style={styles.lastIncidentText}>Last: {zone.lastIncident}</Text>
+                  {zone.hazardLevel === 'critical' && (
+                    <View style={styles.criticalTag}>
+                      <AlertTriangle size={12} color="#991B1B" />
+                      <Text style={styles.criticalTagText}>CRITICAL</Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: COLORS.textMuted,
+  },
+  content: {
+    flex: 1,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 8,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+  },
+  mapContainer: {
+    padding: 16,
+    paddingTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  gridContainer: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  gridRow: {
+    flexDirection: 'row',
+  },
+  gridCell: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cellContent: {
+    alignItems: 'center',
+  },
+  cellText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 2,
+  },
+  legendContainer: {
+    padding: 16,
+    paddingTop: 8,
+  },
+  legendItems: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  legendColor: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+  },
+  legendLabel: {
+    fontSize: 14,
+    color: COLORS.text,
+  },
+  detailsCard: {
+    margin: 16,
+    marginTop: 8,
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  detailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  detailsTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  closeButton: {
+    fontSize: 24,
+    color: COLORS.textMuted,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+  },
+  detailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  levelBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  levelText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  hazardTypesContainer: {
+    marginTop: 8,
+  },
+  hazardTypesList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  hazardTypeChip: {
+    backgroundColor: COLORS.primary + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  hazardTypeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#991B1B' + '20',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#991B1B',
+  },
+  warningText: {
+    fontSize: 13,
+    color: '#991B1B',
+    fontWeight: '600',
+  },
+  zoneListContainer: {
+    padding: 16,
+    paddingTop: 8,
+  },
+  zoneCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  zoneHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  zoneHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  zoneIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  zoneName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  zoneSubtext: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  densityBadge: {
+    backgroundColor: COLORS.background,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  densityText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  zoneFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  lastIncidentText: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  criticalTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#991B1B' + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  criticalTagText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#991B1B',
+  },
+  // Immersive Carousel Visualization Styles
+  visualizationContainer: {
+    position: 'relative',
+    height: 450,
+    margin: 16,
+    marginBottom: 24,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  imageContainer: {
+    width: '100%',
+    height: '100%',
+  },
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'space-between',
+  },
+  backgroundImageStyle: {
+    borderRadius: 20,
+  },
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderRadius: 20,
+  },
+  zoneInfoOverlay: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'space-between',
+  },
+  zoneInfoTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  hazardBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  hazardBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  safetyRatingContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backdropFilter: 'blur(10px)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  safetyRatingText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  zoneInfoBottom: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backdropFilter: 'blur(10px)',
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  zoneNameOverlay: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  zoneDescription: {
+    fontSize: 15,
+    color: '#E5E7EB',
+    lineHeight: 22,
+  },
+  navButton: {
+    position: 'absolute',
+    top: '50%',
+    transform: [{ translateY: -24 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backdropFilter: 'blur(10px)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  navButtonLeft: {
+    left: 16,
+  },
+  navButtonRight: {
+    right: 16,
+  },
+  indicatorContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  indicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  indicatorActive: {
+    width: 24,
+    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    shadowColor: '#FFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
+  },
+});

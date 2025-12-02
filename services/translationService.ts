@@ -2,10 +2,13 @@
  * Translation Service for Mining Incident Reporting System
  * 
  * Automatically translates incident descriptions to English (except Telugu)
- * Uses Google Translate API for accurate translations
+ * Note: Using fallback implementation for React Native compatibility
+ * For production, integrate with cloud translation API (Google Cloud Translation API)
  */
 
-import * as googleTranslate from '@vitalets/google-translate-api';
+// Note: @vitalets/google-translate-api is Node.js only, not compatible with React Native
+// This is a fallback implementation that returns original text
+// TODO: Integrate with Google Cloud Translation API REST endpoint for production
 
 interface TranslationResult {
   translatedText: string;
@@ -54,28 +57,15 @@ export async function translateIncidentForSupervisor(
       };
     }
 
-    // Perform translation
-    console.log('🌐 Translating to English for supervisor view...');
-    const result = await googleTranslate.translate(text, { to: 'en' });
-
-    const detectedLang = (result as any).from?.language?.iso || declaredLanguage || 'unknown';
-
-    // If detected language is Telugu, return original
-    if (detectedLang === 'te') {
-      console.log('🇮🇳 Detected Telugu - returning original text');
-      return {
-        translatedText: text,
-        detectedLanguage: 'te',
-        wasTranslated: false
-      };
-    }
-
-    // Return translated English text
-    console.log(`✅ Translated from ${detectedLang} to English`);
+    // Fallback: Return original text (translation disabled for React Native compatibility)
+    // TODO: Implement REST API call to Google Cloud Translation API for production
+    console.log('ℹ️ Translation service running in fallback mode - returning original text');
+    console.log('💡 For production: Integrate Google Cloud Translation API REST endpoint');
+    
     return {
-      translatedText: result.text,
-      detectedLanguage: detectedLang,
-      wasTranslated: true
+      translatedText: text,
+      detectedLanguage: declaredLanguage || 'unknown',
+      wasTranslated: false
     };
 
   } catch (error: any) {

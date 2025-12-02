@@ -84,8 +84,8 @@ export default function TeamTaskStatus() {
   const loadTeamStatus = async () => {
     setLoading(true);
     try {
-      // const data = await getTeamTaskStatus('supervisor1');
-      // setTeamStatus(data);
+      // Using mock data from state - replace with actual service call when ready
+      console.log('Team status loaded:', teamStatus.length, 'miners');
     } catch (error) {
       console.error('Error loading team task status:', error);
     } finally {
@@ -172,62 +172,80 @@ export default function TeamTaskStatus() {
           ))}
         </View>
 
-        {/* Team Members List */}
-        <View style={styles.teamContainer}>
-          <Text style={styles.sectionTitle}>Team Members ({filteredTeam.length})</Text>
-          
-          {filteredTeam.map((member) => (
-            <View key={member.minerId} style={styles.memberCard}>
-              <View style={styles.memberHeader}>
-                <View style={styles.memberInfo}>
-                  <User size={20} color={COLORS.text} />
-                  <View style={styles.memberDetails}>
-                    <Text style={styles.memberName}>{member.minerName}</Text>
-                    <Text style={styles.memberMeta}>
-                      {member.location} • {member.shift} Shift
+        {/* Miners List */}
+        <View style={styles.minersList}>
+          {teamStatus.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No miners found</Text>
+            </View>
+          ) : (
+            teamStatus.map((miner) => (
+              <TouchableOpacity
+                key={miner.minerId}
+                style={styles.minerCard}
+                onPress={() => {
+                  // View miner task details
+                  console.log('View tasks for:', miner.minerName);
+                } }
+              >
+                <View style={styles.minerHeader}>
+                  <View style={styles.minerHeaderLeft}>
+                    <User size={20} color={COLORS.primary} />
+                    <View style={styles.minerInfo}>
+                      <Text style={styles.minerName}>{miner.minerName}</Text>
+                      <Text style={styles.minerId}>{miner.minerId}</Text>
+                    </View>
+                  </View>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: miner.completionRate >= 80 ? '#10B98120' : '#F59E0B20' },
+                    ]}
+                  >
+                    <Text style={[styles.statusText, { color: miner.completionRate >= 80 ? '#10B981' : '#F59E0B' }]}>
+                      {miner.completionRate >= 80 ? 'ON TRACK' : 'NEEDS ATTENTION'}
                     </Text>
                   </View>
                 </View>
-              </View>
 
-              <View style={styles.progressSection}>
-                <View style={styles.progressBar}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${member.completionRate}%`,
-                        backgroundColor: getCompletionColor(member.completionRate),
-                      },
-                    ]}
-                  />
+                <View style={styles.progressSection}>
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${miner.completionRate}%`,
+                          backgroundColor: miner.completionRate >= 80 ? '#10B981' : '#F59E0B',
+                        },
+                      ]} />
+                  </View>
+                  <Text style={[styles.completionRate, { color: miner.completionRate >= 80 ? '#10B981' : '#F59E0B' }]}>
+                    {miner.completionRate}%
+                  </Text>
                 </View>
-                <Text style={[styles.completionRate, { color: getCompletionColor(member.completionRate) }]}>
-                  {member.completionRate}%
-                </Text>
-              </View>
 
-              <View style={styles.taskStats}>
-                <View style={styles.taskStatItem}>
-                  <CheckCircle size={16} color="#10B981" />
-                  <Text style={styles.taskStatLabel}>Completed</Text>
-                  <Text style={styles.taskStatValue}>{member.completedTasks}</Text>
+                <View style={styles.taskStats}>
+                  <View style={styles.taskStatItem}>
+                    <CheckCircle size={16} color="#10B981" />
+                    <Text style={styles.taskStatLabel}>Completed</Text>
+                    <Text style={styles.taskStatValue}>{miner.completedTasks}</Text>
+                  </View>
+                  <View style={styles.taskStatDivider} />
+                  <View style={styles.taskStatItem}>
+                    <Clock size={16} color="#F59E0B" />
+                    <Text style={styles.taskStatLabel}>Pending</Text>
+                    <Text style={styles.taskStatValue}>{miner.pendingTasks}</Text>
+                  </View>
+                  <View style={styles.taskStatDivider} />
+                  <View style={styles.taskStatItem}>
+                    <Calendar size={16} color={COLORS.primary} />
+                    <Text style={styles.taskStatLabel}>Total</Text>
+                    <Text style={styles.taskStatValue}>{miner.totalTasks}</Text>
+                  </View>
                 </View>
-                <View style={styles.taskStatDivider} />
-                <View style={styles.taskStatItem}>
-                  <Clock size={16} color="#F59E0B" />
-                  <Text style={styles.taskStatLabel}>Pending</Text>
-                  <Text style={styles.taskStatValue}>{member.pendingTasks}</Text>
-                </View>
-                <View style={styles.taskStatDivider} />
-                <View style={styles.taskStatItem}>
-                  <Calendar size={16} color={COLORS.primary} />
-                  <Text style={styles.taskStatLabel}>Total</Text>
-                  <Text style={styles.taskStatValue}>{member.totalTasks}</Text>
-                </View>
-              </View>
-            </View>
-          ))}
+              </TouchableOpacity>
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -392,8 +410,63 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
   taskStatValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '700',
     color: COLORS.text,
+  },
+  minersList: {
+    padding: 16,
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: COLORS.textMuted,
+  },
+  minerCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  minerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  minerHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  minerInfo: {
+    marginLeft: 12,
+  },
+  minerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  minerId: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

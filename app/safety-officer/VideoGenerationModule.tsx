@@ -20,6 +20,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, CheckCircle, Film, Globe, Sparkles, Video as VideoIcon } from '@/components/Icons';
 import { COLORS } from '@/constants/styles';
+import { Timestamp } from 'firebase/firestore';
+import { useRoleStore } from '../../hooks/useRoleStore';
+import { generateVideoDescription } from '../../services/geminiService';
+import { VideoLibraryService, VideoDocument } from '../../services/videoLibraryService';
 
 interface GenerationStage {
   name: string;
@@ -49,24 +53,14 @@ export default function VideoGenerationModule() {
   const [videoError, setVideoError] = useState<string>('');
   const [videoLoading, setVideoLoading] = useState(false);
   
-  // Load video history from AsyncStorage on mount
+  // Load video history and check for pending request data on mount
   useEffect(() => {
     loadVideoHistory();
+    loadPendingRequest();
   }, []);
 
-  // Check authentication on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (!user) {
-        Alert.alert('Authentication Required', 'Please log in to access video generation.', [
-          { text: 'OK', onPress: () => router.replace('/auth/PhoneLogin') }
-        ]);
-      }
-    };
-    checkAuth();
-  }, []);
+  // Authentication check removed - using role-based access from useRoleStore
+  // Users access this module through their dashboard which already validates roles
 
   const loadVideoHistory = async () => {
     try {
@@ -77,6 +71,48 @@ export default function VideoGenerationModule() {
     } catch (error) {
       console.error('Error loading video history:', error);
     }
+  };
+
+  const loadPendingRequest = async () => {
+    try {
+      const pendingRequestData = await AsyncStorage.getItem('pendingVideoRequest');
+      if (pendingRequestData) {
+        const requestData = JSON.parse(pendingRequestData);
+        
+        // Auto-fill the form
+        setTopic(requestData.topic || '');
+        setSelectedLanguage(requestData.language || '');
+        
+        // Clear the pending request data
+        await AsyncStorage.removeItem('pendingVideoRequest');
+        
+        // Show notification to user
+        Alert.alert(
+          '📋 Request Auto-Filled',
+          `Topic and language have been filled from the accepted request.\\n\\nTopic: ${requestData.topic}\\nLanguage: ${getLanguageName(requestData.language)}`,
+          [{ text: 'Got it!' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error loading pending request:', error);
+    }
+  };
+
+  const getLanguageName = (code: string) => {
+    const languages: { [key: string]: string } = {
+      'en': 'English',
+      'hi': 'Hindi',
+      'te': 'Telugu',
+      'ta': 'Tamil',
+      'mr': 'Marathi',
+      'bn': 'Bengali',
+      'gu': 'Gujarati',
+      'kn': 'Kannada',
+      'ml': 'Malayalam',
+      'pa': 'Punjabi',
+      'or': 'Odia',
+    };
+    return languages[code] || code;
   };
 
   const saveVideoToHistory = async (videoUrl: string) => {
@@ -188,40 +224,155 @@ export default function VideoGenerationModule() {
 
   const saveToLibrary = async () => {
     try {
-      // Get current user ID (placeholder for now - should come from auth)
-      const currentUserId = 'safety-officer-1'; // TODO: Get from auth context
+      // Show loading alert
+      Alert.alert('Processing', 'Generating AI description for your video...');
 
-      // Create video entry
+      // Get current user from role store
+      const { user } = useRoleStore.getState();
+      const currentUserId = user.id || user.phone || 'safety-officer';
+
+      // Generate AI description using Gemini
+      console.log('🤖 Generating AI description with Gemini...');
+      const aiDescription = await generateVideoDescription({
+        topic,
+        language: selectedLanguage,
+        videoUrl: generatedVideoUrl,
+      });
+
+      console.log('✅ AI Description generated:', aiDescription);
+
+      // Upload video to Firebase Storage for global access
+      Alert.alert('Uploading', 'Uploading video to cloud storage...');
+      console.log('📤 Uploading video to Firebase Storage...');
+      
+      const fileName = `${topic.trim().replace(/\s+/g, '_')}_${Date.now()}.mp4`;
+      const globalVideoUrl = await VideoLibraryService.uploadVideoToStorage(generatedVideoUrl, fileName);
+      
+      console.log('✅ Video uploaded! Global URL:', globalVideoUrl);
+
+      // Delete the local video file from server after successful upload
+      console.log('🗑️ Cleaning up local video file...');
+      await VideoLibraryService.deleteVideoFromServer(generatedVideoUrl);
+
+      // Generate AI title using Gemini
+      console.log('🤖 Generating AI title with Gemini...');
+      Alert.alert('AI Processing', 'Generating professional title...');
+      
+      let aiTitle = topic.trim();
+      try {
+        const titlePrompt = `Create a professional, clear title (40-60 characters) for a mining safety training video about: "${topic}". 
+
+Requirements:
+- Must be specific and descriptive
+- Use proper capitalization
+- Focus on safety and training
+- Make it engaging for miners
+- Return ONLY the title text, no quotes or extra formatting
+
+Example format: "Proper PPE Usage in Underground Mining Operations"`;
+        
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=AIzaSyDAtXrZ7dLVKbBKc6oJY_fqKjWFAaVPZ10`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: titlePrompt }] }],
+              generationConfig: {
+                maxOutputTokens: 60,
+                temperature: 0.8,
+              },
+            }),
+          }
+        );
+
+        const data = await response.json();
+        const generatedTitle = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (generatedTitle) {
+          aiTitle = generatedTitle.replace(/["'`]/g, '').trim().substring(0, 80);
+          console.log('✅ AI Title generated:', aiTitle);
+          
+          // Update the topic field to show the AI-generated title
+          setTopic(aiTitle);
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to generate AI title, using original:', error);
+      }
+
+      // Create comprehensive video document
+      // Note: Don't include fields with undefined values - Firestore doesn't support them
+      const videoData: Omit<VideoDocument, 'id' | 'createdAt' | 'updatedAt'> = {
+        topic: aiTitle, // Use AI-generated title
+        description: aiDescription.description, // Add AI description
+        language: selectedLanguage,
+        languageName: getSelectedLanguageName(),
+        videoUrl: globalVideoUrl, // Use Firebase Storage URL instead of local URL
+        // thumbnailUrl: omitted (optional field)
+        transcript: aiDescription.transcript || `Training video on ${topic}`,
+        // duration: omitted (optional field)
+        // fileSize: omitted (optional field)
+        createdBy: currentUserId,
+        status: 'active' as const,
+        tags: aiDescription.tags,
+        availableLanguages: [selectedLanguage],
+        metadata: {
+          resolution: '1080p',
+          format: 'mp4',
+          encoding: 'H.264',
+        },
+        statistics: {
+          totalViews: 0,
+          totalAssignments: 0,
+          completionRate: 0,
+          averageRating: 0,
+        },
+      };
+
+      // Save to Firestore
+      Alert.alert('Saving', 'Saving video metadata...');
+      console.log('💾 Saving video to Firestore...');
+      const videoId = await VideoLibraryService.createVideo(videoData);
+      console.log('✅ Video saved to Firestore with ID:', videoId);
+
+      // Also save to local AsyncStorage for backward compatibility
       const videoEntry = {
-        id: `video_${Date.now()}`,
+        id: videoId,
         topic: topic,
         language: selectedLanguage,
         languageName: getSelectedLanguageName(),
         videoUrl: generatedVideoUrl,
         timestamp: Date.now(),
-        thumbnail: null, // Could add thumbnail generation later
+        description: aiDescription.description,
+        tags: aiDescription.tags,
+        keyPoints: aiDescription.keyPoints,
       };
 
-      // Save to database
-      
-
-      // Also save to local AsyncStorage for backward compatibility
       const existingLibrary = await AsyncStorage.getItem('videoLibrary');
       const libraryVideos = existingLibrary ? JSON.parse(existingLibrary) : [];
-
       libraryVideos.unshift(videoEntry);
       await AsyncStorage.setItem('videoLibrary', JSON.stringify(libraryVideos));
 
       Alert.alert(
-        'Success',
-        'Video saved to library successfully!',
+        '✅ Video Created Successfully',
+        `Your training video is ready!\n\n🤖 AI-Generated Title:\n"${aiTitle}"\n\n🌐 Language: ${videoData.languageName}\n📚 Tags: ${aiDescription.tags.slice(0, 3).join(', ')}\n\nThe video is now available in the library and can be assigned to miners.`,
         [
-          { text: 'OK' },
+          {
+            text: 'View Library',
+            onPress: () => router.push('/safety-officer/VideoLibrary'),
+          },
+          { 
+            text: 'Generate Another', 
+            onPress: () => {
+              setGeneratedVideoUrl('');
+              setTopic('');
+              setSelectedLanguage('');
+            }
+          },
         ]
       );
     } catch (error) {
       console.error('Save to library error:', error);
-      Alert.alert('Error', 'Failed to save video to library');
+      Alert.alert('Error', 'Failed to save video to library. Please try again.');
     }
   };
 
@@ -291,6 +442,44 @@ export default function VideoGenerationModule() {
       return;
     }
 
+    // Check for duplicate video BEFORE starting generation
+    try {
+      console.log('🔍 Checking for duplicate video before generation...');
+      const existingVideo = await VideoLibraryService.checkDuplicateVideo(topic.trim(), selectedLanguage);
+      
+      if (existingVideo) {
+        Alert.alert(
+          '📹 Video Already Exists',
+          `A training video with this exact topic already exists in your library:\n\n` +
+          `📝 Topic: "${topic}"\n` +
+          `🌐 Language: ${getSelectedLanguageName()}\n` +
+          `📅 Created: ${existingVideo.createdAt.toDate().toLocaleDateString()}\n\n` +
+          `Generating a duplicate video will consume resources. Consider using the existing video or modifying your topic.\n\n` +
+          `Would you like to proceed anyway?`,
+          [
+            { 
+              text: 'Cancel',
+              style: 'cancel'
+            },
+            {
+              text: 'Generate New Version',
+              style: 'default',
+              onPress: () => proceedWithGeneration(),
+            },
+          ]
+        );
+        return;
+      }
+
+      // No duplicate, proceed with generation
+      await proceedWithGeneration();
+    } catch (error) {
+      console.error('Error checking for duplicate:', error);
+      Alert.alert('Error', 'Failed to check for duplicates. Please try again.');
+    }
+  };
+
+  const proceedWithGeneration = async () => {
     setIsGenerating(true);
     setGeneratedVideoUrl('');
     setVideoError('');
@@ -384,12 +573,21 @@ export default function VideoGenerationModule() {
           // Mark all stages as completed
           setStages(prev => prev.map(stage => ({ ...stage, status: 'completed' })));
           
-          // Convert relative URL to absolute URL
-          const videoUrl = data.videoUrl.startsWith('http') 
-            ? data.videoUrl 
-            : `http://192.168.137.1:4000${data.videoUrl}`;
+          // Convert URL to absolute URL with correct LAN IP
+          let videoUrl = data.videoUrl;
+          if (!videoUrl) {
+            throw new Error('No video URL returned from backend');
+          }
           
-          console.log('Video URL:', videoUrl);
+          // Replace localhost with LAN IP or convert relative path to absolute
+          if (videoUrl.includes('localhost')) {
+            videoUrl = videoUrl.replace('localhost', '192.168.137.1');
+          } else if (!videoUrl.startsWith('http')) {
+            videoUrl = `http://192.168.137.1:4000${videoUrl.startsWith('/') ? videoUrl : '/' + videoUrl}`;
+          }
+          
+          console.log('✅ Video generation completed!');
+          console.log('📹 Video URL:', videoUrl);
           setGeneratedVideoUrl(videoUrl);
           setVideoLoading(true);
           await saveVideoToHistory(videoUrl);

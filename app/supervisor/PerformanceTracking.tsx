@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useRoleStore } from '../../hooks/useRoleStore';
 import {
     ActivityIndicator,
     RefreshControl,
@@ -30,6 +31,8 @@ interface MinerPerformance {
 
 export default function PerformanceTracking() {
   const router = useRouter();
+  const { user } = useRoleStore();
+  const [loading, setLoading] = useState(false);
   
   // Mock data
   const mockMiners: MinerPerformance[] = [
@@ -106,11 +109,38 @@ export default function PerformanceTracking() {
 
   const loadPerformance = async () => {
     try {
-      const data = await calculateSafetyScore();
-      setMiners(data);
+      if (!user?.id) {
+        console.error('Supervisor ID not found');
+        setMiners([]);
+        return;
+      }
+
+      // Load only miners assigned to this supervisor
+      const { getMinersBySupervisor } = await import('@/services/minerService');
+      const assignedMiners = await getMinersBySupervisor(user.id);
+
+      // Transform to MinerPerformance format
+      const minerPerformance: MinerPerformance[] = assignedMiners.map((miner, index) => ({
+        id: miner.id,
+        minerId: miner.id,
+        minerName: miner.name || 'Unknown',
+        safetyScore: 85, // Would fetch real data from backend
+        badges: ['Active'],
+        taskCompletionRate: 0,
+        ppeComplianceRate: 0,
+        incidentFreeStreak: 0,
+        trainingScore: 80,
+        rank: index + 1,
+        trend: 'up' as const,
+      }));
+
+      setMiners(minerPerformance);
+      console.log(`✅ Loaded ${minerPerformance.length} miners for supervisor ${user.id}`);
     } catch (error) {
       console.error('Error loading performance data:', error);
       setMiners(mockMiners);
+    } finally {
+      setLoading(false);
     }
   };
 

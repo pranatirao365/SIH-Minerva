@@ -1,0 +1,66 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // 1️⃣ TEST MODE — open access until expiration date
+    function isTestMode() {
+      return request.time < timestamp.date(2025, 12, 26);
+    }
+
+    // 2️⃣ NORMAL MODE — allow access only to authenticated users
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    // INCIDENTS MEDIA
+    match /incidents/{userId}/{allPaths=**} {
+      // Test mode → allow everything
+      allow read, write: if isTestMode();
+
+      // Normal mode → only logged-in users can read/write
+      allow read, write: if isLoggedIn();
+    }
+
+    // VIDEOS - for training videos (globally accessible)
+    match /videos/{videoFile} {
+      // Test mode → allow everything
+      allow read, write: if isTestMode();
+      
+      // Normal mode → authenticated users can read
+      allow read: if isLoggedIn();
+      
+      // Authenticated users can upload videos (max 100MB)
+      allow write: if isLoggedIn() 
+                   && request.resource.size < 100 * 1024 * 1024
+                   && request.resource.contentType.matches('video/.*');
+    }
+
+    // THUMBNAILS - for video thumbnails
+    match /thumbnails/{thumbnailFile} {
+      allow read, write: if isTestMode();
+      allow read: if isLoggedIn();
+      allow write: if isLoggedIn() 
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // PPE DETECTION - for PPE scan images
+    match /ppe/{imageFile} {
+      allow read, write: if isTestMode();
+      allow read, write: if isLoggedIn();
+    }
+
+    // USER PROFILES - for profile pictures
+    match /profiles/{userId}/{imageFile} {
+      allow read, write: if isTestMode();
+      allow read: if isLoggedIn();
+      allow write: if isLoggedIn() && request.auth.uid == userId;
+    }
+
+    // Deny everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

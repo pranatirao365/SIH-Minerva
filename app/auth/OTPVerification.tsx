@@ -92,7 +92,7 @@ export default function OTPVerification() {
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const recaptchaVerifier = useRef<any>(null);
   const firebaseApp = getApp();
-  const { setRole } = useRoleStore();
+  const { setRole, setUser } = useRoleStore();
 
   const handleOtpChange = (value: string, index: number) => {
     if (!/^\d*$/.test(value)) return;
@@ -160,7 +160,13 @@ export default function OTPVerification() {
           
           console.log('✅ User found with role:', userRole);
           
-          // Set the role in the store
+          // Set the user data in the store
+          setUser({
+            id: userData.id,
+            name: (userData as any).name || 'User',
+            phone: phoneNumber,
+            role: userRole
+          });
           setRole(userRole);
           
           // Navigate based on role
@@ -223,7 +229,13 @@ export default function OTPVerification() {
           
           console.log('✅ User found with role:', userRole);
           
-          // Set the role in the store
+          // Set the user data in the store
+          setUser({
+            id: userData.id,
+            name: (userData as any).name || 'User',
+            phone: phoneNumber,
+            role: userRole
+          });
           setRole(userRole);
           
           // Navigate based on role
@@ -309,7 +321,13 @@ export default function OTPVerification() {
           }
         }
         
-        // Set the role in the store
+        // Set the user data in the store
+        setUser({
+          id: userData.id,
+          name: userData.name || 'User',
+          phone: authenticatedPhone,
+          role: userRole
+        });
         setRole(userRole);
         
         // Navigate based on role

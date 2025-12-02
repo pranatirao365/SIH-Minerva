@@ -17,4 +17,11 @@ router.post('/generate', (req, res) => videoGenerationController.generateVideo(r
  */
 router.get('/status/:jobId', (req, res) => videoGenerationController.getJobStatus(req, res));
 
+/**
+ * @route   DELETE /api/video/delete/:filename
+ * @desc    Delete video file from server after uploading to Firebase
+ * @access  Public (should be protected in production)
+ */
+router.delete('/delete/:filename', (req, res) => videoGenerationController.deleteVideo(req, res));
+
 export default router;

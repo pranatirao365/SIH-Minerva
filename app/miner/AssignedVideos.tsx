@@ -97,31 +97,90 @@ export default function AssignedVideos() {
 
   const loadData = async () => {
     try {
-      // Load videos
-      const storedVideos = await AsyncStorage.getItem('videoLibrary');
-      if (storedVideos) {
-        setVideos(JSON.parse(storedVideos));
-      }
+      console.log('📥 Loading assignments for miner:', currentMinerId);
+      
+      // Import Firestore functions
+      const { collection, query, where, getDocs } = await import('firebase/firestore');
+      const { db } = await import('@/config/firebase');
 
-      // Load assignments
-      const storedAssignments = await AsyncStorage.getItem('videoAssignments');
-      if (storedAssignments) {
-        setAssignments(JSON.parse(storedAssignments));
-      }
+      // Load videos from Firestore
+      console.log('📚 Loading videos from Firestore...');
+      const videosRef = collection(db, 'videoLibrary');
+      const videosQuery = query(videosRef, where('status', '==', 'active'));
+      const videosSnapshot = await getDocs(videosQuery);
+      
+      const loadedVideos: VideoItem[] = [];
+      videosSnapshot.forEach((doc) => {
+        const data = doc.data();
+        loadedVideos.push({
+          id: doc.id,
+          topic: data.topic,
+          language: data.language,
+          languageName: data.languageName || data.language,
+          videoUrl: data.videoUrl,
+          timestamp: data.createdAt?.toMillis() || Date.now(),
+          thumbnail: data.thumbnailUrl,
+        });
+      });
+      console.log('✅ Loaded', loadedVideos.length, 'videos');
+      setVideos(loadedVideos);
 
-      // Load progress
-      const storedProgress = await AsyncStorage.getItem(`assignmentProgress_${currentMinerId}`);
-      if (storedProgress) {
-        setAssignmentProgress(JSON.parse(storedProgress));
-      }
+      // Load assignments from Firestore
+      console.log('📋 Loading assignments from Firestore...');
+      const assignmentsRef = collection(db, 'videoAssignments');
+      const assignmentsQuery = query(
+        assignmentsRef,
+        where('assignedTo', 'array-contains', currentMinerId),
+        where('status', '==', 'active')
+      );
+      const assignmentsSnapshot = await getDocs(assignmentsQuery);
+      
+      const loadedAssignments: VideoAssignment[] = [];
+      assignmentsSnapshot.forEach((doc) => {
+        const data = doc.data();
+        loadedAssignments.push({
+          id: doc.id,
+          videoId: data.videoId,
+          videoTopic: data.videoTopic,
+          assignedTo: data.assignedTo || [],
+          assignedBy: data.assignedBy,
+          deadline: data.deadline?.toMillis() || Date.now(),
+          isMandatory: data.isMandatory || false,
+          assignedAt: data.assignedAt?.toMillis() || Date.now(),
+          description: data.description,
+        });
+      });
+      console.log('✅ Loaded', loadedAssignments.length, 'assignments for miner');
+      setAssignments(loadedAssignments);
 
-      // Load watched videos
+      // Load progress from Firestore
+      console.log('📊 Loading progress from Firestore...');
+      const progressRef = collection(db, 'assignmentProgress');
+      const progressQuery = query(progressRef, where('minerId', '==', currentMinerId));
+      const progressSnapshot = await getDocs(progressQuery);
+      
+      const loadedProgress: AssignmentProgress[] = [];
+      progressSnapshot.forEach((doc) => {
+        const data = doc.data();
+        loadedProgress.push({
+          assignmentId: data.assignmentId,
+          minerId: data.minerId,
+          watched: data.watched || false,
+          watchedAt: data.completedAt?.toMillis(),
+          progress: data.progress || 0,
+        });
+      });
+      console.log('✅ Loaded', loadedProgress.length, 'progress records');
+      setAssignmentProgress(loadedProgress);
+
+      // Also keep AsyncStorage as fallback/cache
       const storedWatchedVideos = await AsyncStorage.getItem(`watchedVideos_${currentMinerId}`);
       if (storedWatchedVideos) {
         setWatchedVideos(JSON.parse(storedWatchedVideos));
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('❌ Error loading data:', error);
+      Alert.alert('Error', 'Failed to load your assignments. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -207,6 +266,47 @@ export default function AssignedVideos() {
     updatedProgressList.push(updatedProgress);
 
     try {
+      // Save to Firestore for real-time sync with supervisor dashboard
+      const { collection, addDoc, query, where, getDocs, updateDoc, Timestamp } = await import('firebase/firestore');
+      const { db } = await import('@/config/firebase');
+      
+      // Check if progress document exists
+      const progressRef = collection(db, 'assignmentProgress');
+      const progressQuery = query(
+        progressRef,
+        where('assignmentId', '==', currentProgress.assignmentId),
+        where('minerId', '==', currentMinerId)
+      );
+      const progressSnapshot = await getDocs(progressQuery);
+      
+      if (!progressSnapshot.empty) {
+        // Update existing document
+        const docRef = progressSnapshot.docs[0].ref;
+        await updateDoc(docRef, {
+          watched: true,
+          completedAt: Timestamp.now(),
+          progress: 100,
+          status: 'completed',
+          watchTime: Date.now() - (currentProgress.watchedAt || Date.now()),
+        });
+        console.log('✅ Updated progress in Firestore');
+      } else {
+        // Create new document
+        const assignment = myAssignments.find(a => a.id === currentProgress.assignmentId);
+        await addDoc(progressRef, {
+          assignmentId: currentProgress.assignmentId,
+          minerId: currentMinerId,
+          videoId: assignment?.videoId || '',
+          watched: true,
+          completedAt: Timestamp.now(),
+          progress: 100,
+          status: 'completed',
+          watchTime: 0,
+        });
+        console.log('✅ Created progress in Firestore');
+      }
+      
+      // Also save to AsyncStorage for offline access
       await AsyncStorage.setItem(`assignmentProgress_${currentMinerId}`, JSON.stringify(updatedProgressList));
       setAssignmentProgress(updatedProgressList);
 
@@ -330,8 +430,7 @@ export default function AssignedVideos() {
           <View style={styles.assignmentInfo}>
             <Text style={styles.assignmentTitle}>{assignment.videoTopic}</Text>
             <Text style={styles.assignmentMeta}>
-              {assignment.isMandatory ? 'Mandatory' : 'Optional'} •
-              Due: {new Date(assignment.deadline).toLocaleDateString()}
+              {assignment.isMandatory ? '⚠️ Mandatory' : '📌 Optional'} • ⏰ Due: {new Date(assignment.deadline).toLocaleDateString()}
             </Text>
             {assignment.description && (
               <Text style={styles.assignmentDescription}>{assignment.description}</Text>
@@ -340,18 +439,15 @@ export default function AssignedVideos() {
           <View style={styles.assignmentStatus}>
             {isCompleted ? (
               <View style={styles.completedBadge}>
-                <CheckCircle size={16} color="#FFFFFF" />
-                <Text style={styles.completedText}>Completed</Text>
+                <Text style={styles.completedText}>✅ Done</Text>
               </View>
             ) : isOverdue ? (
               <View style={styles.overdueBadge}>
-                <AlertTriangle size={16} color="#FFFFFF" />
-                <Text style={styles.overdueText}>Overdue</Text>
+                <Text style={styles.overdueText}>⚠️ Overdue</Text>
               </View>
             ) : (
               <View style={styles.pendingBadge}>
-                <Clock size={16} color="#FFFFFF" />
-                <Text style={styles.pendingText}>Pending</Text>
+                <Text style={styles.pendingText}>⏳ Pending</Text>
               </View>
             )}
           </View>
@@ -363,12 +459,11 @@ export default function AssignedVideos() {
             onPress={() => startWatching(assignment)}
             disabled={isCompleted}
           >
-            <Play size={20} color={isCompleted ? COLORS.textMuted : "#FFFFFF"} />
             <Text style={[
               styles.watchButtonText,
               isCompleted && styles.watchButtonTextDisabled
             ]}>
-              {isCompleted ? 'Already Watched' : 'Watch Video'}
+              {isCompleted ? '✓ Already Watched' : '▶️ Watch Video'}
             </Text>
           </TouchableOpacity>
         )}
@@ -673,31 +768,41 @@ const styles = StyleSheet.create({
   },
   assignmentCard: {
     backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   assignmentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 14,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   assignmentInfo: {
     flex: 1,
+    minWidth: 200,
   },
   assignmentTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: COLORS.text,
-    marginBottom: 4,
+    marginBottom: 6,
+    lineHeight: 24,
   },
   assignmentMeta: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textMuted,
-    marginBottom: 4,
+    marginBottom: 6,
+    lineHeight: 20,
   },
   assignmentDescription: {
     fontSize: 14,
@@ -754,15 +859,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginTop: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   watchButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   watchButtonTextDisabled: {
     color: COLORS.textMuted,

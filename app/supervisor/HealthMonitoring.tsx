@@ -89,11 +89,33 @@ export default function HealthMonitoring() {
   const loadMiners = async () => {
     setLoading(true);
     try {
-      const data = await getMinerVitals();
-      setMiners(data);
+      if (!user?.id) {
+        console.error('Supervisor ID not found');
+        setMiners([]);
+        return;
+      }
+
+      // Load only miners assigned to this supervisor
+      const { getMinersBySupervisor } = await import('@/services/minerService');
+      const assignedMiners = await getMinersBySupervisor(user.id);
+
+      // Transform to MinerVitals format
+      const minerVitals: MinerVitals[] = assignedMiners.map((miner) => ({
+        id: miner.id,
+        name: miner.name || 'Unknown',
+        heartRate: 0, // Would fetch real data from IoT devices
+        oxygenLevel: 0,
+        temperature: 0,
+        status: 'normal' as const,
+        lastUpdate: new Date().toISOString(),
+        location: miner.department || 'Unknown',
+      }));
+
+      setMiners(minerVitals);
+      console.log(`✅ Loaded ${minerVitals.length} miners for supervisor ${user.id}`);
     } catch (error) {
       console.error('Error loading miner vitals:', error);
-      setMiners(mockMiners);
+      setMiners([]);
     } finally {
       setLoading(false);
     }

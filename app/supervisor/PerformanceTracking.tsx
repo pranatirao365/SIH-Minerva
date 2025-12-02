@@ -111,11 +111,36 @@ export default function PerformanceTracking() {
   const loadPerformance = async () => {
     setLoading(true);
     try {
-      const data = await calculateSafetyScore();
-      setMiners(data);
+      if (!user?.id) {
+        console.error('Supervisor ID not found');
+        setMiners([]);
+        return;
+      }
+
+      // Load only miners assigned to this supervisor
+      const { getMinersBySupervisor } = await import('@/services/minerService');
+      const assignedMiners = await getMinersBySupervisor(user.id);
+
+      // Transform to MinerPerformance format
+      const minerPerformance: MinerPerformance[] = assignedMiners.map((miner) => ({
+        id: miner.id,
+        name: miner.name || 'Unknown',
+        safetyScore: 85, // Would fetch real data from backend
+        tasksCompleted: 0,
+        totalTasks: 0,
+        incidentsFree: 0,
+        lastIncident: 'None',
+        trend: 'up' as const,
+        incidentFreeStreak: 0,
+        trainingScore: 80,
+        rank: 0,
+      }));
+
+      setMiners(minerPerformance);
+      console.log(`✅ Loaded ${minerPerformance.length} miners for supervisor ${user.id}`);
     } catch (error) {
       console.error('Error loading performance data:', error);
-      setMiners(mockMiners);
+      setMiners([]);
     } finally {
       setLoading(false);
     }

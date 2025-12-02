@@ -6,6 +6,7 @@ import { db, storage } from '../config/firebase';
 export interface VideoDocument {
   id: string;
   topic: string;
+  description?: string;
   language: string;
   languageName: string;
   videoUrl: string;
@@ -86,13 +87,177 @@ export interface VideoAnalyticsDocument {
   };
 }
 
+// Video Request Collection Types
+export interface VideoRequestDocument {
+  id: string;
+  topic: string;
+  language: string;
+  description: string;
+  requestedBy: string; // supervisor ID
+  requestedByName: string; // supervisor name
+  requestedAt: Timestamp;
+  status: 'pending' | 'in-progress' | 'completed' | 'rejected';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  assignedTo?: string; // safety officer ID
+  videoId?: string; // populated when request is fulfilled
+  notes?: string; // additional notes from safety officer
+  updatedAt: Timestamp;
+  completedAt?: Timestamp;
+}
+
 /**
  * Video Library Service
  * Handles all video-related Firebase operations
  */
 export class VideoLibraryService {
 
+  // ==================== UTILITY FUNCTIONS ====================
+
+  /**
+   * Upload video file to Firebase Storage
+   * Returns globally accessible download URL
+   */
+  static async uploadVideoToStorage(videoUrl: string, fileName: string): Promise<string> {
+    try {
+      console.log('📤 Uploading video to Firebase Storage...');
+      console.log('📹 Video URL:', videoUrl);
+      
+      // Fetch the video file
+      const response = await fetch(videoUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch video: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      console.log('📦 Video size:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
+      
+      // Create storage reference
+      const timestamp = Date.now();
+      const storageRef = ref(storage, `videos/${timestamp}_${fileName}`);
+      
+      // Upload to Firebase Storage
+      console.log('⬆️ Uploading to Firebase Storage...');
+      const uploadResult = await uploadBytes(storageRef, blob, {
+        contentType: 'video/mp4',
+      });
+      
+      // Get download URL
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+      console.log('✅ Video uploaded successfully!');
+      console.log('🌐 Global URL:', downloadURL);
+      
+      return downloadURL;
+    } catch (error) {
+      console.error('❌ Error uploading video to storage:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete video file from backend server
+   * Call this after successfully uploading to Firebase Storage
+   */
+  static async deleteVideoFromServer(videoUrl: string): Promise<void> {
+    try {
+      console.log('🗑️ Deleting video from local server...');
+      console.log('📹 Video URL:', videoUrl);
+      
+      // Extract the video path from URL
+      // URL format: http://192.168.137.1:4000/videos/filename.mp4
+      const urlParts = videoUrl.split('/videos/');
+      if (urlParts.length < 2) {
+        console.warn('⚠️ Invalid video URL format, skipping deletion');
+        return;
+      }
+      
+      const filename = urlParts[1];
+      const deleteUrl = `http://192.168.137.1:4000/api/video/delete/${filename}`;
+      
+      console.log('🔗 Delete endpoint:', deleteUrl);
+      
+      const response = await fetch(deleteUrl, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete video: ${response.status}`);
+      }
+      
+      console.log('✅ Video deleted from server successfully!');
+    } catch (error) {
+      console.error('❌ Error deleting video from server:', error);
+      // Don't throw - deletion failure shouldn't break the save flow
+      console.warn('⚠️ Continuing despite deletion error...');
+    }
+  }
+
+  /**
+   * Remove undefined values from an object (Firestore doesn't support undefined)
+   * Recursively cleans nested objects
+   */
+  private static removeUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+    const cleaned: any = {};
+    
+    for (const key in obj) {
+      const value = obj[key];
+      
+      if (value === undefined) {
+        // Skip undefined values
+        continue;
+      } else if (value === null) {
+        // Keep null values
+        cleaned[key] = null;
+      } else if (typeof value === 'object' && !Array.isArray(value) && !(value instanceof Timestamp)) {
+        // Recursively clean nested objects (but not arrays or Timestamps)
+        const cleanedNested = this.removeUndefined(value);
+        if (Object.keys(cleanedNested).length > 0) {
+          cleaned[key] = cleanedNested;
+        }
+      } else {
+        // Keep all other values
+        cleaned[key] = value;
+      }
+    }
+    
+    return cleaned;
+  }
+
   // ==================== VIDEO LIBRARY OPERATIONS ====================
+
+  /**
+   * Check if a video with the same topic and language already exists
+   * Returns the existing video document if found, null otherwise
+   */
+  static async checkDuplicateVideo(topic: string, language: string): Promise<VideoDocument | null> {
+    try {
+      console.log('🔍 Checking for duplicate video...');
+      console.log('📝 Topic:', topic);
+      console.log('🌐 Language:', language);
+
+      const videosRef = collection(db, 'videoLibrary');
+      const q = query(
+        videosRef,
+        where('topic', '==', topic.trim()),
+        where('language', '==', language),
+        where('status', '==', 'active'),
+        limit(1)
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const existingVideo = querySnapshot.docs[0].data() as VideoDocument;
+        console.log('⚠️ Duplicate video found:', existingVideo.id);
+        return existingVideo;
+      }
+
+      console.log('✅ No duplicate found');
+      return null;
+    } catch (error) {
+      console.error('❌ Error checking for duplicate video:', error);
+      throw error;
+    }
+  }
 
   /**
    * Create a new video document in Firestore
@@ -102,8 +267,11 @@ export class VideoLibraryService {
       const videoId = `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const videoRef = doc(db, 'videoLibrary', videoId);
 
-      const videoDoc: VideoDocument = {
-        ...videoData,
+      // Remove undefined values to prevent Firestore errors
+      const cleanedVideoData = this.removeUndefined(videoData as Record<string, any>);
+
+      const videoDoc: any = {
+        ...cleanedVideoData,
         id: videoId,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
@@ -147,30 +315,32 @@ export class VideoLibraryService {
     limit?: number;
   } = {}): Promise<VideoDocument[]> {
     try {
-      let q = query(collection(db, 'videoLibrary'), orderBy('createdAt', 'desc'));
-
-      if (options.status) {
-        q = query(q, where('status', '==', options.status));
-      }
-
-      if (options.language) {
-        q = query(q, where('language', '==', options.language));
-      }
-
-      if (options.createdBy) {
-        q = query(q, where('createdBy', '==', options.createdBy));
-      }
-
-      if (options.limit) {
-        q = query(q, limit(options.limit));
-      }
+      // Simple query without composite index - just order by createdAt
+      const q = query(collection(db, 'videoLibrary'), orderBy('createdAt', 'desc'));
 
       const querySnapshot = await getDocs(q);
-      const videos: VideoDocument[] = [];
+      let videos: VideoDocument[] = [];
 
       querySnapshot.forEach((doc) => {
         videos.push(doc.data() as VideoDocument);
       });
+
+      // Filter in memory to avoid composite index requirements
+      if (options.status) {
+        videos = videos.filter(v => v.status === options.status);
+      }
+
+      if (options.language) {
+        videos = videos.filter(v => v.language === options.language);
+      }
+
+      if (options.createdBy) {
+        videos = videos.filter(v => v.createdBy === options.createdBy);
+      }
+
+      if (options.limit) {
+        videos = videos.slice(0, options.limit);
+      }
 
       return videos;
     } catch (error) {
@@ -565,6 +735,233 @@ export class VideoLibraryService {
       return downloadURL;
     } catch (error) {
       console.error('❌ Error uploading thumbnail:', error);
+      throw error;
+    }
+  }
+
+  // ==================== VIDEO REQUEST OPERATIONS ====================
+
+  /**
+   * Create a new video request from supervisor
+   */
+  static async createVideoRequest(requestData: Omit<VideoRequestDocument, 'id' | 'requestedAt' | 'updatedAt' | 'status'>): Promise<string> {
+    try {
+      const requestId = `request_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const requestRef = doc(db, 'videoRequests', requestId);
+
+      const requestDoc: VideoRequestDocument = {
+        ...requestData,
+        id: requestId,
+        status: 'pending',
+        requestedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+
+      await setDoc(requestRef, requestDoc);
+      console.log('✅ Video request created successfully:', requestId);
+      return requestId;
+    } catch (error) {
+      console.error('❌ Error creating video request:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all video requests (for safety officers)
+   */
+  static async getAllVideoRequests(statusFilter?: 'pending' | 'in-progress' | 'completed' | 'rejected'): Promise<VideoRequestDocument[]> {
+    try {
+      const requestsRef = collection(db, 'videoRequests');
+      let q = query(requestsRef, orderBy('requestedAt', 'desc'));
+
+      if (statusFilter) {
+        q = query(requestsRef, where('status', '==', statusFilter), orderBy('requestedAt', 'desc'));
+      }
+
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => doc.data() as VideoRequestDocument);
+    } catch (error) {
+      console.error('❌ Error getting video requests:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get video requests by supervisor ID
+   */
+  static async getSupervisorRequests(supervisorId: string): Promise<VideoRequestDocument[]> {
+    try {
+      const requestsRef = collection(db, 'videoRequests');
+      const q = query(requestsRef, where('requestedBy', '==', supervisorId), orderBy('requestedAt', 'desc'));
+
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => doc.data() as VideoRequestDocument);
+    } catch (error) {
+      console.error('❌ Error getting supervisor requests:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update video request status
+   */
+  static async updateVideoRequest(requestId: string, updates: Partial<VideoRequestDocument>): Promise<void> {
+    try {
+      const requestRef = doc(db, 'videoRequests', requestId);
+      await updateDoc(requestRef, {
+        ...updates,
+        updatedAt: Timestamp.now(),
+      });
+      console.log('✅ Video request updated successfully:', requestId);
+    } catch (error) {
+      console.error('❌ Error updating video request:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Complete video request with video ID
+   */
+  static async completeVideoRequest(requestId: string, videoId: string, notes?: string): Promise<void> {
+    try {
+      const requestRef = doc(db, 'videoRequests', requestId);
+      await updateDoc(requestRef, {
+        status: 'completed',
+        videoId,
+        notes,
+        completedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+      console.log('✅ Video request completed successfully:', requestId);
+    } catch (error) {
+      console.error('❌ Error completing video request:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete video request
+   */
+  static async deleteVideoRequest(requestId: string): Promise<void> {
+    try {
+      const requestRef = doc(db, 'videoRequests', requestId);
+      await deleteDoc(requestRef);
+      console.log('✅ Video request deleted successfully:', requestId);
+    } catch (error) {
+      console.error('❌ Error deleting video request:', error);
+      throw error;
+    }
+  }
+
+  // ==================== SMART VIDEO SEARCH OPERATIONS ====================
+
+  /**
+   * Calculate similarity between two strings using Levenshtein distance
+   * Returns similarity percentage (0-100)
+   */
+  private static calculateSimilarity(str1: string, str2: string): number {
+    const s1 = str1.toLowerCase().trim();
+    const s2 = str2.toLowerCase().trim();
+
+    // If strings are identical
+    if (s1 === s2) return 100;
+
+    // Calculate Levenshtein distance
+    const matrix: number[][] = [];
+    const len1 = s1.length;
+    const len2 = s2.length;
+
+    // Initialize matrix
+    for (let i = 0; i <= len1; i++) {
+      matrix[i] = [i];
+    }
+    for (let j = 0; j <= len2; j++) {
+      matrix[0][j] = j;
+    }
+
+    // Fill matrix
+    for (let i = 1; i <= len1; i++) {
+      for (let j = 1; j <= len2; j++) {
+        if (s1.charAt(i - 1) === s2.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1, // substitution
+            matrix[i][j - 1] + 1,     // insertion
+            matrix[i - 1][j] + 1      // deletion
+          );
+        }
+      }
+    }
+
+    const distance = matrix[len1][len2];
+    const maxLen = Math.max(len1, len2);
+    const similarity = ((maxLen - distance) / maxLen) * 100;
+
+    return Math.round(similarity * 100) / 100; // Round to 2 decimal places
+  }
+
+  /**
+   * Search videos by description similarity
+   * Returns videos matching at least the threshold percentage (default 80%)
+   */
+  static async searchVideosBySimilarity(
+    description: string,
+    threshold: number = 80,
+    language?: string
+  ): Promise<Array<VideoDocument & { similarityScore: number }>> {
+    try {
+      console.log('🔍 Searching videos by similarity...');
+      console.log('📝 Description:', description);
+      console.log('🎯 Threshold:', threshold + '%');
+
+      const videosRef = collection(db, 'videoLibrary');
+      let q = query(videosRef, where('status', '==', 'active'));
+
+      // Filter by language if specified
+      if (language) {
+        q = query(q, where('language', '==', language));
+      }
+
+      const querySnapshot = await getDocs(q);
+      const matches: Array<VideoDocument & { similarityScore: number }> = [];
+
+      querySnapshot.forEach((docSnap) => {
+        const video = docSnap.data() as VideoDocument;
+        
+        // Calculate similarity with topic
+        const topicSimilarity = this.calculateSimilarity(description, video.topic);
+        
+        // Calculate similarity with description if available
+        const descSimilarity = video.description 
+          ? this.calculateSimilarity(description, video.description)
+          : 0;
+
+        // Calculate similarity with tags
+        const tagsSimilarity = video.tags && video.tags.length > 0
+          ? Math.max(...video.tags.map(tag => this.calculateSimilarity(description, tag)))
+          : 0;
+
+        // Take the highest similarity score
+        const maxSimilarity = Math.max(topicSimilarity, descSimilarity, tagsSimilarity);
+
+        console.log(`📊 Video: "${video.topic}" | Similarity: ${maxSimilarity}%`);
+
+        if (maxSimilarity >= threshold) {
+          matches.push({
+            ...video,
+            similarityScore: maxSimilarity
+          });
+        }
+      });
+
+      // Sort by similarity score (highest first)
+      matches.sort((a, b) => b.similarityScore - a.similarityScore);
+
+      console.log(`✅ Found ${matches.length} matching videos above ${threshold}% threshold`);
+      return matches;
+    } catch (error) {
+      console.error('❌ Error searching videos by similarity:', error);
       throw error;
     }
   }

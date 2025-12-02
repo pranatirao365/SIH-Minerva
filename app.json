@@ -9,7 +9,7 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "packagerOpts": {
-      "host": "172.24.0.1"
+      "host": "192.168.137.1"
     },
     "ios": {
       "supportsTablet": true,
@@ -62,6 +62,14 @@
         "expo-av",
         {
           "microphonePermission": "Allow MinerVa to access your microphone for voice briefings."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow MinerVa to save training videos to your gallery.",
+          "savePhotosPermission": "Allow MinerVa to save training videos to your gallery.",
+          "isAccessMediaLocationEnabled": true
         }
       ]
     ],

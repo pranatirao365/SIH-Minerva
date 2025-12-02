@@ -195,9 +195,9 @@ export class VideoGenerationService {
     // Try to find the output video file
     const videoFile = this.findLatestVideo();
     if (videoFile) {
-      // Use full URL for mobile app access
-      const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 4000}`;
-      job.videoUrl = `${baseUrl}/videos/${path.basename(videoFile)}`;
+      // Use full URL for mobile app access - return relative URL for frontend conversion
+      // Frontend will convert this to absolute URL with correct IP
+      job.videoUrl = `/videos/${path.basename(videoFile)}`;
     }
 
     jobs.set(jobId, job);
@@ -239,6 +239,31 @@ export class VideoGenerationService {
     } catch (error) {
       console.error('Error finding latest video:', error);
       return null;
+    }
+  }
+
+  /**
+   * Delete video file from server
+   * Called after uploading to Firebase Storage
+   */
+  async deleteVideoFile(filename: string): Promise<void> {
+    try {
+      const videoPath = path.join(this.outputDir, filename);
+      
+      console.log(`🗑️ Deleting video file: ${videoPath}`);
+      
+      if (!fs.existsSync(videoPath)) {
+        console.warn(`⚠️ Video file not found: ${videoPath}`);
+        return;
+      }
+
+      // Delete the file
+      fs.unlinkSync(videoPath);
+      console.log(`✅ Video file deleted successfully: ${filename}`);
+      
+    } catch (error) {
+      console.error(`❌ Error deleting video file:`, error);
+      throw error;
     }
   }
 

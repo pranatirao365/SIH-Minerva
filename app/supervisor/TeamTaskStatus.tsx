@@ -89,12 +89,32 @@ export default function TeamTaskStatus() {
   const loadMiners = async () => {
     setLoading(true);
     try {
-      const supervisorId = user.id || 'supervisor1';
-      const data = await getTeamTaskStatus(supervisorId);
-      setMiners(data);
+      if (!user?.id) {
+        console.error('Supervisor ID not found');
+        setMiners([]);
+        return;
+      }
+
+      // Load miners assigned to this supervisor from Firestore
+      const { getMinersBySupervisor } = await import('@/services/minerService');
+      const assignedMiners = await getMinersBySupervisor(user.id);
+
+      // Transform to MinerTask format
+      const minerTasks: MinerTask[] = assignedMiners.map((miner, index) => ({
+        id: miner.id,
+        minerId: miner.id,
+        minerName: miner.name || 'Unknown',
+        status: (miner.status as any) || 'not_started',
+        tasksAssigned: 0, // Would need to fetch from assignments
+        tasksCompleted: 0, // Would need to fetch from progress
+        lastUpdate: 'Today',
+      }));
+
+      setMiners(minerTasks);
+      console.log(`✅ Loaded ${minerTasks.length} miners for supervisor ${user.id}`);
     } catch (error) {
       console.error('Error loading team task status:', error);
-      setMiners(mockMiners);
+      setMiners([]);
     } finally {
       setLoading(false);
     }
@@ -243,8 +263,8 @@ export default function TeamTaskStatus() {
                 key={miner.id}
                 style={styles.minerCard}
                 onPress={() => {
-                  // Navigate to miner task details
-                  router.push('/supervisor/TaskAssignment');
+                  // View miner task details (removed TaskAssignment as it was deleted)
+                  console.log('View tasks for:', miner.minerName);
                 }}
               >
                 <View style={styles.minerHeader}>

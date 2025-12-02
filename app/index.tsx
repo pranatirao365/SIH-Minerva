@@ -36,6 +36,7 @@ export default function Index() {
           'supervisor': '/supervisor/SupervisorHome',
           'safety-officer': '/safety-officer/SafetyOfficerHome',
           'engineer': '/engineer/EngineerHome',
+          'admin': '/admin/AdminHome',
         };
         
         const route = routes[user.role || 'miner'];

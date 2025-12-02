@@ -3,19 +3,19 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { collection, deleteDoc, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../config/firebase';
@@ -577,62 +577,8 @@ export default function AdminHome() {
     },
   ];
 
-  useEffect(() => {
-    fetchUsers();
-    fetchMiners();
-  }, []);
-
-  // Dynamic update: Refresh selected supervisor data when users change
-  // This ensures supervisor modals show real-time updates
-  useEffect(() => {
-    if (selectedSupervisor && users.length > 0) {
-      const updatedSupervisor = users.find(u => u.id === selectedSupervisor.id);
-      if (updatedSupervisor) {
-        setSelectedSupervisor(updatedSupervisor);
-      } else {
-        // Supervisor was deleted, close the modal
-        setShowSupervisorMinersModal(false);
-        setShowMinerSupervisorModal(false);
-        setSelectedSupervisor(null);
-      }
-    }
-  }, [users]);
-
-  // Dynamic update: Refresh selected miner data when users change
-  // This ensures miner modals show real-time updates
-  useEffect(() => {
-    if (selectedMinerForSupervisor && users.length > 0) {
-      const updatedMiner = users.find(u => u.id === selectedMinerForSupervisor.id);
-      if (updatedMiner) {
-        setSelectedMinerForSupervisor(updatedMiner);
-      } else {
-        // Miner was deleted, close the modal
-        setShowMinerSupervisorModal(false);
-        setSelectedMinerForSupervisor(null);
-      }
-    }
-  }, [users]);
-
-  // Dynamic update: Refresh selected user details when users change
-  // This applies to ALL roles: miner, supervisor, safety_officer, engineer
-  useEffect(() => {
-    if (selectedUserForDetails && users.length > 0) {
-      const updatedUser = users.find(u => u.id === selectedUserForDetails.id);
-      if (updatedUser) {
-        setSelectedUserForDetails(updatedUser);
-        if (isEditingUser) {
-          setEditedUserData(updatedUser);
-        }
-      } else {
-        // User (any role) was deleted, close the modal
-        setShowUserDetailsModal(false);
-        setSelectedUserForDetails(null);
-        setIsEditingUser(false);
-      }
-    }
-  }, [users]);
-
-  const fetchUsers = async () => {
+  // Memoize fetch functions to prevent re-creation on every render
+  const fetchUsers = useCallback(async () => {
     setRefreshing(true);
     try {
       const usersSnapshot = await getDocs(collection(db, 'users'));
@@ -663,9 +609,9 @@ export default function AdminHome() {
     } finally {
       setRefreshing(false);
     }
-  };
+  }, []); // Empty dependency array - function never changes
 
-  const fetchMiners = async (filterUnassigned = false) => {
+  const fetchMiners = useCallback(async (filterUnassigned = false) => {
     try {
       const q = query(collection(db, 'users'), where('role', '==', 'miner'));
       const minersSnapshot = await getDocs(q);
@@ -702,7 +648,67 @@ export default function AdminHome() {
       console.error('Error fetching miners:', error);
       Alert.alert('Error', 'Failed to fetch miners. Please try again.');
     }
-  };
+  }, []); // Empty dependency array - function never changes
+
+  // Call fetch functions once on mount
+  useEffect(() => {
+    fetchUsers();
+    fetchMiners();
+    
+    // Cleanup to prevent memory leaks
+    return () => {
+      setUsers([]);
+      setMinersList([]);
+    };
+  }, [fetchUsers, fetchMiners]); // Stable dependencies due to useCallback
+
+  // Dynamic update: Refresh selected supervisor data when users change
+  // Use useCallback to prevent re-creating function on every render
+  useEffect(() => {
+    if (!selectedSupervisor || users.length === 0) return;
+    
+    const updatedSupervisor = users.find(u => u.id === selectedSupervisor.id);
+    if (updatedSupervisor) {
+      setSelectedSupervisor(updatedSupervisor);
+    } else {
+      // Supervisor was deleted, close the modal
+      setShowSupervisorMinersModal(false);
+      setShowMinerSupervisorModal(false);
+      setSelectedSupervisor(null);
+    }
+  }, [users, selectedSupervisor?.id]); // Only when users change or supervisor ID changes
+
+  // Dynamic update: Refresh selected miner data when users change
+  useEffect(() => {
+    if (!selectedMinerForSupervisor || users.length === 0) return;
+    
+    const updatedMiner = users.find(u => u.id === selectedMinerForSupervisor.id);
+    if (updatedMiner) {
+      setSelectedMinerForSupervisor(updatedMiner);
+    } else {
+      // Miner was deleted, close the modal
+      setShowMinerSupervisorModal(false);
+      setSelectedMinerForSupervisor(null);
+    }
+  }, [users, selectedMinerForSupervisor?.id]); // Only when users change or miner ID changes
+
+  // Dynamic update: Refresh selected user details when users change
+  useEffect(() => {
+    if (!selectedUserForDetails || users.length === 0) return;
+    
+    const updatedUser = users.find(u => u.id === selectedUserForDetails.id);
+    if (updatedUser) {
+      setSelectedUserForDetails(updatedUser);
+      if (isEditingUser) {
+        setEditedUserData(updatedUser);
+      }
+    } else {
+      // User (any role) was deleted, close the modal
+      setShowUserDetailsModal(false);
+      setSelectedUserForDetails(null);
+      setIsEditingUser(false);
+    }
+  }, [users, selectedUserForDetails?.id, isEditingUser]); // Specific dependencies only
 
   const generateEmployeeId = async (role: string): Promise<string> => {
     try {
@@ -1129,6 +1135,10 @@ export default function AdminHome() {
               )}
               style={styles.minerList}
               showsVerticalScrollIndicator={false}
+              maxToRenderPerBatch={10}
+              initialNumToRender={10}
+              windowSize={5}
+              removeClippedSubviews={true}
             />
 
             <View style={styles.minerModalActions}>
@@ -1175,6 +1185,10 @@ export default function AdminHome() {
               style={styles.roleDetailsList}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
+              maxToRenderPerBatch={10}
+              initialNumToRender={15}
+              windowSize={7}
+              removeClippedSubviews={true}
               renderItem={({ item: user }) => (
                 <View style={styles.roleDetailCard}>
                   {selectedRoleForDetails === 'miner' && (

@@ -1,5 +1,5 @@
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://172.20.10.2:4000/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.137.1:4000/api';
 
 // PPE Compliance Monitor Services
 export const getPPEScanResults = async (status?: string, minerId?: string) => {

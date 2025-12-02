@@ -31,7 +31,7 @@
     },
     "voiceover": {
       "provider": "google_cloud_tts",
-      "api_key": "AIzaSyDhVSROhh9gwGsWwjXuQlp2nLyZRek9M_E",
+      "api_key": "AIzaSyAluBBFG5RZ7TJ1vhAJ_uDVZ056ExiuPxE",
       "language_code": "en-US",
       "voice_name": "en-US-Neural2-D",
       "voice_name_hindi": "hi-IN-Neural2-D",

@@ -32,6 +32,7 @@ import {
   VideoRequestDocument 
 } from '@/services/videoLibraryService';
 import { useRoleStore } from '@/hooks/useRoleStore';
+import { useSupervisor } from '@/contexts/SupervisorContext';
 
 interface MatchedVideo extends VideoDocument {
   similarityScore: number;
@@ -46,8 +47,10 @@ interface Miner {
 export default function SmartWorkAssignment() {
   const router = useRouter();
   const { user } = useRoleStore();
+  const { assignedMiners, loading: minersLoading } = useSupervisor();
   
-  // Step 1: Work Description
+  // Form fields
+  const [workTitle, setWorkTitle] = useState('');
   const [workDescription, setWorkDescription] = useState('');
   const [workDate, setWorkDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchingVideos, setSearchingVideos] = useState(false);
@@ -71,17 +74,27 @@ export default function SmartWorkAssignment() {
   const [isRequesting, setIsRequesting] = useState(false);
 
   useEffect(() => {
-    loadMiners();
-  }, []);
+    // Use miners from SupervisorContext instead of loading separately
+    if (assignedMiners.length > 0) {
+      const formattedMiners: Miner[] = assignedMiners.map((miner) => ({
+        id: miner.id,
+        name: miner.name || 'Unknown',
+        department: miner.department || 'General',
+      }));
+      setMiners(formattedMiners);
+      console.log(`✅ Loaded ${formattedMiners.length} miners from context`);
+    }
+  }, [assignedMiners]);
 
   const loadMiners = async () => {
+    // This function is now deprecated - miners come from context
     try {
       if (!user?.id) {
         Alert.alert('Error', 'Supervisor ID not found. Please login again.');
         return;
       }
 
-      // Load only miners assigned to this supervisor
+      // Fallback in case context hasn't loaded yet
       const { getMinersBySupervisor } = await import('@/services/minerService');
       const loadedMiners = await getMinersBySupervisor(user.id);
       
@@ -176,15 +189,46 @@ export default function SmartWorkAssignment() {
 
     setIsAssigning(true);
     try {
-      // Import Timestamp
-      const { Timestamp } = await import('firebase/firestore');
+      // Import Timestamp and Firestore functions
+      const { Timestamp, doc, setDoc, collection, addDoc } = await import('firebase/firestore');
+      const { db } = await import('@/config/firebase');
       
-      // Create video assignment
+      // Validate required fields
+      if (!workTitle.trim()) {
+        Alert.alert('Missing Information', 'Please enter a work title.');
+        setIsAssigning(false);
+        return;
+      }
+
+      if (!workDescription.trim()) {
+        Alert.alert('Missing Information', 'Please enter a work description.');
+        setIsAssigning(false);
+        return;
+      }
+
+      // Initialize progress map for each miner using miner.id as key
+      const progressMap: Record<string, any> = {};
+      selectedMiners.forEach((minerId) => {
+        const miner = miners.find(m => m.id === minerId);
+        const minerKey = miner?.id || minerId; // Use miner.id as key
+        progressMap[minerKey] = {
+          status: 'pending',
+          watchedDuration: 0,
+          totalDuration: 0,
+          completedAt: null,
+        };
+      });
+      
+      // Create video assignment with progress map
+      const assignmentId = `assignment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const assignmentData = {
+        id: assignmentId,
         videoId: selectedVideo.id,
         videoTopic: selectedVideo.topic,
+        workTitle: workTitle.trim(),
         assignedTo: selectedMiners,
-        assignedBy: user?.id || 'unknown',
+        assignedBy: user?.id || user?.phone || 'unknown',
+        assignedAt: Timestamp.now(),
         deadline: Timestamp.fromDate(new Date(new Date(workDate).getTime() + 24 * 60 * 60 * 1000)), // Next day
         isMandatory: true,
         isDailyTask: true,
@@ -193,15 +237,15 @@ export default function SmartWorkAssignment() {
         description: workDescription,
         status: 'active' as const,
         priority: 'high' as const,
+        progress: progressMap, // Add progress map
       };
 
-      const assignmentId = await VideoLibraryService.createAssignment(assignmentData);
-      console.log('✅ Assignment created:', assignmentId);
+      // Write directly to Firestore with progress map
+      await setDoc(doc(db, 'videoAssignments', assignmentId), assignmentData);
+      console.log('✅ Assignment created with progress map:', assignmentId, progressMap);
 
       // Create notifications for each assigned miner
       console.log('📢 Creating notifications for miners...');
-      const { collection, addDoc } = await import('firebase/firestore');
-      const { db } = await import('@/config/firebase');
       
       for (const minerId of selectedMiners) {
         const miner = miners.find(m => m.id === minerId);
@@ -318,6 +362,7 @@ export default function SmartWorkAssignment() {
   };
 
   const resetForm = () => {
+    setWorkTitle('');
     setWorkDescription('');
     setWorkDate(new Date().toISOString().split('T')[0]);
     setMatchedVideos([]);
@@ -420,12 +465,21 @@ export default function SmartWorkAssignment() {
             placeholderTextColor={COLORS.textMuted}
           />
 
+          <Text style={styles.label}>Work Title *</Text>
+          <TextInput
+            style={styles.input}
+            value={workTitle}
+            onChangeText={setWorkTitle}
+            placeholder="Enter work title"
+            placeholderTextColor={COLORS.textMuted}
+          />
+
           <Text style={styles.label}>Work Description *</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={workDescription}
             onChangeText={setWorkDescription}
-            placeholder="Describe the work to be assigned (e.g., 'Excavation safety procedures for underground mining')"
+            placeholder="Enter work description"
             placeholderTextColor={COLORS.textMuted}
             multiline
             numberOfLines={4}

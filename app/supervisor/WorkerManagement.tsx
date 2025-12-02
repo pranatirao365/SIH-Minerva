@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Search, Filter, User, Phone, Mail, MapPin, Calendar, Clock, CheckCircle, XCircle, AlertTriangle, Shield } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
+import { useSupervisor } from '@/contexts/SupervisorContext';
 
 interface Worker {
   id: string;
@@ -33,139 +34,51 @@ interface Worker {
 
 export default function WorkerManagement() {
   const router = useRouter();
+  const { assignedMiners, loading: minersLoading } = useSupervisor();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'active' | 'on-leave' | 'inactive'>('all');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [workers, setWorkers] = useState<Worker[]>([]);
 
-  // Mock worker data
-  const [workers] = useState<Worker[]>([
-    {
-      id: '1',
-      name: 'Rajesh Kumar',
-      employeeId: 'EMP001',
-      role: 'Senior Miner',
-      phone: '+91 98765 43210',
-      email: 'rajesh.kumar@mine.com',
-      location: 'Section A',
-      shift: 'morning',
-      status: 'active',
-      joinDate: '2020-03-15',
-      safetyScore: 95,
+  useEffect(() => {
+    if (assignedMiners.length > 0) {
+      generateWorkerData();
+    }
+  }, [assignedMiners]);
+
+  const generateWorkerData = () => {
+    console.log('📊 Generating worker data for', assignedMiners.length, 'miners');
+    
+    const workerData: Worker[] = assignedMiners.map((miner, index) => ({
+      id: miner.id,
+      name: miner.name,
+      employeeId: miner.id.substring(0, 10).toUpperCase(),
+      role: miner.role || 'Miner',
+      phone: miner.phone,
+      email: `${miner.name.toLowerCase().replace(/ /g, '.')}@mine.com`,
+      location: miner.location || 'Section A',
+      shift: (miner.shift || 'morning') as 'morning' | 'afternoon' | 'night',
+      status: 'active' as const,
+      joinDate: '2020-01-01',
+      safetyScore: miner.safetyScore || 85,
       attendance: {
-        present: 245,
-        absent: 5,
-        leave: 10,
-        total: 260,
-      },
-      certifications: ['Mine Safety', 'First Aid', 'Equipment Operation'],
-      emergencyContact: {
-        name: 'Sunita Kumar',
-        phone: '+91 98765 43211',
-        relation: 'Spouse',
-      },
-    },
-    {
-      id: '2',
-      name: 'Amit Sharma',
-      employeeId: 'EMP002',
-      role: 'Miner',
-      phone: '+91 98765 43212',
-      email: 'amit.sharma@mine.com',
-      location: 'Section B',
-      shift: 'afternoon',
-      status: 'active',
-      joinDate: '2021-06-20',
-      safetyScore: 88,
-      attendance: {
-        present: 180,
-        absent: 8,
-        leave: 12,
-        total: 200,
+        present: 200 + Math.floor(Math.random() * 60),
+        absent: Math.floor(Math.random() * 10),
+        leave: Math.floor(Math.random() * 15),
+        total: 265,
       },
       certifications: ['Mine Safety', 'First Aid'],
       emergencyContact: {
-        name: 'Priya Sharma',
-        phone: '+91 98765 43213',
-        relation: 'Spouse',
+        name: 'Emergency Contact',
+        phone: '+91 98765 00000',
+        relation: 'Family',
       },
-    },
-    {
-      id: '3',
-      name: 'Suresh Patel',
-      employeeId: 'EMP003',
-      role: 'Miner',
-      phone: '+91 98765 43214',
-      email: 'suresh.patel@mine.com',
-      location: 'Section A',
-      shift: 'morning',
-      status: 'active',
-      joinDate: '2019-11-10',
-      safetyScore: 92,
-      attendance: {
-        present: 280,
-        absent: 10,
-        leave: 15,
-        total: 305,
-      },
-      certifications: ['Mine Safety', 'First Aid', 'Heavy Machinery'],
-      emergencyContact: {
-        name: 'Meera Patel',
-        phone: '+91 98765 43215',
-        relation: 'Spouse',
-      },
-    },
-    {
-      id: '4',
-      name: 'Vikram Rao',
-      employeeId: 'EMP004',
-      role: 'Junior Miner',
-      phone: '+91 98765 43216',
-      email: 'vikram.rao@mine.com',
-      location: 'Section C',
-      shift: 'night',
-      status: 'on-leave',
-      joinDate: '2023-01-05',
-      safetyScore: 85,
-      attendance: {
-        present: 120,
-        absent: 5,
-        leave: 8,
-        total: 133,
-      },
-      certifications: ['Mine Safety'],
-      emergencyContact: {
-        name: 'Lakshmi Rao',
-        phone: '+91 98765 43217',
-        relation: 'Mother',
-      },
-    },
-    {
-      id: '5',
-      name: 'Karan Mehta',
-      employeeId: 'EMP005',
-      role: 'Miner',
-      phone: '+91 98765 43218',
-      email: 'karan.mehta@mine.com',
-      location: 'Section B',
-      shift: 'afternoon',
-      status: 'active',
-      joinDate: '2022-08-12',
-      safetyScore: 79,
-      attendance: {
-        present: 150,
-        absent: 15,
-        leave: 10,
-        total: 175,
-      },
-      certifications: ['Mine Safety', 'First Aid'],
-      emergencyContact: {
-        name: 'Rajiv Mehta',
-        phone: '+91 98765 43219',
-        relation: 'Father',
-      },
-    },
-  ]);
+    }));
+    
+    setWorkers(workerData);
+    console.log('✅ Generated worker data for', workerData.length, 'miners');
+  };
 
   const filteredWorkers = workers.filter(worker => {
     const matchesFilter = selectedFilter === 'all' || worker.status === selectedFilter;

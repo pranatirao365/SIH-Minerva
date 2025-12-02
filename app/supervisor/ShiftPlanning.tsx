@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Calendar, ChevronLeft, ChevronRight, Plus, User, Clock, MapPin, Edit2, Trash2 } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
+import { useSupervisor } from '@/contexts/SupervisorContext';
 
 interface Shift {
   id: string;
@@ -26,11 +27,14 @@ interface Worker {
 
 export default function ShiftPlanning() {
   const router = useRouter();
+  const { assignedMiners, loading: minersLoading } = useSupervisor();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedWeek, setSelectedWeek] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [workers, setWorkers] = useState<Worker[]>([]);
   
   const [newShift, setNewShift] = useState({
     workerId: '',
@@ -39,72 +43,48 @@ export default function ShiftPlanning() {
     date: new Date().toISOString().split('T')[0],
   });
 
-  // Mock data
-  const [shifts, setShifts] = useState<Shift[]>([
-    {
-      id: '1',
-      workerId: 'w1',
-      workerName: 'Rajesh Kumar',
-      shift: 'morning',
-      location: 'Section A',
-      date: '2025-12-02',
-      startTime: '06:00',
-      endTime: '14:00',
-      status: 'completed',
-    },
-    {
-      id: '2',
-      workerId: 'w2',
-      workerName: 'Amit Sharma',
-      shift: 'afternoon',
-      location: 'Section B',
-      date: '2025-12-02',
-      startTime: '14:00',
-      endTime: '22:00',
-      status: 'in-progress',
-    },
-    {
-      id: '3',
-      workerId: 'w3',
-      workerName: 'Suresh Patel',
-      shift: 'morning',
-      location: 'Section A',
-      date: '2025-12-03',
-      startTime: '06:00',
-      endTime: '14:00',
-      status: 'scheduled',
-    },
-    {
-      id: '4',
-      workerId: 'w4',
-      workerName: 'Vikram Rao',
-      shift: 'night',
-      location: 'Section C',
-      date: '2025-12-03',
-      startTime: '22:00',
-      endTime: '06:00',
-      status: 'scheduled',
-    },
-    {
-      id: '5',
-      workerId: 'w5',
-      workerName: 'Karan Mehta',
-      shift: 'afternoon',
-      location: 'Section B',
-      date: '2025-12-03',
-      startTime: '14:00',
-      endTime: '22:00',
-      status: 'scheduled',
-    },
-  ]);
+  useEffect(() => {
+    if (assignedMiners.length > 0) {
+      generateShiftData();
+    }
+  }, [assignedMiners]);
 
-  const [workers] = useState<Worker[]>([
-    { id: 'w1', name: 'Rajesh Kumar', role: 'Senior Miner', availability: true },
-    { id: 'w2', name: 'Amit Sharma', role: 'Miner', availability: true },
-    { id: 'w3', name: 'Suresh Patel', role: 'Miner', availability: true },
-    { id: 'w4', name: 'Vikram Rao', role: 'Junior Miner', availability: false },
-    { id: 'w5', name: 'Karan Mehta', role: 'Miner', availability: true },
-  ]);
+  const generateShiftData = () => {
+    console.log('📊 Generating shift data for', assignedMiners.length, 'miners');
+    
+    // Generate workers from assigned miners
+    const workersData: Worker[] = assignedMiners.map((miner) => ({
+      id: miner.id,
+      name: miner.name,
+      role: miner.role || 'Miner',
+      availability: true,
+    }));
+    setWorkers(workersData);
+    
+    // Generate sample shifts
+    const shiftsData: Shift[] = assignedMiners.map((miner, index) => {
+      const shiftTypes: ('morning' | 'afternoon' | 'night')[] = ['morning', 'afternoon', 'night'];
+      const shiftType = shiftTypes[index % 3];
+      const today = new Date();
+      const shiftDate = new Date(today);
+      shiftDate.setDate(today.getDate() + (index % 7));
+      
+      return {
+        id: miner.id + '_shift',
+        workerId: miner.id,
+        workerName: miner.name,
+        shift: shiftType,
+        location: miner.location || 'Section A',
+        date: shiftDate.toISOString().split('T')[0],
+        startTime: shiftType === 'morning' ? '06:00' : shiftType === 'afternoon' ? '14:00' : '22:00',
+        endTime: shiftType === 'morning' ? '14:00' : shiftType === 'afternoon' ? '22:00' : '06:00',
+        status: 'scheduled',
+      };
+    });
+    
+    setShifts(shiftsData);
+    console.log('✅ Generated', shiftsData.length, 'shifts for', workersData.length, 'workers');
+  };
 
   const getWeekDates = (weekOffset: number) => {
     const today = new Date();

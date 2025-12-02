@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AlertTriangle, ArrowLeft, Bell, BellOff, Users } from '../../components/Icons';
 import { getWebSocketURL } from '../../config/smartHelmetConfig';
 import { COLORS } from '../../constants/styles';
+import { useSupervisor } from '@/contexts/SupervisorContext';
 
 interface Miner {
   id: string;
@@ -15,16 +16,24 @@ interface Miner {
 
 export default function AlertMiners() {
   const router = useRouter();
+  const { assignedMiners, loading: minersLoading } = useSupervisor();
   const [wsConnected, setWsConnected] = useState(false);
   const [buzzerActive, setBuzzerActive] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const [miners, setMiners] = useState<Miner[]>([]);
 
-  // Mock miner data - in production, fetch from API
-  const [miners] = useState<Miner[]>([
-    { id: '1', name: 'Rajesh Kumar', helmetId: 'ESP32-001', status: 'online' },
-    { id: '2', name: 'Amit Singh', helmetId: 'ESP32-002', status: 'online' },
-    { id: '3', name: 'Priya Sharma', helmetId: 'ESP32-003', status: 'offline' },
-  ]);
+  useEffect(() => {
+    if (assignedMiners.length > 0) {
+      const minerData: Miner[] = assignedMiners.map((miner) => ({
+        id: miner.id,
+        name: miner.name,
+        helmetId: `ESP32-${miner.id.substring(0, 3)}`,
+        status: Math.random() > 0.3 ? 'online' : 'offline',
+      }));
+      setMiners(minerData);
+      console.log('📡 Loaded', minerData.length, 'miners for alert system');
+    }
+  }, [assignedMiners]);
 
   // WebSocket Connection
   useEffect(() => {

@@ -266,44 +266,46 @@ export default function AssignedVideos() {
     updatedProgressList.push(updatedProgress);
 
     try {
-      // Save to Firestore for real-time sync with supervisor dashboard
-      const { collection, addDoc, query, where, getDocs, updateDoc, Timestamp } = await import('firebase/firestore');
+      // Import Firestore functions
+      const { doc, getDoc, updateDoc, Timestamp, runTransaction } = await import('firebase/firestore');
       const { db } = await import('@/config/firebase');
       
-      // Check if progress document exists
-      const progressRef = collection(db, 'assignmentProgress');
-      const progressQuery = query(
-        progressRef,
-        where('assignmentId', '==', currentProgress.assignmentId),
-        where('minerId', '==', currentMinerId)
-      );
-      const progressSnapshot = await getDocs(progressQuery);
+      console.log('📝 Marking video as watched for miner:', currentMinerId);
+      console.log('📋 Assignment ID:', currentProgress.assignmentId);
+
+      // Use transaction to safely update progress map in assignment document
+      const assignmentRef = doc(db, 'videoAssignments', currentProgress.assignmentId);
       
-      if (!progressSnapshot.empty) {
-        // Update existing document
-        const docRef = progressSnapshot.docs[0].ref;
-        await updateDoc(docRef, {
-          watched: true,
-          completedAt: Timestamp.now(),
-          progress: 100,
-          status: 'completed',
-          watchTime: Date.now() - (currentProgress.watchedAt || Date.now()),
+      await runTransaction(db, async (transaction) => {
+        const assignmentDoc = await transaction.get(assignmentRef);
+        
+        if (!assignmentDoc.exists()) {
+          throw new Error('Assignment document not found');
+        }
+
+        const assignmentData = assignmentDoc.data();
+        const progressMap = assignmentData.progress || {};
+        
+        // Update progress for this specific miner using dot notation to avoid overwriting other miners
+        const progressPath = `progress.${currentMinerId}`;
+        transaction.update(assignmentRef, {
+          [progressPath]: {
+            status: 'completed',
+            watchedDuration: 100, // percentage
+            totalDuration: 100,
+            completedAt: Timestamp.now(),
+          }
         });
-        console.log('✅ Updated progress in Firestore');
-      } else {
-        // Create new document
-        const assignment = myAssignments.find(a => a.id === currentProgress.assignmentId);
-        await addDoc(progressRef, {
-          assignmentId: currentProgress.assignmentId,
-          minerId: currentMinerId,
-          videoId: assignment?.videoId || '',
-          watched: true,
-          completedAt: Timestamp.now(),
-          progress: 100,
-          status: 'completed',
-          watchTime: 0,
-        });
-        console.log('✅ Created progress in Firestore');
+
+        console.log(`✅ Updated progress map for miner ${currentMinerId} in assignment ${currentProgress.assignmentId}`);
+      });
+
+      // Verify the update by reading the document
+      const verifyDoc = await getDoc(assignmentRef);
+      if (verifyDoc.exists()) {
+        const verifyData = verifyDoc.data();
+        console.log('🔍 Verified progress map after update:', verifyData.progress);
+        console.log(`🔍 Miner ${currentMinerId} status:`, verifyData.progress?.[currentMinerId]);
       }
       
       // Also save to AsyncStorage for offline access

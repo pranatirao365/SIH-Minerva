@@ -12,10 +12,11 @@ export default function RootLayout() {
         <Stack.Screen name="auth/PhoneLogin" />
         <Stack.Screen name="auth/OTPVerification" />
         <Stack.Screen name="auth/RoleSelection" />
-        <Stack.Screen name="miner/MinerHome" />
-        <Stack.Screen name="supervisor/SupervisorHome" />
-        <Stack.Screen name="safety-officer/SafetyOfficerHome" />
-        <Stack.Screen name="engineer/EngineerHome" />
+        <Stack.Screen name="miner" />
+        <Stack.Screen name="supervisor" />
+        <Stack.Screen name="safety-officer" />
+        <Stack.Screen name="engineer" />
+        <Stack.Screen name="admin" />
       </Stack>
       <StatusBar style="light" />
     </ThemeProvider>

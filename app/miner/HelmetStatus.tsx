@@ -1,4 +1,24 @@
-import Placeholder from '../../components/Placeholder';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowLeft } from '../../components/Icons';
+
+// This screen is redundant as SmartHelmetStatus.tsx already provides comprehensive helmet monitoring
+// Redirecting to the main Smart Helmet Status screen
 export default function HelmetStatus() {
-  return <Placeholder title="Helmet Status" description="Check real-time status of your smart helmet" />;
+  const router = useRouter();
+  
+  React.useEffect(() => {
+    // Redirect to SmartHelmetStatus which has full helmet monitoring
+    router.replace('/miner/SmartHelmetStatus');
+  }, []);
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
+      <TouchableOpacity onPress={() => router.back()}>
+        <ArrowLeft size={24} color="#FFFFFF" />
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
 }

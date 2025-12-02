@@ -4,22 +4,28 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmergencyButton } from '../../components/EmergencyButton';
 import {
-  Activity,
-  AlertTriangle,
-  Bell,
-  Camera,
-  CheckCircle,
-  ChevronRight,
-  Droplets,
-  Heart,
-  Lock,
-  Map,
-  Mic,
-  Shield,
-  Thermometer,
-  TrendingUp,
-  Trophy,
-  Video
+    Activity,
+    AlertTriangle,
+    Award,
+    Bell,
+    BookOpen,
+    Camera,
+    CheckCircle,
+    ChevronRight,
+    Clipboard,
+    Droplets,
+    Heart,
+    Lock,
+    Map,
+    MessageCircle,
+    Mic,
+    Shield,
+    Thermometer,
+    Tool,
+    TrendingUp,
+    Trophy,
+    User,
+    Video
 } from '../../components/Icons';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { getWebSocketURL } from '../../config/smartHelmetConfig';
@@ -105,6 +111,14 @@ export default function MinerHome() {
   }, []);
 
   const quickActions = [
+    { icon: Clipboard, label: 'Daily Checklist', route: '/miner/DailyChecklist', color: '#10B981' },
+    { icon: Tool, label: 'Equipment Check', route: '/miner/EquipmentCheck', color: '#3B82F6' },
+    { icon: Heart, label: 'Health Monitor', route: '/miner/HealthMonitoring', color: '#EF4444' },
+    { icon: Activity, label: 'Helmet History', route: '/miner/HelmetHistory', color: '#8B5CF6' },
+    { icon: Award, label: 'Leaderboard', route: '/miner/ProgressTracker', color: '#FFD700' },
+    { icon: MessageCircle, label: 'AI Assistant', route: '/miner/AIChatbot', color: '#6366F1' },
+    { icon: User, label: 'Testimonials', route: '/miner/Testimonials', color: '#EC4899' },
+    { icon: BookOpen, label: 'Case Studies', route: '/miner/CaseStudies', color: '#F59E0B' },
     { icon: Map, label: 'Heat Map', route: '/miner/HeatMapView', color: COLORS.primary },
     { icon: Camera, label: 'Hazard Scan', route: '/miner/HazardScan', color: COLORS.destructive },
     { icon: Shield, label: 'PPE Scan', route: '/miner/PPEScanScreen', color: COLORS.accent },
@@ -282,6 +296,10 @@ export default function MinerHome() {
           <View style={styles.moduleGrid}>
             {trainingModules.map((module, index) => {
               const Icon = module.icon;
+              if (!Icon) {
+                console.warn('Missing icon for module:', module.label);
+                return null;
+              }
               return (
                 <TouchableOpacity
                   key={index}
@@ -354,6 +372,10 @@ export default function MinerHome() {
           <View style={styles.actionGrid}>
             {quickActions.map((action, index) => {
               const Icon = action.icon;
+              if (!Icon) {
+                console.warn('Missing icon for action:', action.label);
+                return null;
+              }
               return (
                 <TouchableOpacity
                   key={index}

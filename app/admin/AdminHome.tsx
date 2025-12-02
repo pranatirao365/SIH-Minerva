@@ -1,26 +1,25 @@
+import { Picker } from '@react-native-picker/picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
-import { collection, deleteDoc, doc, getDocs, setDoc, query, where, getDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    Modal,
-    FlatList,
-    Switch,
-    Dimensions
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
-import { Picker } from '@react-native-picker/picker';
-import * as DocumentPicker from 'expo-document-picker';
 
 interface User {
   id: string;
@@ -524,6 +523,14 @@ export default function AdminHome() {
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [editedUserData, setEditedUserData] = useState<any>({});
 
+  // Supervisor miners modal state
+  const [showSupervisorMinersModal, setShowSupervisorMinersModal] = useState(false);
+  const [selectedSupervisor, setSelectedSupervisor] = useState<User | null>(null);
+
+  // Miner's supervisor modal state
+  const [showMinerSupervisorModal, setShowMinerSupervisorModal] = useState(false);
+  const [selectedMinerForSupervisor, setSelectedMinerForSupervisor] = useState<User | null>(null);
+
   // Form data state
   const [formData, setFormData] = useState<any>({});
   const [minersList, setMinersList] = useState<User[]>([]);
@@ -543,14 +550,14 @@ export default function AdminHome() {
     {
       value: 'miner',
       label: 'Miner',
-      color: '#2563EB', // Blue
+      color: '#FF6B00', // Blue
       icon: '⛏️',
       description: 'Field workers responsible for mining operations and safety compliance'
     },
     {
       value: 'supervisor',
       label: 'Supervisor',
-      color: '#059669', // Green
+      color: '#FF6B00', // Green
       icon: '👔',
       description: 'Oversees mining teams, manages operations, and coordinates with management'
     },
@@ -564,7 +571,7 @@ export default function AdminHome() {
     {
       value: 'engineer',
       label: 'Engineer',
-      color: '#7C3AED', // Purple
+      color: '#FF6B00', // Purple
       icon: '⚙️',
       description: 'Technical experts handling equipment, systems, and engineering solutions'
     },
@@ -574,6 +581,56 @@ export default function AdminHome() {
     fetchUsers();
     fetchMiners();
   }, []);
+
+  // Dynamic update: Refresh selected supervisor data when users change
+  // This ensures supervisor modals show real-time updates
+  useEffect(() => {
+    if (selectedSupervisor && users.length > 0) {
+      const updatedSupervisor = users.find(u => u.id === selectedSupervisor.id);
+      if (updatedSupervisor) {
+        setSelectedSupervisor(updatedSupervisor);
+      } else {
+        // Supervisor was deleted, close the modal
+        setShowSupervisorMinersModal(false);
+        setShowMinerSupervisorModal(false);
+        setSelectedSupervisor(null);
+      }
+    }
+  }, [users]);
+
+  // Dynamic update: Refresh selected miner data when users change
+  // This ensures miner modals show real-time updates
+  useEffect(() => {
+    if (selectedMinerForSupervisor && users.length > 0) {
+      const updatedMiner = users.find(u => u.id === selectedMinerForSupervisor.id);
+      if (updatedMiner) {
+        setSelectedMinerForSupervisor(updatedMiner);
+      } else {
+        // Miner was deleted, close the modal
+        setShowMinerSupervisorModal(false);
+        setSelectedMinerForSupervisor(null);
+      }
+    }
+  }, [users]);
+
+  // Dynamic update: Refresh selected user details when users change
+  // This applies to ALL roles: miner, supervisor, safety_officer, engineer
+  useEffect(() => {
+    if (selectedUserForDetails && users.length > 0) {
+      const updatedUser = users.find(u => u.id === selectedUserForDetails.id);
+      if (updatedUser) {
+        setSelectedUserForDetails(updatedUser);
+        if (isEditingUser) {
+          setEditedUserData(updatedUser);
+        }
+      } else {
+        // User (any role) was deleted, close the modal
+        setShowUserDetailsModal(false);
+        setSelectedUserForDetails(null);
+        setIsEditingUser(false);
+      }
+    }
+  }, [users]);
 
   const fetchUsers = async () => {
     setRefreshing(true);
@@ -643,6 +700,7 @@ export default function AdminHome() {
       setMinersList(miners);
     } catch (error: any) {
       console.error('Error fetching miners:', error);
+      Alert.alert('Error', 'Failed to fetch miners. Please try again.');
     }
   };
 
@@ -743,13 +801,17 @@ export default function AdminHome() {
       // Create user document in Firestore
       await setDoc(doc(db, 'users', docId), userData);
 
+      // Refresh all data to ensure dynamic updates for all roles
+      await fetchUsers();
+      
+      // Refresh miners list if miner or supervisor was added (for assignment purposes)
+      if (selectedRole === 'miner' || selectedRole === 'supervisor') {
+        await fetchMiners();
+      }
+      
       Alert.alert('Success', `User ${formData.name} added successfully with role: ${selectedRole}`);
       setFormData({});
       setSelectedRole('');
-      fetchUsers();
-      if (selectedRole === 'supervisor') {
-        fetchMiners();
-      }
     } catch (error: any) {
       console.error('Error adding user:', error);
       Alert.alert('Error', error.message || 'Failed to add user');
@@ -761,6 +823,7 @@ export default function AdminHome() {
   const handleSaveUserChanges = async () => {
     if (!selectedUserForDetails) return;
 
+    setLoading(true);
     try {
       // Filter out undefined values to prevent Firebase errors
       const cleanedData = Object.fromEntries(
@@ -768,15 +831,23 @@ export default function AdminHome() {
       );
       
       await setDoc(doc(db, 'users', selectedUserForDetails.id), cleanedData, { merge: true });
-      setUsers(users.map(user => 
-        user.id === selectedUserForDetails.id ? { ...user, ...cleanedData } : user
-      ));
+      
+      // Fetch fresh data from Firebase to ensure everything is in sync for all roles
+      await fetchUsers();
+      
+      // Refresh miners list if miner or supervisor was updated
+      if (selectedUserForDetails.role === 'miner' || selectedUserForDetails.role === 'supervisor') {
+        await fetchMiners();
+      }
+      
       setIsEditingUser(false);
       setShowUserDetailsModal(false);
       Alert.alert('Success', 'User details updated successfully');
     } catch (error: any) {
       console.error('Error updating user:', error);
       Alert.alert('Error', 'Failed to update user details');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -790,13 +861,51 @@ export default function AdminHome() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            setLoading(true);
             try {
+              // First, check if this is a miner and remove from supervisors' assignedMiners
+              const userToDelete = users.find(u => u.id === userId);
+              if (userToDelete?.role === 'miner') {
+                // Find all supervisors who have this miner assigned
+                const supervisorsWithThisMiner = users.filter(
+                  supervisor => supervisor.role === 'supervisor' && 
+                  supervisor.assignedMiners?.includes(userId)
+                );
+                
+                // Update each supervisor to remove this miner
+                for (const supervisor of supervisorsWithThisMiner) {
+                  const updatedMiners = supervisor.assignedMiners?.filter(id => id !== userId) || [];
+                  await setDoc(doc(db, 'users', supervisor.id), {
+                    ...supervisor,
+                    assignedMiners: updatedMiners
+                  });
+                }
+              }
+              
+              // Now delete the user
               await deleteDoc(doc(db, 'users', userId));
-              Alert.alert('Success', 'User deleted successfully');
-              fetchUsers();
+              
+              // Refresh all data to ensure dynamic updates for all roles
+              await fetchUsers();
+              
+              // Refresh miners list if miner or supervisor was deleted
+              if (userToDelete?.role === 'miner' || userToDelete?.role === 'supervisor') {
+                await fetchMiners();
+              }
+              
+              // Close any open modals that might be showing the deleted user
+              // This applies to all roles: miner, supervisor, safety_officer, engineer
+              setShowUserDetailsModal(false);
+              setShowRoleDetailsModal(false);
+              setShowSupervisorMinersModal(false);
+              setShowMinerSupervisorModal(false);
+              
+              Alert.alert('Success', `${userToDelete?.role || 'User'} deleted successfully`);
             } catch (error: any) {
               console.error('Error deleting user:', error);
               Alert.alert('Error', 'Failed to delete user');
+            } finally {
+              setLoading(false);
             }
           },
         },
@@ -805,12 +914,14 @@ export default function AdminHome() {
   };
 
   const handleSignOut = async () => {
+    setLoading(true);
     try {
       await signOut(auth);
       router.replace('/auth/PhoneLogin');
     } catch (error: any) {
       console.error('Error signing out:', error);
       Alert.alert('Error', 'Failed to sign out');
+      setLoading(false);
     }
   };
 
@@ -832,7 +943,19 @@ export default function AdminHome() {
 
   const getAssignedMinersCount = (supervisorId: string) => {
     const supervisor = users.find(user => user.id === supervisorId);
-    return supervisor?.assignedMiners?.length || 0;
+    // Filter out deleted miners - only count miners that actually exist
+    const validMinersCount = supervisor?.assignedMiners?.filter(
+      minerId => users.find(m => m.id === minerId)
+    ).length || 0;
+    return validMinersCount;
+  };
+
+  const getSupervisorDetails = (minerId: string) => {
+    const supervisor = users.find(user =>
+      user.role === 'supervisor' &&
+      user.assignedMiners?.includes(minerId)
+    );
+    return supervisor || null;
   };
 
   return (
@@ -911,8 +1034,12 @@ export default function AdminHome() {
                     key={role.value}
                     style={[styles.roleCategoryCard, { borderColor: role.color }]}
                     onPress={() => {
-                      setSelectedRoleForDetails(role.value);
-                      setShowRoleDetailsModal(true);
+                      try {
+                        setSelectedRoleForDetails(role.value);
+                        setShowRoleDetailsModal(true);
+                      } catch (error) {
+                        console.error('Error opening role details:', error);
+                      }
                     }}
                   >
                     <View style={[styles.roleCategoryIcon, { backgroundColor: role.color }]}>
@@ -1032,7 +1159,10 @@ export default function AdminHome() {
               </Text>
               <TouchableOpacity
                 style={styles.modalCloseButton}
-                onPress={() => setShowRoleDetailsModal(false)}
+                onPress={() => {
+                  setShowRoleDetailsModal(false);
+                  setSelectedRoleForDetails('');
+                }}
               >
                 <Text style={styles.modalCloseText}>✕</Text>
               </TouchableOpacity>
@@ -1046,61 +1176,103 @@ export default function AdminHome() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
               renderItem={({ item: user }) => (
-                <TouchableOpacity 
-                  style={styles.roleDetailCard}
-                  onPress={() => {
-                    setSelectedUserForDetails(user);
-                    setEditedUserData({...user});
-                    setIsEditingUser(false);
-                    setShowUserDetailsModal(true);
-                  }}
-                >
+                <View style={styles.roleDetailCard}>
                   {selectedRoleForDetails === 'miner' && (
-                    <>
-                      <View style={styles.roleDetailHeader}>
-                        <View style={styles.userInfoSection}>
-                          <Text style={styles.roleDetailName}>{user.name || 'Unnamed Miner'}</Text>
-                          <Text style={styles.roleDetailSubInfo}>
-                            📱 {user.phoneNumber || 'No phone'}
-                          </Text>
+                    <View style={styles.minerCardWrapper}>
+                      <TouchableOpacity
+                        style={styles.minerClickableArea}
+                        onPress={() => {
+                          try {
+                            const supervisor = getSupervisorDetails(user.id);
+                            if (supervisor) {
+                              setSelectedSupervisor(supervisor);
+                              setSelectedMinerForSupervisor(user);
+                              setShowRoleDetailsModal(false);
+                              requestAnimationFrame(() => {
+                                setShowMinerSupervisorModal(true);
+                              });
+                            } else {
+                              Alert.alert('No Supervisor', 'This miner is not assigned to any supervisor yet.');
+                            }
+                          } catch (error) {
+                            console.error('Error opening miner supervisor details:', error);
+                          }
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.roleDetailHeader}>
+                          <View style={styles.userInfoSection}>
+                            <Text style={styles.roleDetailName}>{user.name || 'Unnamed Miner'}</Text>
+                            <Text style={styles.roleDetailSubInfo}>
+                              📱 {user.phoneNumber || 'No phone'}
+                            </Text>
+                          </View>
                         </View>
-                        <TouchableOpacity
-                          style={styles.roleDetailDeleteButton}
-                          onPress={() => handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown')}
-                        >
-                          <Text style={styles.roleDetailDeleteText}>🗑️</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <Text style={styles.roleDetailInfo}>
-                        👔 Supervisor: {getSupervisorName(user.id) || 'Unassigned'}
-                      </Text>
-                    </>
+                        <Text style={styles.roleDetailInfo}>
+                          👔 Supervisor: {getSupervisorName(user.id) || 'Unassigned'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.roleDetailDeleteButtonAbsolute}
+                        onPress={(e) => {
+                          handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
+                        }}
+                      >
+                        <Text style={styles.roleDetailDeleteText}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
                   )}
 
                   {selectedRoleForDetails === 'supervisor' && (
-                    <>
-                      <View style={styles.roleDetailHeader}>
-                        <View style={styles.userInfoSection}>
-                          <Text style={styles.roleDetailName}>{user.name || 'Unnamed Supervisor'}</Text>
-                          <Text style={styles.roleDetailSubInfo}>
-                            📱 {user.phoneNumber || 'No phone'}
-                          </Text>
+                    <View style={styles.supervisorCardWrapper}>
+                      <TouchableOpacity
+                        style={styles.supervisorClickableArea}
+                        onPress={() => {
+                          try {
+                            setSelectedSupervisor(user);
+                            setShowRoleDetailsModal(false);
+                            requestAnimationFrame(() => {
+                              setShowSupervisorMinersModal(true);
+                            });
+                          } catch (error) {
+                            console.error('Error opening supervisor miners:', error);
+                          }
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.roleDetailHeader}>
+                          <View style={styles.userInfoSection}>
+                            <Text style={styles.roleDetailName}>{user.name || 'Unnamed Supervisor'}</Text>
+                            <Text style={styles.roleDetailSubInfo}>
+                              📱 {user.phoneNumber || 'No phone'}
+                            </Text>
+                          </View>
                         </View>
-                        <TouchableOpacity
-                          style={styles.roleDetailDeleteButton}
-                          onPress={() => handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown')}
-                        >
-                          <Text style={styles.roleDetailDeleteText}>🗑️</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <Text style={styles.roleDetailInfo}>
-                        👷 Assigned Miners: {getAssignedMinersCount(user.id)}
-                      </Text>
-                    </>
+                        <Text style={styles.roleDetailInfo}>
+                          👷 Assigned Miners: {getAssignedMinersCount(user.id)}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.roleDetailDeleteButtonAbsolute}
+                        onPress={(e) => {
+                          handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
+                        }}
+                      >
+                        <Text style={styles.roleDetailDeleteText}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
                   )}
 
                   {(selectedRoleForDetails === 'safety_officer' || selectedRoleForDetails === 'engineer') && (
-                    <>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedUserForDetails(user);
+                        setEditedUserData({...user});
+                        setIsEditingUser(false);
+                        setShowUserDetailsModal(true);
+                      }}
+                      activeOpacity={0.7}
+                    >
                       <View style={styles.roleDetailHeader}>
                         <View style={styles.userInfoSection}>
                           <Text style={styles.roleDetailName}>{user.name || `Unnamed ${getRoleLabel(selectedRoleForDetails)}`}</Text>
@@ -1110,14 +1282,17 @@ export default function AdminHome() {
                         </View>
                         <TouchableOpacity
                           style={styles.roleDetailDeleteButton}
-                          onPress={() => handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown')}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
+                          }}
                         >
                           <Text style={styles.roleDetailDeleteText}>🗑️</Text>
                         </TouchableOpacity>
                       </View>
-                    </>
+                    </TouchableOpacity>
                   )}
-                </TouchableOpacity>
+                </View>
               )}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
@@ -1152,6 +1327,8 @@ export default function AdminHome() {
                 onPress={() => {
                   setShowUserDetailsModal(false);
                   setIsEditingUser(false);
+                  setSelectedUserForDetails(null);
+                  setEditedUserData({});
                 }}
               >
                 <Text style={styles.modalCloseText}>✕</Text>
@@ -1475,6 +1652,334 @@ export default function AdminHome() {
           </View>
         </View>
       </Modal>
+
+      {/* Supervisor Miners Modal */}
+      <Modal
+        visible={showSupervisorMinersModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowSupervisorMinersModal(false);
+          setSelectedSupervisor(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.supervisorMinersModalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {selectedSupervisor?.name || 'Supervisor'}'s Miners
+              </Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setShowSupervisorMinersModal(false);
+                  setSelectedSupervisor(null);
+                }}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.supervisorInfoBanner}>
+              <View style={styles.supervisorInfoItem}>
+                <Text style={styles.supervisorInfoLabel}>Contact</Text>
+                <Text style={styles.supervisorInfoValue}>{selectedSupervisor?.phoneNumber || 'N/A'}</Text>
+              </View>
+              <View style={styles.supervisorInfoItem}>
+                <Text style={styles.supervisorInfoLabel}>Total Miners</Text>
+                <Text style={styles.supervisorInfoValue}>
+                  {(() => {
+                    const validCount = selectedSupervisor?.assignedMiners?.filter(
+                      minerId => users.find(m => m.id === minerId)
+                    ).length || 0;
+                    return validCount;
+                  })()}
+                </Text>
+              </View>
+            </View>
+
+            {/* Miners List */}
+            <ScrollView 
+              style={styles.supervisorMinersList} 
+              contentContainerStyle={styles.minersListContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {(() => {
+                // Filter out deleted miners (miners not found in users list)
+                const validMiners = selectedSupervisor?.assignedMiners
+                  ?.map(minerId => users.find(m => m.id === minerId))
+                  .filter(miner => miner !== undefined) || [];
+
+                if (validMiners.length === 0) {
+                  return (
+                    <View style={styles.emptyState}>
+                      <Text style={styles.emptyRoleText}>No miners assigned</Text>
+                      <Text style={styles.emptyRoleSubtext}>This supervisor has no assigned miners yet</Text>
+                    </View>
+                  );
+                }
+
+                return validMiners.map((miner, index) => (
+                  <View key={miner.id} style={styles.professionalMinerCard}>
+                    {/* Card Header */}
+                    <View style={styles.professionalMinerHeader}>
+                      <View style={styles.minerNumberBadge}>
+                        <Text style={styles.minerNumberText}>{index + 1}</Text>
+                      </View>
+                      <View style={styles.minerHeaderInfo}>
+                        <Text style={styles.professionalMinerName}>{miner.name || 'Unknown Miner'}</Text>
+                        <Text style={styles.professionalMinerPhone}>{miner.phoneNumber || 'No contact'}</Text>
+                      </View>
+                    </View>
+
+                    {/* Card Body - Grid Layout */}
+                    <View style={styles.minerInfoGrid}>
+                      <View style={styles.minerInfoItem}>
+                        <Text style={styles.minerInfoLabel}>Department</Text>
+                        <Text style={styles.minerInfoValue}>
+                          {miner.department ? 
+                            (miner.department === 'mining_ops' ? 'Mining Operations' :
+                             miner.department === 'blasting' ? 'Blasting' :
+                             miner.department === 'maintenance' ? 'Maintenance' :
+                             miner.department === 'safety' ? 'Safety' : miner.department) 
+                            : 'Not assigned'}
+                        </Text>
+                      </View>
+
+                      <View style={styles.minerInfoItem}>
+                        <Text style={styles.minerInfoLabel}>Shift</Text>
+                        <Text style={styles.minerInfoValue}>
+                          {miner.shift ? 
+                            (miner.shift === 'day' ? 'Day (6AM-6PM)' : 
+                             miner.shift === 'night' ? 'Night (6PM-6AM)' : 
+                             miner.shift === 'rotating' ? 'Rotating' : miner.shift)
+                            : 'Not assigned'}
+                        </Text>
+                      </View>
+
+                      <View style={styles.minerInfoItem}>
+                        <Text style={styles.minerInfoLabel}>Age</Text>
+                        <Text style={styles.minerInfoValue}>{miner.age || 'N/A'}</Text>
+                      </View>
+
+                      <View style={styles.minerInfoItem}>
+                        <Text style={styles.minerInfoLabel}>Experience</Text>
+                        <Text style={styles.minerInfoValue}>
+                          {miner.experience !== undefined ? `${miner.experience} yrs` : 'N/A'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Training Status */}
+                    <View style={styles.minerTrainingStatus}>
+                      <View style={[
+                        styles.trainingBadge,
+                        miner.trainingCompleted ? styles.trainingCompleted : styles.trainingPending
+                      ]}>
+                        <Text style={[
+                          styles.trainingBadgeText,
+                          miner.trainingCompleted ? styles.trainingCompletedText : styles.trainingPendingText
+                        ]}>
+                          {miner.trainingCompleted ? 'Training Completed' : 'Training Pending'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Address if available */}
+                    {miner.address && (
+                      <View style={styles.minerAddressSection}>
+                        <Text style={styles.minerAddressLabel}>Address</Text>
+                        <Text style={styles.minerAddressText}>{miner.address}</Text>
+                      </View>
+                    )}
+                  </View>
+                ));
+              })()}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Miner's Supervisor Modal */}
+      <Modal
+        visible={showMinerSupervisorModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowMinerSupervisorModal(false);
+          setSelectedSupervisor(null);
+          setSelectedMinerForSupervisor(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.supervisorDetailsModalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Supervisor Details
+              </Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setShowMinerSupervisorModal(false);
+                  setSelectedSupervisor(null);
+                  setSelectedMinerForSupervisor(null);
+                }}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Miner Info Banner */}
+            <View style={styles.minerInfoBanner}>
+              <Text style={styles.minerInfoTitle}>👷 Viewing supervisor for:</Text>
+              <Text style={styles.minerInfoName}>{selectedMinerForSupervisor?.name || 'Unknown Miner'}</Text>
+            </View>
+
+            {/* Supervisor Details */}
+            <ScrollView 
+              style={styles.supervisorDetailsScroll} 
+              contentContainerStyle={styles.supervisorDetailsContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {selectedSupervisor ? (
+                <View style={styles.supervisorDetailsCard}>
+                  {/* Supervisor Header */}
+                  <View style={styles.supervisorDetailsHeader}>
+                    <View style={styles.supervisorIconContainer}>
+                      <Text style={styles.supervisorIcon}>👔</Text>
+                    </View>
+                    <View style={styles.supervisorHeaderInfo}>
+                      <Text style={styles.supervisorDetailsName}>{selectedSupervisor.name || 'Unnamed Supervisor'}</Text>
+                      <Text style={styles.supervisorDetailsRole}>Supervisor</Text>
+                    </View>
+                  </View>
+
+                  {/* Contact Information Section */}
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsSectionTitle}>📞 Contact Information</Text>
+                    <View style={styles.detailsRow}>
+                      <Text style={styles.detailsLabel}>Phone Number:</Text>
+                      <Text style={styles.detailsValue}>{selectedSupervisor.phoneNumber || 'Not provided'}</Text>
+                    </View>
+                    {selectedSupervisor.email && (
+                      <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Email:</Text>
+                        <Text style={styles.detailsValue}>{selectedSupervisor.email}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Work Information Section */}
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsSectionTitle}>💼 Work Information</Text>
+                    {selectedSupervisor.empId && (
+                      <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Employee ID:</Text>
+                        <Text style={styles.detailsValue}>{selectedSupervisor.empId}</Text>
+                      </View>
+                    )}
+                    {selectedSupervisor.department && (
+                      <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Department:</Text>
+                        <Text style={styles.detailsValue}>
+                          {selectedSupervisor.department === 'mining_ops' ? 'Mining Operations' :
+                           selectedSupervisor.department === 'blasting' ? 'Blasting' :
+                           selectedSupervisor.department === 'maintenance' ? 'Equipment Maintenance' :
+                           selectedSupervisor.department === 'safety' ? 'Safety' : selectedSupervisor.department}
+                        </Text>
+                      </View>
+                    )}
+                    {selectedSupervisor.shift && (
+                      <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Shift:</Text>
+                        <Text style={styles.detailsValue}>
+                          {selectedSupervisor.shift === 'day' ? 'Day Shift (6AM-6PM)' :
+                           selectedSupervisor.shift === 'night' ? 'Night Shift (6PM-6AM)' :
+                           selectedSupervisor.shift === 'rotating' ? 'Rotating Shift' : selectedSupervisor.shift}
+                        </Text>
+                      </View>
+                    )}
+                    {selectedSupervisor.experience !== undefined && (
+                      <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Experience:</Text>
+                        <Text style={styles.detailsValue}>{selectedSupervisor.experience} years</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Team Information Section */}
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsSectionTitle}>👥 Team Information</Text>
+                    <View style={styles.detailsRow}>
+                      <Text style={styles.detailsLabel}>Total Assigned Miners:</Text>
+                      <Text style={[styles.detailsValue, styles.highlightValue]}>
+                        {selectedSupervisor.assignedMiners?.length || 0}
+                      </Text>
+                    </View>
+                    {selectedSupervisor.teamSize && (
+                      <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Team Size:</Text>
+                        <Text style={styles.detailsValue}>{selectedSupervisor.teamSize}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Personal Information Section */}
+                  {(selectedSupervisor.age || selectedSupervisor.address) && (
+                    <View style={styles.detailsSection}>
+                      <Text style={styles.detailsSectionTitle}>👤 Personal Information</Text>
+                      {selectedSupervisor.age && (
+                        <View style={styles.detailsRow}>
+                          <Text style={styles.detailsLabel}>Age:</Text>
+                          <Text style={styles.detailsValue}>{selectedSupervisor.age} years</Text>
+                        </View>
+                      )}
+                      {selectedSupervisor.address && (
+                        <View style={styles.detailsRow}>
+                          <Text style={styles.detailsLabel}>Address:</Text>
+                          <Text style={styles.detailsValue}>{selectedSupervisor.address}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {/* View All Miners Button */}
+                  <TouchableOpacity
+                    style={styles.viewAllMinersButton}
+                    onPress={() => {
+                      setShowMinerSupervisorModal(false);
+                      requestAnimationFrame(() => {
+                        setShowSupervisorMinersModal(true);
+                      });
+                    }}
+                  >
+                    <Text style={styles.viewAllMinersButtonText}>
+                      👥 View All {selectedSupervisor.assignedMiners?.length || 0} Assigned Miners
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyRoleText}>No supervisor found</Text>
+                  <Text style={styles.emptyRoleSubtext}>This miner is not assigned to any supervisor</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Loading Overlay */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FF6B00" />
+            <Text style={styles.loadingText}>Processing...</Text>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -1482,41 +1987,46 @@ export default function AdminHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#0F0F0F',
-    borderBottomWidth: 2,
-    borderBottomColor: '#0891B2',
-    shadowColor: '#0891B2',
+    backgroundColor: '#000000',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
     shadowOffset: {
       width: 0,
-      height: 3,
+      height: 4,
     },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#FF6B00',
+    letterSpacing: 1,
   },
   signOutButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#2563EB',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#3B82F6',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#FF6B00',
+    borderRadius: 12,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
   },
   signOutText: {
     color: '#000000',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 14,
   },
   content: {
     flex: 1,
@@ -1524,18 +2034,18 @@ const styles = StyleSheet.create({
   section: {
     margin: 16,
     padding: 20,
-    backgroundColor: '#121212',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#7C3AED',
-    shadowColor: '#7C3AED',
+    backgroundColor: '#0A0A0A',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
     shadowOffset: {
       width: 0,
-      height: 3,
+      height: 4,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1544,21 +2054,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFD700',
+    color: '#FF6B00',
     marginBottom: 16,
+    letterSpacing: 0.5,
   },
   refreshButton: {
-    padding: 8,
-    backgroundColor: '#164E63',
-    borderRadius: 8,
+    padding: 10,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#0891B2',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   refreshIcon: {
-    fontSize: 24,
-    color: '#0891B2',
+    fontSize: 22,
+    color: '#FF6B00',
     fontWeight: 'bold',
   },
   inputGroup: {
@@ -1567,70 +2078,72 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#FF6B00',
     marginBottom: 8,
+    letterSpacing: 0.3,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#FF6B00',
-    borderRadius: 10,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
     padding: 14,
     fontSize: 16,
     color: '#FFFFFF',
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#000000',
     shadowColor: '#FF6B00',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  roleGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  roleButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.background,
-  },
-  roleButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  roleButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  addButton: {
-    backgroundColor: '#059669',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 12,
-    shadowColor: '#059669',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
+  },
+  roleGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  roleButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#000000',
+  },
+  roleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF6B00',
+  },
+  roleButtonTextActive: {
+    color: '#000000',
+  },
+  addButton: {
+    backgroundColor: '#FF6B00',
+    padding: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginTop: 12,
+    shadowColor: '#FF6B00',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 5,
   },
   addButtonDisabled: {
-    opacity: 0.6,
-    shadowOpacity: 0.1,
+    opacity: 0.5,
+    shadowOpacity: 0.2,
   },
   addButtonText: {
     color: '#000000',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   usersList: {
     gap: 12,
@@ -1703,22 +2216,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#064E3B',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#059669',
-    borderStyle: 'dashed',
+    backgroundColor: '#000000',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     marginBottom: 16,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   roleSelectorText: {
     fontSize: 16,
-    color: '#F0F9FF',
+    color: '#FFFFFF',
     flex: 1,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   roleSelectorArrow: {
     fontSize: 18,
-    color: '#FFFFFF',
+    color: '#FF6B00',
     fontWeight: 'bold',
   },
   formContainer: {
@@ -1727,36 +2244,37 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 20,
   },
   modalContent: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 16,
+    backgroundColor: '#000000',
+    borderRadius: 20,
     padding: 24,
     width: '90%',
     maxWidth: 400,
     shadowColor: '#FF6B00',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 6,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 10,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FF6B00',
     textAlign: 'center',
     marginBottom: 20,
     flex: 1,
+    letterSpacing: 0.5,
   },
   modalRoleButton: {
     flexDirection: 'row',
@@ -1794,46 +2312,52 @@ const styles = StyleSheet.create({
   },
   modalCancelButton: {
     padding: 16,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 12,
+    backgroundColor: '#000000',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
   },
   modalCancelText: {
     fontSize: 16,
     color: '#FF6B00',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   // Simple role button styles
   simpleRoleButton: {
     padding: 16,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 12,
+    backgroundColor: '#000000',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     marginBottom: 12,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   simpleRoleText: {
     fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: '#FF6B00',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   // Additional Form styles
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#FF6B00',
-    borderRadius: 10,
-    backgroundColor: '#2A2A2A',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    backgroundColor: '#000000',
     shadowColor: '#FF6B00',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   picker: {
     color: '#FFFFFF',
@@ -1846,15 +2370,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderWidth: 2,
-    borderColor: '#FF6B00',
-    borderRadius: 6,
+    width: 24,
+    height: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 8,
     marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#000000',
   },
   checkboxChecked: {
     backgroundColor: '#FF6B00',
@@ -1902,37 +2426,41 @@ const styles = StyleSheet.create({
   },
   documentButton: {
     padding: 14,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 10,
+    backgroundColor: '#000000',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
-    borderStyle: 'dashed',
   },
   documentButtonText: {
     fontSize: 14,
     color: '#FF6B00',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   assignMinersButton: {
     padding: 14,
     backgroundColor: '#FF6B00',
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     marginTop: 8,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
   },
   assignMinersButtonText: {
     fontSize: 14,
     color: '#000000',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   selectedMinersContainer: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 8,
+    backgroundColor: '#000000',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   selectedMinersLabel: {
     fontSize: 14,
@@ -1946,13 +2474,18 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   minerModalContent: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 15,
+    backgroundColor: '#000000',
+    borderRadius: 20,
     padding: 20,
     margin: 20,
     maxHeight: '80%',
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 10,
   },
   minerModalSubtitle: {
     fontSize: 14,
@@ -1967,15 +2500,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 15,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 10,
+    backgroundColor: '#0A0A0A',
+    borderRadius: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#333333',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   minerListItemSelected: {
     backgroundColor: '#FF6B00',
-    borderColor: '#FF8533',
+    borderColor: '#FF6B00',
   },
   minerInfo: {
     flex: 1,
@@ -1996,13 +2529,19 @@ const styles = StyleSheet.create({
   minerModalDoneButton: {
     backgroundColor: '#FF6B00',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 5,
   },
   minerModalDoneText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#000000',
+    letterSpacing: 0.3,
   },
   roleCategories: {
     flexDirection: 'row',
@@ -2011,74 +2550,82 @@ const styles = StyleSheet.create({
   },
   roleCategoryCard: {
     width: '48%',
-    backgroundColor: '#0F0F0F',
+    backgroundColor: '#0A0A0A',
     borderRadius: 16,
-    padding: 18,
+    padding: 20,
     marginBottom: 16,
-    borderWidth: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     shadowColor: '#FF6B00',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 8,
   },
   roleCategoryIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    backgroundColor: '#FF6B00',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 4,
   },
   roleCategoryIconText: {
-    fontSize: 24,
-    color: '#000000',
+    fontSize: 28,
   },
   roleCategoryInfo: {
     alignItems: 'center',
   },
   roleCategoryTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    color: '#FF6B00',
     marginBottom: 4,
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
   roleCategoryCount: {
     fontSize: 14,
-    color: '#E0E0E0',
+    color: '#FFFFFF',
     textAlign: 'center',
+    fontWeight: '600',
   },
   roleDetailsModalContent: {
-    backgroundColor: '#0F0F0F',
+    backgroundColor: '#000000',
     borderRadius: 20,
     width: '95%',
     maxWidth: 400,
     maxHeight: Dimensions.get('window').height * 0.85,
-    borderWidth: 2,
-    borderColor: '#0891B2',
-    shadowColor: '#0891B2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
     shadowRadius: 12,
-    elevation: 8,
+    elevation: 10,
   },
   roleDetailsList: {
     maxHeight: Dimensions.get('window').height * 0.6,
   },
   roleDetailCard: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
+    backgroundColor: '#0A0A0A',
+    borderRadius: 14,
     padding: 18,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     shadowColor: '#FF6B00',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 5,
   },
   roleDetailHeader: {
     flexDirection: 'row',
@@ -2093,15 +2640,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   roleDetailDeleteButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: '#FF6B00',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   roleDetailDeleteText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    fontSize: 14,
+    color: '#000000',
+    fontWeight: '700',
   },
   roleDetailInfo: {
     fontSize: 14,
@@ -2122,7 +2669,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#059669',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
     position: 'relative',
   },
   modalSubtitle: {
@@ -2138,9 +2685,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#FF6B00',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 4,
   },
   modalCloseText: {
     fontSize: 18,
@@ -2170,6 +2722,245 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
+  supervisorCardWrapper: {
+    position: 'relative',
+  },
+  supervisorClickableArea: {
+    flex: 1,
+  },
+  clickToViewMiners: {
+    fontSize: 12,
+    color: '#0891B2',
+    fontStyle: 'italic',
+    marginTop: 8,
+  },
+  roleDetailDeleteButtonAbsolute: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FF6B00',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    zIndex: 10,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  supervisorMinersModalContent: {
+    backgroundColor: '#000000',
+    borderRadius: 20,
+    width: '90%',
+    maxWidth: 500,
+    height: Dimensions.get('window').height * 0.80,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  supervisorInfoBanner: {
+    backgroundColor: '#0A0A0A',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 20,
+  },
+  supervisorInfoItem: {
+    alignItems: 'center',
+  },
+  supervisorInfoLabel: {
+    fontSize: 11,
+    color: '#CCCCCC',
+    marginBottom: 4,
+  },
+  supervisorInfoValue: {
+    fontSize: 14,
+    color: '#FF6B00',
+    fontWeight: '600',
+  },
+  supervisorMinersList: {
+    flex: 1,
+  },
+  minersListContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  supervisorMinerCard: {
+    backgroundColor: '#0A0A0A',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  minerCardHeader: {
+    marginBottom: 8,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  minerCardName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FF6B00',
+    letterSpacing: 0.3,
+  },
+  minerCardDetails: {
+    gap: 4,
+  },
+  minerCardDetail: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    lineHeight: 16,
+  },
+  // Professional Miner Card Styles
+  professionalMinerCard: {
+    backgroundColor: '#0A0A0A',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  professionalMinerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  minerNumberBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FF6B00',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  minerNumberText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  minerHeaderInfo: {
+    flex: 1,
+  },
+  professionalMinerName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  professionalMinerPhone: {
+    fontSize: 13,
+    color: '#CCCCCC',
+    fontWeight: '500',
+  },
+  minerInfoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+    gap: 12,
+  },
+  minerInfoItem: {
+    width: '47%',
+    backgroundColor: '#000000',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  minerInfoLabel: {
+    fontSize: 11,
+    color: '#999999',
+    marginBottom: 4,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  minerInfoValue: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  minerTrainingStatus: {
+    marginBottom: 12,
+  },
+  trainingBadge: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  trainingCompleted: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  trainingPending: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  trainingBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  trainingCompletedText: {
+    color: '#10B981',
+  },
+  trainingPendingText: {
+    color: '#F59E0B',
+  },
+  minerAddressSection: {
+    backgroundColor: '#000000',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  minerAddressLabel: {
+    fontSize: 11,
+    color: '#999999',
+    marginBottom: 4,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  minerAddressText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    lineHeight: 18,
+    fontWeight: '500',
+  },
   userDetailsModalContent: {
     backgroundColor: '#0F0F0F',
     borderRadius: 20,
@@ -2189,16 +2980,21 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   editButton: {
-    backgroundColor: '#059669',
+    backgroundColor: '#FF6B00',
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
   },
   editButtonText: {
-    color: '#FFFFFF',
+    color: '#000000',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   editActions: {
     flexDirection: 'row',
@@ -2207,29 +3003,36 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#059669',
+    backgroundColor: '#FF6B00',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: '#000000',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#DC2626',
+    backgroundColor: '#000000',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   cancelButtonText: {
-    color: '#FFFFFF',
+    color: '#FF6B00',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   userDetailsScroll: {
     flex: 1,
@@ -2250,9 +3053,199 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 10,
+    backgroundColor: '#000000',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#333333',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  loadingContainer: {
+    backgroundColor: '#000000',
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  loadingText: {
+    color: '#FF6B00',
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  // Miner Card Wrapper Styles
+  minerCardWrapper: {
+    position: 'relative',
+  },
+  minerClickableArea: {
+    flex: 1,
+  },
+  // Supervisor Details Modal Styles
+  supervisorDetailsModalContent: {
+    backgroundColor: '#000000',
+    borderRadius: 20,
+    width: '90%',
+    maxWidth: 500,
+    height: Dimensions.get('window').height * 0.85,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  minerInfoBanner: {
+    backgroundColor: '#0A0A0A',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    gap: 8,
+  },
+  minerInfoTitle: {
+    fontSize: 12,
+    color: '#CCCCCC',
+    fontWeight: '600',
+  },
+  minerInfoName: {
+    fontSize: 16,
+    color: '#FF6B00',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  supervisorDetailsScroll: {
+    flex: 1,
+  },
+  supervisorDetailsContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  supervisorDetailsCard: {
+    backgroundColor: '#0A0A0A',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  supervisorDetailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  supervisorIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FF6B00',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  supervisorIcon: {
+    fontSize: 30,
+  },
+  supervisorHeaderInfo: {
+    flex: 1,
+  },
+  supervisorDetailsName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  supervisorDetailsRole: {
+    fontSize: 14,
+    color: '#FF6B00',
+    fontWeight: '600',
+  },
+  detailsSection: {
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  detailsSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FF6B00',
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  detailsLabel: {
+    fontSize: 13,
+    color: '#CCCCCC',
+    flex: 1,
+    fontWeight: '600',
+  },
+  detailsValue: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    flex: 1.2,
+    textAlign: 'right',
+    fontWeight: '500',
+  },
+  highlightValue: {
+    color: '#FF6B00',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  viewAllMinersButton: {
+    backgroundColor: '#FF6B00',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  viewAllMinersButtonText: {
+    color: '#000000',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

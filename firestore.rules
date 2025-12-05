@@ -194,6 +194,51 @@ service cloud.firestore {
       allow write: if isLoggedIn();
     }
 
+    // --- DAILY QUIZZES COLLECTION ---
+    match /dailyQuizzes/{quizId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode → authenticated users can read quizzes
+      allow read: if isLoggedIn();
+
+      // Safety officers can create/update/delete quizzes
+      allow write: if isLoggedIn();
+    }
+
+    // --- QUIZ RESPONSES COLLECTION ---
+    match /quizResponses/{responseId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode → authenticated users can read/write quiz responses
+      allow read, write: if isLoggedIn();
+    }
+
+    // --- TESTIMONIALS COLLECTION ---
+    match /testimonials/{testimonialId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode:
+      // - Approved testimonials can be read by anyone authenticated
+      // - Miners can create testimonials (status: pending)
+      // - Users can read their own testimonials (any status)
+      // - Safety officers can update testimonial status (approve/reject)
+      allow read: if isLoggedIn() && (
+        resource.data.status == 'approved' ||
+        resource.data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'safety_officer'
+      );
+      
+      allow create: if isLoggedIn();
+      
+      allow update: if isLoggedIn() && (
+        resource.data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'safety_officer'
+      );
+    }
+
     // --- FALLBACK: deny everything else ---
     match /{document=**} {
       allow read, write: if false;

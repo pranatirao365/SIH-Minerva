@@ -1,9 +1,9 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Video } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Dimensions,
     FlatList,
@@ -30,33 +30,27 @@ import {
 } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
+import {
+    getApprovedTestimonials,
+    getMyTestimonials,
+    submitTestimonial,
+    Testimonial as TestimonialType,
+    toggleLikeTestimonial
+} from '../../services/testimonialService';
 
 const { width, height } = Dimensions.get('window');
-
-interface Testimonial {
-  id: string;
-  userId: string;
-  userName: string;
-  userRole: string;
-  videoUri: string;
-  thumbnailUri?: string;
-  caption: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  timestamp: number;
-  status: 'pending' | 'approved' | 'rejected';
-  likedBy: string[];
-}
 
 export default function Testimonials() {
   const router = useRouter();
   const { user } = useRoleStore();
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [testimonials, setTestimonials] = useState<TestimonialType[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showMyTestimonials, setShowMyTestimonials] = useState(false);
-  const [myTestimonials, setMyTestimonials] = useState<Testimonial[]>([]);
+  const [myTestimonials, setMyTestimonials] = useState<TestimonialType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMy, setLoadingMy] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Upload form state
   const [videoUri, setVideoUri] = useState<string | null>(null);
@@ -75,76 +69,36 @@ export default function Testimonials() {
 
   const loadTestimonials = async () => {
     try {
-      const stored = await AsyncStorage.getItem('testimonials_approved');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setTestimonials(parsed);
-      } else {
-        // Sample approved testimonials
-        const sampleTestimonials: Testimonial[] = [
-          {
-            id: '1',
-            userId: 'miner1',
-            userName: 'Rajesh Kumar',
-            userRole: 'Senior Miner',
-            videoUri: 'https://example.com/video1.mp4',
-            caption: 'Safety training saved my life during an emergency. The PPE protocols we learned helped me respond quickly when gas levels spiked. 🙏',
-            likes: 45,
-            comments: 12,
-            shares: 8,
-            timestamp: Date.now() - 1000 * 60 * 60 * 24 * 2,
-            status: 'approved',
-            likedBy: [],
-          },
-          {
-            id: '2',
-            userId: 'miner2',
-            userName: 'Amit Sharma',
-            userRole: 'Miner',
-            videoUri: 'https://example.com/video2.mp4',
-            caption: 'The new smart helmet technology is amazing! Real-time monitoring gives me peace of mind. My family feels safer too. 💪',
-            likes: 67,
-            comments: 18,
-            shares: 15,
-            timestamp: Date.now() - 1000 * 60 * 60 * 24 * 3,
-            status: 'approved',
-            likedBy: [],
-          },
-          {
-            id: '3',
-            userId: 'miner3',
-            userName: 'Suresh Patel',
-            userRole: 'Junior Miner',
-            videoUri: 'https://example.com/video3.mp4',
-            caption: 'Learning about hazard detection through the app made me more aware. I spotted a crack before it became dangerous. Stay alert! ⚠️',
-            likes: 89,
-            comments: 24,
-            shares: 20,
-            timestamp: Date.now() - 1000 * 60 * 60 * 24 * 5,
-            status: 'approved',
-            likedBy: [],
-          },
-        ];
-        
-        await AsyncStorage.setItem('testimonials_approved', JSON.stringify(sampleTestimonials));
-        setTestimonials(sampleTestimonials);
-      }
+      setLoading(true);
+      const approved = await getApprovedTestimonials();
+      setTestimonials(approved);
+      console.log(`✅ Loaded ${approved.length} approved testimonials`);
     } catch (error) {
-      console.error('Error loading testimonials:', error);
+      console.error('❌ Error loading testimonials:', error);
+      Alert.alert('Error', 'Failed to load testimonials');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
   const loadMyTestimonials = async () => {
     try {
-      const key = `my_testimonials_${user.id}`;
-      const stored = await AsyncStorage.getItem(key);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setMyTestimonials(parsed);
-      }
+      setLoadingMy(true);
+      const userIdentifier = user.phone || user.id || 'anonymous';
+      const myTestimonialsData = await getMyTestimonials(userIdentifier);
+      setMyTestimonials(myTestimonialsData);
+      console.log(`✅ Loaded ${myTestimonialsData.length} user testimonials`);
     } catch (error) {
-      console.error('Error loading my testimonials:', error);
+      console.error('❌ Error loading my testimonials:', error);
+    } finally {
+      setLoadingMy(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadTestimonials();
   };
 
   const pickVideo = async () => {
@@ -204,13 +158,15 @@ export default function Testimonials() {
     setUploading(true);
 
     try {
-      const newTestimonial: Testimonial = {
-        id: Date.now().toString(),
-        userId: user.id,
-        userName: user.name,
-        userRole: 'Miner',
+      const userIdentifier = user.phone || user.id || 'anonymous';
+      
+      const testimonialData: Omit<TestimonialType, 'id' | 'createdAt'> = {
+        userId: userIdentifier,
+        userName: user.name || 'Miner',
+        userRole: user.role || 'miner',
+        userPhone: user.phone || '',
         videoUri: videoUri,
-        caption: caption,
+        caption: caption.trim(),
         likes: 0,
         comments: 0,
         shares: 0,
@@ -219,62 +175,58 @@ export default function Testimonials() {
         likedBy: [],
       };
 
-      // Save to my testimonials
-      const updated = [...myTestimonials, newTestimonial];
-      setMyTestimonials(updated);
-      
-      const key = `my_testimonials_${user.id}`;
-      await AsyncStorage.setItem(key, JSON.stringify(updated));
-
-      // Send to safety officer (simulated - in production, send to backend)
-      await AsyncStorage.setItem(
-        'pending_testimonials',
-        JSON.stringify([...(await getPendingTestimonials()), newTestimonial])
-      );
+      await submitTestimonial(testimonialData);
 
       setShowUploadModal(false);
       setVideoUri(null);
       setCaption('');
       
+      // Reload user's testimonials
+      await loadMyTestimonials();
+      
       Alert.alert(
-        'Success',
-        'Your testimonial has been submitted for review. Safety Officer will approve it before it goes live.',
+        '✅ Submitted!',
+        'Your testimonial has been sent to the Safety Officer for review. You\'ll be notified once it\'s approved.',
         [{ text: 'OK' }]
       );
     } catch (error) {
-      console.error('Error uploading testimonial:', error);
-      Alert.alert('Error', 'Failed to upload testimonial');
+      console.error('❌ Error uploading testimonial:', error);
+      Alert.alert('Error', 'Failed to upload testimonial. Please try again.');
     } finally {
       setUploading(false);
     }
   };
 
-  const getPendingTestimonials = async () => {
-    try {
-      const stored = await AsyncStorage.getItem('pending_testimonials');
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      return [];
-    }
-  };
-
   const handleLike = async (testimonialId: string) => {
-    const updated = testimonials.map(t => {
-      if (t.id === testimonialId) {
-        const alreadyLiked = t.likedBy.includes(user.id);
-        return {
-          ...t,
-          likes: alreadyLiked ? t.likes - 1 : t.likes + 1,
-          likedBy: alreadyLiked
-            ? t.likedBy.filter(id => id !== user.id)
-            : [...t.likedBy, user.id],
-        };
-      }
-      return t;
-    });
+    if (!testimonialId) return;
 
-    setTestimonials(updated);
-    await AsyncStorage.setItem('testimonials_approved', JSON.stringify(updated));
+    try {
+      const userIdentifier = user.phone || user.id || 'anonymous';
+      
+      // Optimistic update
+      const updated = testimonials.map(t => {
+        if (t.id === testimonialId) {
+          const alreadyLiked = t.likedBy.includes(userIdentifier);
+          return {
+            ...t,
+            likes: alreadyLiked ? t.likes - 1 : t.likes + 1,
+            likedBy: alreadyLiked
+              ? t.likedBy.filter(id => id !== userIdentifier)
+              : [...t.likedBy, userIdentifier],
+          };
+        }
+        return t;
+      });
+
+      setTestimonials(updated);
+      
+      // Update Firebase
+      await toggleLikeTestimonial(testimonialId, userIdentifier);
+    } catch (error) {
+      console.error('❌ Error toggling like:', error);
+      // Revert on error
+      await loadTestimonials();
+    }
   };
 
   const handleShare = (testimonial: Testimonial) => {
@@ -303,18 +255,30 @@ export default function Testimonials() {
     }
   };
 
-  const renderTestimonial = ({ item, index }: { item: Testimonial; index: number }) => {
-    const isLiked = item.likedBy.includes(user.id);
+  const renderTestimonial = ({ item, index }: { item: TestimonialType; index: number }) => {
+    const userIdentifier = user.phone || user.id || 'anonymous';
+    const isLiked = item.likedBy.includes(userIdentifier);
 
     return (
       <View style={styles.testimonialContainer}>
         {/* Video Background */}
         <View style={styles.videoWrapper}>
-          {/* Placeholder for video since we don't have actual video URLs */}
-          <View style={styles.videoPlaceholder}>
-            <Text style={styles.videoPlaceholderText}>📹</Text>
-            <Text style={styles.videoPlaceholderSubtext}>Video Testimonial</Text>
-          </View>
+          {item.videoUri ? (
+            <Video
+              ref={index === currentIndex ? videoRef : null}
+              source={{ uri: item.videoUri }}
+              style={styles.video}
+              useNativeControls
+              resizeMode="cover"
+              isLooping
+              shouldPlay={index === currentIndex}
+            />
+          ) : (
+            <View style={styles.videoPlaceholder}>
+              <Text style={styles.videoPlaceholderText}>📹</Text>
+              <Text style={styles.videoPlaceholderSubtext}>Video Testimonial</Text>
+            </View>
+          )}
         </View>
 
         {/* User Info Overlay */}
@@ -382,20 +346,43 @@ export default function Testimonials() {
       </View>
 
       {/* Testimonials Feed (Instagram Reels Style) */}
-      <FlatList
-        ref={flatListRef}
-        data={testimonials}
-        renderItem={renderTestimonial}
-        keyExtractor={item => item.id}
-        pagingEnabled
-        showsVerticalScrollIndicator={false}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        onScroll={(e) => {
-          const index = Math.round(e.nativeEvent.contentOffset.y / height);
-          setCurrentIndex(index);
-        }}
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading testimonials...</Text>
+        </View>
+      ) : testimonials.length === 0 ? (
+        <View style={styles.emptyState}>
+          <VideoIcon size={64} color={COLORS.textMuted} />
+          <Text style={styles.emptyStateText}>No Testimonials Yet</Text>
+          <Text style={styles.emptyStateSubtext}>
+            Be the first to share your safety experience!
+          </Text>
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={() => setShowUploadModal(true)}
+          >
+            <Text style={styles.submitButtonText}>Share Your Story</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={testimonials}
+          renderItem={renderTestimonial}
+          keyExtractor={item => item.id || ''}
+          pagingEnabled
+          showsVerticalScrollIndicator={false}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          onScroll={(e) => {
+            const index = Math.round(e.nativeEvent.contentOffset.y / height);
+            setCurrentIndex(index);
+          }}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+        />
+      )}
 
       {/* Upload Button */}
       <TouchableOpacity
@@ -496,10 +483,15 @@ export default function Testimonials() {
             </View>
 
             <ScrollView style={styles.modalBody}>
-              {myTestimonials.length === 0 ? (
+              {loadingMy ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={COLORS.primary} />
+                  <Text style={styles.loadingText}>Loading your testimonials...</Text>
+                </View>
+              ) : myTestimonials.length === 0 ? (
                 <View style={styles.emptyState}>
                   <VideoIcon size={64} color={COLORS.textMuted} />
-                  <Text style={styles.emptyStateText}>No testimonials yet</Text>
+                  <Text style={styles.emptyStateText}>No Testimonials Yet</Text>
                   <Text style={styles.emptyStateSubtext}>
                     Share your safety experiences with fellow miners
                   </Text>
@@ -579,6 +571,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   videoWrapper: {
+    width: width,
+    height: height,
+  },
+  video: {
     width: width,
     height: height,
   },
@@ -862,5 +858,16 @@ const styles = StyleSheet.create({
   myTestimonialStat: {
     fontSize: 13,
     color: COLORS.text,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: COLORS.text,
+    marginTop: 16,
   },
 });

@@ -144,8 +144,15 @@ export default function MinerHome() {
       locked: !moduleProgress.video
     },
     { 
+      icon: BookOpen, 
+      label: 'Daily Quiz', 
+      route: '/shared/AvailableQuizzes', 
+      completed: moduleProgress.quiz,
+      locked: false
+    },
+    { 
       icon: CheckCircle, 
-      label: 'Take Quiz', 
+      label: 'Old Quiz', 
       route: '/miner/SafetyQuiz', 
       completed: moduleProgress.quiz,
       locked: !moduleProgress.briefing

@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     AlertTriangle,
     BarChart3,
+    BookOpen,
     CheckCircle,
     FileText,
     MapPin,
@@ -15,10 +16,28 @@ import {
 } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
+import { getTestimonialStats } from '../../services/testimonialService';
 
 export default function SafetyOfficerHome() {
   const router = useRouter();
   const { user } = useRoleStore();
+  const [pendingTestimonialsCount, setPendingTestimonialsCount] = useState(0);
+
+  useEffect(() => {
+    loadPendingCount();
+    // Refresh every 30 seconds
+    const interval = setInterval(loadPendingCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadPendingCount = async () => {
+    try {
+      const stats = await getTestimonialStats();
+      setPendingTestimonialsCount(stats.pending);
+    } catch (error) {
+      console.error('Error loading testimonial stats:', error);
+    }
+  };
 
   const mainModules = [
     {
@@ -92,6 +111,14 @@ export default function SafetyOfficerHome() {
       route: '/safety-officer/TestimonialReview',
       color: '#F59E0B',
     },
+    {
+      icon: BookOpen,
+      title: 'Daily Quiz Manager',
+      description: 'Create AI-generated safety quizzes',
+      route: '/safety-officer/DailyQuizManager',
+      color: '#06B6D4',
+      gradient: true,
+    },
   ];
 
   return (
@@ -131,6 +158,8 @@ export default function SafetyOfficerHome() {
           <View style={styles.modulesGrid}>
             {mainModules.map((module, index) => {
               const Icon = module.icon;
+              const showBadge = module.title === 'Testimonial Review' && pendingTestimonialsCount > 0;
+              
               return (
                 <TouchableOpacity
                   key={index}
@@ -138,7 +167,10 @@ export default function SafetyOfficerHome() {
                     styles.moduleCard,
                     module.gradient && styles.moduleCardGradient,
                   ]}
-                  onPress={() => router.push(module.route as any)}
+                  onPress={() => {
+                    router.push(module.route as any);
+                    if (showBadge) loadPendingCount();
+                  }}
                   activeOpacity={0.7}
                 >
                   <View
@@ -148,6 +180,11 @@ export default function SafetyOfficerHome() {
                     ]}
                   >
                     <Icon size={28} color={module.color} />
+                    {showBadge && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{pendingTestimonialsCount}</Text>
+                      </View>
+                    )}
                   </View>
                   <Text style={styles.moduleTitle}>{module.title}</Text>
                   <Text style={styles.moduleDescription}>{module.description}</Text>
@@ -248,6 +285,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: COLORS.card,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   moduleTitle: {
     fontSize: 16,

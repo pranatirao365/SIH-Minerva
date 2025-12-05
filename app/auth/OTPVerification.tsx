@@ -152,7 +152,7 @@ export default function OTPVerification() {
       if (testOTPs[phoneWithoutPrefix] && testOTPs[phoneWithoutPrefix] === otpCode) {
         console.log('✅ Test data OTP verified for phone:', phoneNumber);
         
-        console.log('📊 Fetching user data from Firestore for phone:', phoneNumber);
+        console.log(' Fetching user data from Firestore for phone:', phoneNumber);
         
         // Fetch user using query-based approach
         const userData = await getUserByPhone(phoneNumber);

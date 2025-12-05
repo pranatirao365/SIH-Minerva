@@ -2,22 +2,21 @@ import {
     AlertTriangle,
     BarChart3,
     Bell,
+    BookOpen,
     CheckCircle,
     FileText,
     Settings,
     Shield,
-    Users,
-    Video,
-    Youtube,
-    Sparkles
+    Sparkles,
+    Users
 } from '@/components/Icons';
 import { COLORS } from '@/constants/styles';
+import { useSupervisor } from '@/contexts/SupervisorContext';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoleStore } from '../../hooks/useRoleStore';
-import { useSupervisor } from '@/contexts/SupervisorContext';
 
 export default function SupervisorHome() {
   const router = useRouter();
@@ -127,6 +126,13 @@ export default function SupervisorHome() {
       description: 'Plan and manage shifts',
       route: '/supervisor/ShiftPlanning',
       color: '#10B981',
+    },
+    {
+      icon: BookOpen,
+      title: 'Daily Safety Quizzes',
+      description: 'Take daily safety assessments',
+      route: '/shared/AvailableQuizzes',
+      color: '#06B6D4',
     },
   ];
 

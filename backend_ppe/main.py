@@ -1,12 +1,13 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+import os
+from io import BytesIO
+
 import cv2
 import numpy as np
-from io import BytesIO
-from PIL import Image
-import uvicorn
-import os
 import torch
+import uvicorn
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from PIL import Image
 
 # Monkey-patch torch.load to use weights_only=False for compatibility with older YOLO models
 _original_torch_load = torch.load
@@ -17,15 +18,99 @@ torch.load = patched_torch_load
 
 from ultralytics import YOLO
 
-# PPE Class Mapping - Maps YOLO classes to PPE categories (6 categories)
-PPE_CLASSES = {
-    "helmet": ["Helmet", "helmet", "hardhat", "hard-hat"],
-    "gloves": ["Gloves", "glove"],
-    "vest": ["Vest", "Safety-Vest", "vest", "jacket", "safety-vest"],
-    "eye_protection": ["Goggles", "goggles", "Glasses", "glasses", "Glass", "glass", "eyewear"],
-    "safety_boots": ["Safety-Boot", "Shoes", "shoes", "boots", "boot"],
-    "protective_suit": ["Suit", "suit", "coverall", "overall"]
+# Department-based PPE Requirements
+DEPARTMENT_PPE_SETS = {
+    "mining_operations": {
+        "set_a_basic": {
+            "helmet": ["Helmet", "helmet", "hardhat", "hard-hat"],
+            "gloves": ["Gloves", "glove"],
+            "vest": ["Vest", "Safety-Vest", "vest", "jacket", "safety-vest"],
+            "eye_protection": ["Goggles", "goggles", "Glasses", "glasses", "Glass", "glass", "eyewear"],
+            "safety_boots": ["Safety-Boot", "Shoes", "shoes", "boots", "boot"]
+        },
+        "set_b_dust_drilling": {
+            "helmet": ["Helmet", "helmet", "hardhat", "hard-hat"],
+            "gloves": ["Gloves", "glove"],
+            "vest": ["Vest", "Safety-Vest", "vest", "jacket", "safety-vest"],
+            "eye_protection": ["Goggles", "goggles", "Glasses", "glasses", "Glass", "glass", "eyewear"],
+            "safety_boots": ["Safety-Boot", "Shoes", "shoes", "boots", "boot"],
+            "protective_suit": ["Suit", "suit", "coverall", "overall"]
+        }
+    },
+    "blasting": {
+        "set_a_mandatory": {
+            "helmet": ["Helmet", "helmet", "hardhat", "hard-hat"],
+            "gloves": ["Gloves", "glove"],
+            "vest": ["Vest", "Safety-Vest", "vest", "jacket", "safety-vest"],
+            "eye_protection": ["Goggles", "goggles", "Glasses", "glasses", "Glass", "glass", "eyewear"],
+            "safety_boots": ["Safety-Boot", "Shoes", "shoes", "boots", "boot"]
+        },
+        "set_b_full_protection": {
+            "helmet": ["Helmet", "helmet", "hardhat", "hard-hat"],
+            "gloves": ["Gloves", "glove"],
+            "vest": ["Vest", "Safety-Vest", "vest", "jacket", "safety-vest"],
+            "eye_protection": ["Goggles", "goggles", "Glasses", "glasses", "Glass", "glass", "eyewear"],
+            "safety_boots": ["Safety-Boot", "Shoes", "shoes", "boots", "boot"],
+            "protective_suit": ["Suit", "suit", "coverall", "overall"]
+        }
+    },
+    "equipment_maintenance": {
+        "set_a_standard": {
+            "helmet": ["Helmet", "helmet", "hardhat", "hard-hat"],
+            "gloves": ["Gloves", "glove"],
+            "eye_protection": ["Goggles", "goggles", "Glasses", "glasses", "Glass", "glass", "eyewear"],
+            "safety_boots": ["Safety-Boot", "Shoes", "shoes", "boots", "boot"]
+        },
+        "set_b_chemical_oil": {
+            "helmet": ["Helmet", "helmet", "hardhat", "hard-hat"],
+            "gloves": ["Gloves", "glove"],
+            "eye_protection": ["Goggles", "goggles", "Glasses", "glasses", "Glass", "glass", "eyewear"],
+            "safety_boots": ["Safety-Boot", "Shoes", "shoes", "boots", "boot"],
+            "protective_suit": ["Suit", "suit", "coverall", "overall"],
+            "vest": ["Vest", "Safety-Vest", "vest", "jacket", "safety-vest"]
+        }
+    },
+    "safety_inspection": {
+        "set_a_inspection": {
+            "helmet": ["Helmet", "helmet", "hardhat", "hard-hat"],
+            "vest": ["Vest", "Safety-Vest", "vest", "jacket", "safety-vest"],
+            "safety_boots": ["Safety-Boot", "Shoes", "shoes", "boots", "boot"]
+        },
+        "set_b_risky_zone": {
+            "helmet": ["Helmet", "helmet", "hardhat", "hard-hat"],
+            "vest": ["Vest", "Safety-Vest", "vest", "jacket", "safety-vest"],
+            "safety_boots": ["Safety-Boot", "Shoes", "shoes", "boots", "boot"],
+            "eye_protection": ["Goggles", "goggles", "Glasses", "glasses", "Glass", "glass", "eyewear"],
+            "gloves": ["Gloves", "glove"]
+        }
+    }
 }
+
+# Helper function to get PPE requirements for a department/set
+def get_ppe_requirements(department: str, ppe_set: str = None):
+    """
+    Get PPE requirements for a specific department and set.
+    If ppe_set is not specified, returns the first set (basic/mandatory/standard).
+    """
+    if department not in DEPARTMENT_PPE_SETS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid department. Valid departments: {', '.join(DEPARTMENT_PPE_SETS.keys())}"
+        )
+    
+    dept_sets = DEPARTMENT_PPE_SETS[department]
+    
+    # If no set specified, use the first available set
+    if ppe_set is None:
+        ppe_set = list(dept_sets.keys())[0]
+    
+    if ppe_set not in dept_sets:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid PPE set for {department}. Valid sets: {', '.join(dept_sets.keys())}"
+        )
+    
+    return dept_sets[ppe_set]
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -62,13 +147,40 @@ def health_check():
         "model_classes": model.names
     }
 
-@app.post("/ppe-scan")
-async def ppe_scan(file: UploadFile = File(...)):
+@app.get("/departments")
+def get_departments():
     """
-    PPE Detection Endpoint
+    List all available departments and their PPE sets
+    """
+    departments_info = {}
+    for dept, sets in DEPARTMENT_PPE_SETS.items():
+        departments_info[dept] = {
+            "available_sets": list(sets.keys()),
+            "ppe_requirements": {
+                set_name: list(set_config.keys())
+                for set_name, set_config in sets.items()
+            }
+        }
+    return {
+        "departments": departments_info,
+        "total_departments": len(DEPARTMENT_PPE_SETS)
+    }
+
+@app.post("/ppe-scan")
+async def ppe_scan(
+    file: UploadFile = File(...),
+    department: str = Form(...),
+    ppe_set: str = Form(None)
+):
+    """
+    Department-Specific PPE Detection Endpoint
     
-    Accepts: multipart/form-data with 'file' field containing an image
-    Returns: ALL 8 PPE categories with present/not present status
+    Accepts: multipart/form-data with:
+      - file: image file
+      - department: one of [mining_operations, blasting, equipment_maintenance, safety_inspection]
+      - ppe_set: optional specific set (e.g., set_a_basic, set_b_dust_drilling)
+    
+    Returns: PPE status based on department requirements with compliance flag
     """
     try:
         # Validate content type
@@ -77,6 +189,12 @@ async def ppe_scan(file: UploadFile = File(...)):
                 status_code=400, 
                 detail="Invalid file type. Please upload an image file."
             )
+        
+        # Get department-specific PPE requirements
+        ppe_requirements = get_ppe_requirements(department, ppe_set)
+        
+        # Determine which set is being used
+        actual_set = ppe_set if ppe_set else list(DEPARTMENT_PPE_SETS[department].keys())[0]
         
         # Read and process image
         image_bytes = await file.read()
@@ -92,17 +210,13 @@ async def ppe_scan(file: UploadFile = File(...)):
         # Run YOLO inference
         results = model(image_array)
         
-        # Initialize ALL 6 PPE categories as NOT PRESENT (binary presence detection)
+        # Initialize PPE results based on department requirements
         ppe_results = {
-            "helmet": {"present": False},
-            "gloves": {"present": False},
-            "vest": {"present": False},
-            "eye_protection": {"present": False},
-            "safety_boots": {"present": False},
-            "protective_suit": {"present": False}
+            ppe_type: {"required": True, "present": False}
+            for ppe_type in ppe_requirements.keys()
         }
         
-        # Update with YOLO detections (binary presence only)
+        # Update with YOLO detections
         detected_classes = []
         for result in results:
             boxes = result.boxes
@@ -118,21 +232,39 @@ async def ppe_scan(file: UploadFile = File(...)):
                 if "no-" in raw_class.lower() or "no_" in raw_class.lower() or raw_class.lower().startswith("no "):
                     continue
                 
-                # Map to PPE category using flexible matching
-                for ppe_type, variants in PPE_CLASSES.items():
+                # Map to PPE category using department-specific requirements
+                for ppe_type, variants in ppe_requirements.items():
                     if raw_class in variants:
                         # Mark as present (binary detection)
                         ppe_results[ppe_type]["present"] = True
                         print(f"✓ Detected: {ppe_type} -> {raw_class} ({confidence:.2%})")
                         break
         
-        print(f"\n📊 Raw Detections: {', '.join(detected_classes) if detected_classes else 'None'}")
-        print(f"\n📊 Final Results (Binary Presence):")
+        # Calculate compliance
+        total_required = len(ppe_results)
+        total_present = sum(1 for item in ppe_results.values() if item["present"])
+        compliance_percentage = (total_present / total_required * 100) if total_required > 0 else 0
+        is_compliant = compliance_percentage == 100
+        
+        print(f"\n📊 Department: {department} | Set: {actual_set}")
+        print(f"📊 Raw Detections: {', '.join(detected_classes) if detected_classes else 'None'}")
+        print("\n📊 Final Results (Department-Specific):")
         for ppe_type, data in ppe_results.items():
             status = "✓ PRESENT" if data["present"] else "✗ MISSING"
-            print(f"  {ppe_type}: {status}")
+            print(f"  {ppe_type}: {status} (Required)")
+        print(f"\n{'✓' if is_compliant else '✗'} Compliance: {compliance_percentage:.1f}% ({total_present}/{total_required})")
         
-        return ppe_results
+        return {
+            "department": department,
+            "ppe_set": actual_set,
+            "ppe_items": ppe_results,
+            "compliance": {
+                "is_compliant": is_compliant,
+                "percentage": round(compliance_percentage, 1),
+                "items_present": total_present,
+                "items_required": total_required
+            }
+        }
     
     except HTTPException:
         raise

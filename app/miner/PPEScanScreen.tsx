@@ -1,35 +1,46 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { doc, getDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from '../../components/Icons';
 import PPEDetectionItem from '../../components/PPEDetectionItem';
 import SafetyScoreCard from '../../components/SafetyScoreCard';
+import { getPPEApiUrl } from '../../config/apiConfig';
+import { db } from '../../config/firebase';
+import { useRoleStore } from '../../hooks/useRoleStore';
 
-const API_URL = 'http://192.168.137.1:8000/ppe-scan';
+const API_BASE_URL = getPPEApiUrl();
+const API_URL = `${API_BASE_URL}/ppe-scan`;
 
-// Backend response format (snake_case keys from API) - Binary presence only
+// Backend response format (snake_case keys from API) - Department-specific
 interface PPEResult {
+  required: boolean;
   present: boolean;
 }
 
 interface BackendResponse {
-  helmet: PPEResult;
-  gloves: PPEResult;
-  vest: PPEResult;
-  eye_protection: PPEResult;
-  safety_boots: PPEResult;
-  protective_suit: PPEResult;
+  department: string;
+  ppe_set: string;
+  ppe_items: {
+    [key: string]: PPEResult;
+  };
+  compliance: {
+    is_compliant: boolean;
+    percentage: number;
+    items_present: number;
+    items_required: number;
+  };
 }
 
 // Our processed PPE element
@@ -52,54 +63,42 @@ const PPE_CONFIG = [
 
 export default function PPEScanScreen() {
   const router = useRouter();
+  const { user } = useRoleStore();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [ppeElements, setPpeElements] = useState<PPEElement[]>([]);
   const [loading, setLoading] = useState(false);
+  const [department, setDepartment] = useState<string>('Loading...');
 
-  // Process backend response into 6 unique PPE elements with BINARY SCORING
+  // Process backend response - ONLY department-specific PPE items
   // Binary scoring: present = 100 points, missing = 0 points
   const processDetections = (backendResponse: BackendResponse): PPEElement[] => {
     const results: PPEElement[] = [];
+    const ppeItems = backendResponse.ppe_items;
 
-    PPE_CONFIG.forEach(config => {
-      let isPresent = false;
-      let confidence = 0;
-
-      // Map frontend display names to backend snake_case keys
-      // PRESERVE EXISTING PRESENT/MISSING DETECTION LOGIC
-      switch (config.name) {
-        case 'Helmet':
-          isPresent = backendResponse.helmet?.present || false;
-          confidence = isPresent ? 100 : 0; // Binary: 100 if present, 0 if missing
-          break;
-        case 'Vest':
-          isPresent = backendResponse.vest?.present || false;
-          confidence = isPresent ? 100 : 0;
-          break;
-        case 'Gloves':
-          isPresent = backendResponse.gloves?.present || false;
-          confidence = isPresent ? 100 : 0;
-          break;
-        case 'Eye Protection':
-          isPresent = backendResponse.eye_protection?.present || false;
-          confidence = isPresent ? 100 : 0;
-          break;
-        case 'Safety Boots':
-          isPresent = backendResponse.safety_boots?.present || false;
-          confidence = isPresent ? 100 : 0;
-          break;
-        case 'Protective Suit':
-          isPresent = backendResponse.protective_suit?.present || false;
-          confidence = isPresent ? 100 : 0;
-          break;
-      }
-
-      results.push({
-        name: config.name,
-        icon: config.icon,
-        confidence: confidence, // Now 100 or 0 (binary)
-        isPresent: isPresent
+    // Only process items that are required for this department
+    Object.keys(ppeItems).forEach(itemKey => {
+      const item = ppeItems[itemKey];
+      
+      // Find matching config
+      const config = PPE_CONFIG.find(c => {
+        const mappedKey = c.name.toLowerCase().replace(' ', '_');
+        return itemKey === mappedKey || 
+               (itemKey === 'helmet' && c.name === 'Helmet') ||
+               (itemKey === 'vest' && c.name === 'Vest') ||
+               (itemKey === 'gloves' && c.name === 'Gloves') ||
+               (itemKey === 'eye_protection' && c.name === 'Eye Protection') ||
+               (itemKey === 'safety_boots' && c.name === 'Safety Boots') ||
+               (itemKey === 'protective_suit' && c.name === 'Protective Suit');
       });
+
+      if (config) {
+        results.push({
+          name: config.name,
+          icon: config.icon,
+          confidence: item.present ? 100 : 0,
+          isPresent: item.present
+        });
+      }
     });
 
     return results;
@@ -112,6 +111,33 @@ export default function PPEScanScreen() {
     const presentCount = elements.filter(e => e.isPresent).length;
     return (presentCount / elements.length) * 100;
   };
+
+  // Fetch user's department on mount
+  React.useEffect(() => {
+    const fetchDepartment = async () => {
+      if (user?.id) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.id));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const userDept = userData.department || 'mining_operations';
+            // Format department name for display
+            const formatted = userDept
+              .split('_')
+              .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+            setDepartment(formatted);
+          } else {
+            setDepartment('Unknown');
+          }
+        } catch (error) {
+          console.error('Error fetching department:', error);
+          setDepartment('Error');
+        }
+      }
+    };
+    fetchDepartment();
+  }, [user]);
 
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -175,14 +201,31 @@ export default function PPEScanScreen() {
         console.warn('⚠️ Backend health check failed, proceeding anyway...');
       }
 
+      // Get user's department from Firebase
+      let department = 'mining_operations'; // Default fallback
+      if (user?.id) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.id));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            department = userData.department || 'mining_operations';
+            console.log('✅ User department:', department);
+          }
+        } catch (error) {
+          console.warn('⚠️ Could not fetch user department, using default:', error);
+        }
+      }
+
       const formData = new FormData();
       formData.append('file', {
         uri: selectedImage,
         type: 'image/jpeg',
         name: 'photo.jpg',
       } as any);
+      formData.append('department', department);
 
       console.log('📤 Sending image to:', API_URL);
+      console.log('📊 Department:', department);
 
       // Create abort controller for timeout
       const controller = new AbortController();
@@ -206,45 +249,23 @@ export default function PPEScanScreen() {
           throw new Error(`Backend error: ${response.status}`);
         }
 
-        const rawData: any = await response.json();
+        const data: BackendResponse = await response.json();
         
-        console.log('📥 RAW Backend Response:', JSON.stringify(rawData, null, 2));
-        console.log('📋 Response Keys:', Object.keys(rawData));
+        console.log('📥 Backend Response:', JSON.stringify(data, null, 2));
+        console.log('📊 Department:', data.department);
+        console.log('📋 PPE Set:', data.ppe_set);
+        console.log('✅ Compliance:', data.compliance.percentage + '%');
+        console.log('🔍 Required Items:', Object.keys(data.ppe_items).join(', '));
         
-        // Normalize response - handle both old and new formats, extract presence only
-        const data: BackendResponse = {
-          helmet: rawData.helmet || rawData.Helmet || { present: false },
-          gloves: rawData.gloves || rawData.Gloves || { present: false },
-          vest: rawData.vest || rawData.Vest || { present: false },
-          eye_protection: rawData.eye_protection || { present: false },
-          safety_boots: rawData.safety_boots || rawData.Shoes || { present: false },
-          protective_suit: rawData.protective_suit || { present: false }
-        };
-        
-        // Ensure presence boolean is extracted correctly
-        data.helmet = { present: data.helmet.present === true };
-        data.gloves = { present: data.gloves.present === true };
-        data.vest = { present: data.vest.present === true };
-        data.eye_protection = { present: data.eye_protection.present === true };
-        data.safety_boots = { present: data.safety_boots.present === true };
-        data.protective_suit = { present: data.protective_suit.present === true };
-        
-        console.log('📋 Normalized Structure (Binary Presence - All 6 PPE Categories):');
-        console.log('  - helmet:', data.helmet.present ? '✓ PRESENT' : '✗ MISSING');
-        console.log('  - gloves:', data.gloves.present ? '✓ PRESENT' : '✗ MISSING');
-        console.log('  - vest:', data.vest.present ? '✓ PRESENT' : '✗ MISSING');
-        console.log('  - eye_protection:', data.eye_protection.present ? '✓ PRESENT' : '✗ MISSING');
-        console.log('  - safety_boots:', data.safety_boots.present ? '✓ PRESENT' : '✗ MISSING');
-        console.log('  - protective_suit:', data.protective_suit.present ? '✓ PRESENT' : '✗ MISSING')
-        
-        // Process the backend response into 6 PPE elements
+        // Process only department-specific PPE items
         const processedElements = processDetections(data);
         setPpeElements(processedElements);
         
         console.log('✅ Processed PPE Elements:', processedElements);
         
         const detectedCount = processedElements.filter(e => e.isPresent).length;
-        console.log(`📊 Detection Summary: ${detectedCount}/6 PPE items detected`);
+        const totalRequired = processedElements.length;
+        console.log(`📊 Detection Summary: ${detectedCount}/${totalRequired} department-specific PPE items detected`);
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
         
@@ -260,7 +281,7 @@ export default function PPEScanScreen() {
       let errorMessage = 'Failed to scan image. Please try again.';
       
       if (error.message?.includes('Network') || error.name === 'TypeError') {
-        errorMessage = 'Cannot reach backend server. Please check:\n• Backend is running on http://192.168.137.1:8000\n• Device is on same network\n• No firewall blocking connection';
+        errorMessage = `Cannot reach backend server. Please check:\n• Backend is running on ${API_BASE_URL}\n• Device is on same network\n• No firewall blocking connection`;
       } else if (error.message?.includes('Backend error')) {
         errorMessage = `Backend error: ${error.message}`;
       } else if (error.message?.includes('Invalid response')) {
@@ -270,6 +291,7 @@ export default function PPEScanScreen() {
       Alert.alert('Error', errorMessage);
       console.error('❌ Scan error:', error);
       console.error('Error details:', error.message || error);
+      console.error('API URL:', API_URL);
     } finally {
       setLoading(false);
     }
@@ -287,6 +309,7 @@ export default function PPEScanScreen() {
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>PPE Detection</Text>
           <Text style={styles.headerSubtitle}>Safety Compliance Scanner</Text>
+          <Text style={styles.departmentBadge}>🏭 {department}</Text>
         </View>
         <View style={styles.placeholder} />
       </View>
@@ -436,6 +459,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
+  },
+  departmentBadge: {
+    marginTop: 6,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FF6B00',
+    backgroundColor: 'rgba(255, 107, 0, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   placeholder: {
     width: 30,

@@ -1,9 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { useRouter } from 'expo-router';
 import { getApp } from 'firebase/app';
 import { PhoneAuthProvider } from 'firebase/auth';
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Phone } from '../../components/Icons';
@@ -30,7 +29,9 @@ const TEST_PHONES = [
   '+918000000008',  // Santosh (Miner)
   '+918000000009',  // Sunil (Miner)
   '+918000000010',  // Gopal (Miner)
-  '+917000000001'   // Anita (Safety Officer)
+  '+917000000001',  // Anita (Safety Officer)
+  '+919876543210',  // miner-1 (Blasting Department) - Test OTP: 123456
+  '+919876543211'   // miner-2 (Equipment Maintenance) - Test OTP: 123456
 ];
 const IS_TEST_MODE = true; // Set to false in production
 

@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
+import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -143,7 +143,9 @@ export default function OTPVerification() {
         '1234567891': '222222', // Test Engineer
         '1234567892': '333333', // Test Supervisor
         '1234567893': '444444', // Test Safety Officer
-        '1234567894': '555555'  // Test Admin
+        '1234567894': '555555', // Test Admin
+        '9876543210': '123456', // miner-1 (Blasting Department)
+        '9876543211': '123456'  // miner-2 (Equipment Maintenance)
       };
       
       const phoneWithoutPrefix = phoneNumber.replace('+91', '');

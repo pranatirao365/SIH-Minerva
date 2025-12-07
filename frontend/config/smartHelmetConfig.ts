@@ -8,7 +8,7 @@
 // ⚠️ UPDATE THIS WITH YOUR ESP32'S ACTUAL IP ADDRESS
 export const ESP32_CONFIG = {
   // ESP32 IP Address - Check Arduino Serial Monitor to get this
-  IP: '172.16.85.150', // Example: '192.168.1.100' or '10.0.0.50'
+  IP: process.env.EXPO_PUBLIC_ESP32_IP || '192.168.1.100', // Set EXPO_PUBLIC_ESP32_IP in .env
   
   // WebSocket Port (default: 81, don't change unless you modified ESP32 code)
   WS_PORT: 81,

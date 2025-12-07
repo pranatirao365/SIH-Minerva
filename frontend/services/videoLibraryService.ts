@@ -99,6 +99,7 @@ export interface VideoRequestDocument {
   status: 'pending' | 'in-progress' | 'completed' | 'rejected';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   assignedTo?: string; // safety officer ID
+  minerIds?: string[]; // miner IDs to assign the video to when completed
   videoId?: string; // populated when request is fulfilled
   notes?: string; // additional notes from safety officer
   updatedAt: Timestamp;
@@ -207,7 +208,7 @@ export class VideoLibraryService {
       } else if (value === null) {
         // Keep null values
         cleaned[key] = null;
-      } else if (typeof value === 'object' && !Array.isArray(value) && !(value instanceof Timestamp)) {
+      } else if (typeof value === 'object' && !Array.isArray(value) && !(value as any instanceof Timestamp)) {
         // Recursively clean nested objects (but not arrays or Timestamps)
         const cleanedNested = this.removeUndefined(value);
         if (Object.keys(cleanedNested).length > 0) {
@@ -315,19 +316,40 @@ export class VideoLibraryService {
     limit?: number;
   } = {}): Promise<VideoDocument[]> {
     try {
-      // Simple query without composite index - just order by createdAt
-      const q = query(collection(db, 'videoLibrary'), orderBy('createdAt', 'desc'));
-
-      const querySnapshot = await getDocs(q);
+      console.log('🔍 VideoLibraryService.getVideos called with options:', options);
+      
+      // Try with ordering first, fallback to simple query if it fails
+      let querySnapshot;
+      try {
+        const q = query(collection(db, 'videoLibrary'), orderBy('createdAt', 'desc'));
+        console.log('🔍 Query created for collection: videoLibrary with ordering');
+        querySnapshot = await getDocs(q);
+      } catch (orderError) {
+        console.warn('⚠️ Ordered query failed, trying simple query:', orderError);
+        const q = collection(db, 'videoLibrary');
+        querySnapshot = await getDocs(q);
+      }
+      
+      console.log('🔍 Query executed, snapshot size:', querySnapshot.size);
+      
       let videos: VideoDocument[] = [];
 
       querySnapshot.forEach((doc) => {
-        videos.push(doc.data() as VideoDocument);
+        const data = doc.data() as VideoDocument;
+        console.log('📄 Document:', doc.id, 'data keys:', Object.keys(data), 'status:', data.status);
+        videos.push(data);
       });
+
+      console.log('📊 Videos before filtering:', videos.length);
 
       // Filter in memory to avoid composite index requirements
       if (options.status) {
-        videos = videos.filter(v => v.status === options.status);
+        console.log('🔍 Filtering by status:', options.status);
+        videos = videos.filter(v => {
+          const videoStatus = v.status || 'active'; // Default to 'active' if status is missing
+          return videoStatus === options.status;
+        });
+        console.log('📊 Videos after status filter:', videos.length);
       }
 
       if (options.language) {
@@ -342,6 +364,7 @@ export class VideoLibraryService {
         videos = videos.slice(0, options.limit);
       }
 
+      console.log('📊 Videos after filtering:', videos.length);
       return videos;
     } catch (error) {
       console.error('❌ Error getting videos:', error);
@@ -779,7 +802,16 @@ export class VideoLibraryService {
       }
 
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => doc.data() as VideoRequestDocument);
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          id: doc.id,
+          requestedAt: (data.requestedAt && typeof data.requestedAt.toDate === 'function') ? data.requestedAt : Timestamp.now(),
+          updatedAt: (data.updatedAt && typeof data.updatedAt.toDate === 'function') ? data.updatedAt : Timestamp.now(),
+          completedAt: data.completedAt && typeof data.completedAt.toDate === 'function' ? data.completedAt : undefined,
+        } as VideoRequestDocument;
+      });
     } catch (error) {
       console.error('❌ Error getting video requests:', error);
       throw error;
@@ -795,7 +827,15 @@ export class VideoLibraryService {
       const q = query(requestsRef, where('requestedBy', '==', supervisorId), orderBy('requestedAt', 'desc'));
 
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => doc.data() as VideoRequestDocument);
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          id: doc.id,
+          requestedAt: (data.requestedAt && typeof data.requestedAt.toDate === 'function') ? data.requestedAt : Timestamp.now(),
+          updatedAt: (data.updatedAt && typeof data.updatedAt.toDate === 'function') ? data.updatedAt : Timestamp.now(),
+        } as VideoRequestDocument;
+      });
     } catch (error) {
       console.error('❌ Error getting supervisor requests:', error);
       throw error;
@@ -835,6 +875,32 @@ export class VideoLibraryService {
       console.log('✅ Video request completed successfully:', requestId);
     } catch (error) {
       console.error('❌ Error completing video request:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a specific video request by ID
+   */
+  static async getVideoRequestById(requestId: string): Promise<VideoRequestDocument | null> {
+    try {
+      const requestRef = doc(db, 'videoRequests', requestId);
+      const requestSnap = await getDoc(requestRef);
+
+      if (requestSnap.exists()) {
+        const data = requestSnap.data();
+        return {
+          ...data,
+          id: requestSnap.id,
+          requestedAt: (data.requestedAt && typeof data.requestedAt.toDate === 'function') ? data.requestedAt : Timestamp.now(),
+          updatedAt: (data.updatedAt && typeof data.updatedAt.toDate === 'function') ? data.updatedAt : Timestamp.now(),
+        } as VideoRequestDocument;
+      } else {
+        console.log('❌ Video request not found:', requestId);
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Error getting video request:', error);
       throw error;
     }
   }
@@ -962,6 +1028,78 @@ export class VideoLibraryService {
       return matches;
     } catch (error) {
       console.error('❌ Error searching videos by similarity:', error);
+      throw error;
+    }
+  }
+
+  // ==================== NOTIFICATION OPERATIONS ====================
+
+  /**
+   * Create a notification
+   */
+  static async createNotification(notificationData: {
+    userId: string;
+    title: string;
+    message: string;
+    type: 'info' | 'success' | 'warning' | 'error';
+    relatedId?: string; // video ID, assignment ID, etc.
+    actionUrl?: string; // deep link or screen to navigate to
+  }): Promise<string> {
+    try {
+      const notificationId = `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const notificationRef = doc(db, 'notifications', notificationId);
+
+      const notification = {
+        id: notificationId,
+        ...notificationData,
+        isRead: false,
+        createdAt: Timestamp.now(),
+      };
+
+      await setDoc(notificationRef, notification);
+      console.log('✅ Notification created:', notificationId);
+      return notificationId;
+    } catch (error) {
+      console.error('❌ Error creating notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get notifications for a user
+   */
+  static async getUserNotifications(userId: string, limitCount: number = 50): Promise<any[]> {
+    try {
+      const q = query(
+        collection(db, 'notifications'),
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc'),
+        limit(limitCount)
+      );
+
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id,
+      }));
+    } catch (error) {
+      console.error('❌ Error getting notifications:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark notification as read
+   */
+  static async markNotificationAsRead(notificationId: string): Promise<void> {
+    try {
+      const notificationRef = doc(db, 'notifications', notificationId);
+      await updateDoc(notificationRef, {
+        isRead: true,
+        readAt: Timestamp.now(),
+      });
+    } catch (error) {
+      console.error('❌ Error marking notification as read:', error);
       throw error;
     }
   }

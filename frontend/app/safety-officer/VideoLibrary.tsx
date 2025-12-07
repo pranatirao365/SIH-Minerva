@@ -67,24 +67,79 @@ export default function VideoLibrary() {
 
   const loadVideos = async () => {
     try {
+      console.log('🔍 Starting to load videos from Firestore...');
+      setLoading(true);
+      
       // Load videos from Firestore
       const fetchedVideos = await VideoLibraryService.getVideos({ status: 'active' });
       
-      // Transform to match VideoItem interface
-      const transformedVideos: VideoItem[] = fetchedVideos.map(video => ({
-        id: video.id,
-        topic: video.topic,
-        language: video.language,
-        languageName: video.languageName,
-        videoUrl: video.videoUrl,
-        timestamp: video.createdAt.toMillis(),
-        thumbnail: video.thumbnailUrl,
-      }));
+      console.log('📊 Raw videos from Firestore:', fetchedVideos);
+      console.log('📊 Number of videos fetched:', fetchedVideos.length);
+      console.log('📊 Video details:', fetchedVideos.map(v => ({ id: v.id, topic: v.topic, status: v.status })));
       
+      if (fetchedVideos.length === 0) {
+        console.log('⚠️ No videos found in Firestore with status "active", trying without status filter...');
+        
+        // Try without status filter to see if videos exist with different status
+        const allVideos = await VideoLibraryService.getVideos({});
+        console.log('📊 All videos in database:', allVideos.length);
+        console.log('📊 All video statuses:', allVideos.map(v => ({ id: v.id, status: v.status })));
+        
+        console.log('⚠️ No videos found in Firestore, checking AsyncStorage fallback...');
+        
+        // Fallback to AsyncStorage if no videos in Firestore
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        const storedVideos = await AsyncStorage.getItem('videoLibrary');
+        
+        if (storedVideos) {
+          const parsedVideos = JSON.parse(storedVideos);
+          console.log('📱 Found videos in AsyncStorage:', parsedVideos.length);
+          
+          // Transform AsyncStorage videos to match VideoItem interface
+          const transformedVideos: VideoItem[] = parsedVideos.map((video: any) => ({
+            id: video.id,
+            topic: video.topic,
+            language: video.language,
+            languageName: video.languageName || video.language,
+            videoUrl: video.videoUrl,
+            timestamp: video.timestamp,
+            thumbnail: video.thumbnail,
+          }));
+          
+          setVideos(transformedVideos);
+          console.log(`✅ Loaded ${transformedVideos.length} videos from AsyncStorage fallback`);
+          return;
+        }
+      }
+      
+      // Transform to match VideoItem interface
+      const transformedVideos: VideoItem[] = fetchedVideos.map(video => {
+        console.log('🎬 Processing video:', video.id, video.topic, video.createdAt);
+        
+        // Safely handle timestamp conversion
+        let timestamp = Date.now();
+        if (video.createdAt && typeof video.createdAt.toMillis === 'function') {
+          timestamp = video.createdAt.toMillis();
+        } else if (video.createdAt && typeof video.createdAt === 'number') {
+          timestamp = video.createdAt;
+        }
+        
+        return {
+          id: video.id,
+          topic: video.topic || 'Untitled Video',
+          language: video.language || 'en',
+          languageName: video.languageName || video.language || 'English',
+          videoUrl: video.videoUrl || '',
+          timestamp: timestamp,
+          thumbnail: video.thumbnailUrl,
+        };
+      });
+      
+      console.log('✅ Transformed videos:', transformedVideos);
       setVideos(transformedVideos);
       console.log(`✅ Loaded ${transformedVideos.length} videos from Firestore`);
     } catch (error) {
-      console.error('Error loading videos:', error);
+      console.error('❌ Error loading videos:', error);
       Alert.alert('Error', 'Failed to load video library from database');
     } finally {
       setLoading(false);

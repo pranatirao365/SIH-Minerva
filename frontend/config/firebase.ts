@@ -8,8 +8,8 @@ import { getStorage } from 'firebase/storage';
 const firebaseConfig = {
   apiKey: "AIzaSyBl0ytxI6D1QKz4Megv12CzC3bi5SyaHAE",
   authDomain: "sihtut-1.firebaseapp.com",
-  projectId: "sihtut-1",
-  storageBucket: "sihtut-1.firebasestorage.app",
+  projectId: "sih-dec-2025",
+  storageBucket: "sih-dec-2025.firebasestorage.app",
   messagingSenderId: "929345200458",
   appId: "1:929345200458:web:d9733c438dbdd61f8ae1b3",
   measurementId: "G-E4FYZ240XF"

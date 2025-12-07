@@ -163,11 +163,7 @@ export class VideoLibraryService {
       console.log('📹 Video URL:', videoUrl);
       
       // Extract the video path from URL
-<<<<<<< HEAD
       // URL format: http://172.16.85.150:4000/videos/filename.mp4
-=======
-      // URL format: http://172.20.10.2:4000/videos/filename.mp4
->>>>>>> 528492da79a4bb2061d86a78444e23a31b5563c5
       const urlParts = videoUrl.split('/videos/');
       if (urlParts.length < 2) {
         console.warn('⚠️ Invalid video URL format, skipping deletion');
@@ -175,11 +171,7 @@ export class VideoLibraryService {
       }
       
       const filename = urlParts[1];
-<<<<<<< HEAD
       const deleteUrl = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.85.150'}:4000/api/video/delete/${filename}`;
-=======
-      const deleteUrl = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.20.10.2'}:4000/api/video/delete/${filename}`;
->>>>>>> 528492da79a4bb2061d86a78444e23a31b5563c5
       
       console.log('🔗 Delete endpoint:', deleteUrl);
       

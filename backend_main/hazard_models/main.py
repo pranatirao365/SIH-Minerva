@@ -92,11 +92,26 @@ async def load_model():
     # Create options
     opt = Options()
     
-    # Load model using the existing create_model function
-    model = create_model(opt, cp_path='pretrained_net_G.pth')
-    model.eval()
+    # Check if model file exists
+    model_path = 'pretrained_net_G.pth'
+    if not os.path.exists(model_path):
+        print(f"⚠️  WARNING: Model file '{model_path}' not found!")
+        print("⚠️  The API will start but predictions will fail.")
+        print("⚠️  Please download the pretrained model from:")
+        print("⚠️  https://github.com/yhlleo/DeepCrack/releases or your model source")
+        print("=" * 60)
+        model = None
+        return
     
-    print("Model loaded successfully!")
+    # Load model using the existing create_model function
+    try:
+        model = create_model(opt, cp_path=model_path)
+        model.eval()
+        print("✅ Model loaded successfully!")
+    except Exception as e:
+        print(f"❌ Error loading model: {e}")
+        model = None
+    
     print("=" * 60)
 
 

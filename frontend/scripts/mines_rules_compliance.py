@@ -7,6 +7,7 @@ import json
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 
 
 @dataclass
@@ -36,373 +37,63 @@ class MinesRulesDatabase:
     
     def __init__(self):
         self.rules = self._initialize_rules()
+        self.topic_keywords = self._initialize_topic_keywords()
     
     def _initialize_rules(self) -> Dict[str, ComplianceRule]:
-        """Initialize comprehensive rules database"""
+        """Load rules from JSON configuration file"""
+        try:
+            config_path = Path(__file__).parent / "compliance_rules.json"
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            
+            rules = {}
+            for rule_id, rule_data in config['rules'].items():
+                rules[rule_id] = ComplianceRule(
+                    rule_number=rule_data['rule_number'],
+                    chapter=rule_data['chapter'],
+                    title=rule_data['title'],
+                    key_requirements=rule_data['key_requirements'],
+                    applicable_forms=rule_data.get('applicable_forms', []),
+                    visual_elements=rule_data.get('visual_elements', []),
+                    forbidden_terms=rule_data.get('forbidden_terms', [])
+                )
+            return rules
+        except FileNotFoundError:
+            print("Warning: compliance_rules.json not found, using minimal fallback rules")
+            return self._get_fallback_rules()
+        except Exception as e:
+            print(f"Warning: Error loading compliance rules: {e}, using fallback rules")
+            return self._get_fallback_rules()
+    
+    def _initialize_topic_keywords(self) -> Dict[str, List[str]]:
+        """Load topic keywords from JSON configuration file"""
+        try:
+            config_path = Path(__file__).parent / "compliance_rules.json"
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            return config.get('topic_keywords', {})
+        except Exception:
+            return {}
+    
+    def _get_fallback_rules(self) -> Dict[str, ComplianceRule]:
+        """Minimal fallback rules if JSON loading fails"""
         return {
-            # Chapter VI - First-Aid and Medical Appliances
-            "rule_40": ComplianceRule(
-                rule_number="40",
-                chapter="VI",
-                title="Arrangements for training persons in first-aid",
+            "rule_emergency_prep": ComplianceRule(
+                rule_number="Emergency Preparedness",
+                chapter="General",
+                title="Emergency preparedness and evacuation procedures",
                 key_requirements=[
-                    "Adequate training arrangements for first-aid personnel",
-                    "Provision of prescribed equipment",
-                    "Speedy removal arrangements to dispensary/hospital",
-                    "Proper ambulance van or suitable vehicle"
+                    "Familiarize yourself with all emergency exit routes",
+                    "Follow emergency exit signs during evacuation",
+                    "Assist injured colleagues when safe to do so"
                 ],
                 visual_elements=[
-                    "First-aid training session",
-                    "Equipment demonstration",
-                    "Ambulance vehicle",
-                    "Emergency response drill"
+                    "Emergency exit sign",
+                    "Mine map with escape routes",
+                    "Miner assisting injured colleague"
                 ],
-                forbidden_terms=["Rule 40", "Mines Rules 1955"]
-            ),
-            
-            "rule_41": ComplianceRule(
-                rule_number="41",
-                chapter="VI",
-                title="First-aid qualifications",
-                key_requirements=[
-                    "St. John's Ambulance Association (India) certificate",
-                    "Qualified nurse, dresser, compounder-cum-dresser or medical practitioner",
-                    "Valid first-aid certificate holder"
-                ],
-                visual_elements=[
-                    "Certificate display (generic, not actual)",
-                    "Trained personnel providing first-aid",
-                    "Demonstration of proper techniques"
-                ],
-                forbidden_terms=["Rule 41", "St. John's certificate number"]
-            ),
-            
-            "rule_44": ComplianceRule(
-                rule_number="44",
-                chapter="VI",
-                title="First-aid stations",
-                key_requirements=[
-                    "Above ground: at shaft tops, workshops, screening plants, every 50+ workers",
-                    "Opencast: 1 station per 50 persons",
-                    "Below ground: shaft bottoms, haulage drives, district entrances",
-                    "Equipment as per Third Schedule"
-                ],
-                applicable_forms=["Third Schedule"],
-                visual_elements=[
-                    "First-aid station signage",
-                    "Equipment layout",
-                    "Accessible location markers",
-                    "Worker approaching station"
-                ],
-                forbidden_terms=["Rule 44", "Third Schedule"]
-            ),
-            
-            "rule_45": ComplianceRule(
-                rule_number="45",
-                chapter="VI",
-                title="Carrying of first-aid outfit by officials",
-                key_requirements=[
-                    "Overman, foreman, sirdar, mate, shot-firer, blaster, electrician, mechanic must carry",
-                    "Outfit contents: 1 large sterilised dressing, 1 small sterilised dressing, iodine/antiseptic",
-                    "Securely packed against dirt and water"
-                ],
-                visual_elements=[
-                    "Official checking first-aid kit",
-                    "Contents display (generic)",
-                    "Waterproof packaging",
-                    "Proper carrying method"
-                ],
-                forbidden_terms=["Rule 45", "specific official titles"]
-            ),
-            
-            "rule_45a": ComplianceRule(
-                rule_number="45A",
-                chapter="VI",
-                title="Medical attention in case of injury",
-                key_requirements=[
-                    "Immediate reporting of injury to official",
-                    "Official arranges first-aid",
-                    "Medical practitioner called if necessary",
-                    "Person in charge of nearest first-aid station to render aid"
-                ],
-                visual_elements=[
-                    "Worker reporting injury",
-                    "Official responding",
-                    "First-aid being administered",
-                    "Communication with medical personnel"
-                ],
-                forbidden_terms=["Rule 45A", "specific reporting forms"]
-            ),
-            
-            # Chapter IV-A - Medical Examination
-            "rule_29b": ComplianceRule(
-                rule_number="29B",
-                chapter="IV-A",
-                title="Initial and periodical medical examinations",
-                key_requirements=[
-                    "Initial exam within 5 years for current employees",
-                    "Initial exam for new employees",
-                    "Periodic exams every 5 years",
-                    "Asbestos workers: every 12 months",
-                    "X-ray every 3 years for asbestos workers"
-                ],
-                applicable_forms=["Form M", "Form N", "Form O", "Form P"],
-                visual_elements=[
-                    "Medical examination process",
-                    "Vision testing (6/12, 6/18 standards)",
-                    "Chest X-ray procedure",
-                    "Lung function testing"
-                ],
-                forbidden_terms=["Rule 29B", "Form M", "Form N", "Form O", "Form P"]
-            ),
-            
-            "rule_29f": ComplianceRule(
-                rule_number="29F",
-                chapter="IV-A",
-                title="Standard and report of medical examination",
-                key_requirements=[
-                    "Initial exam per Form P standards",
-                    "New employee exam per Form P-I standards",
-                    "Medical certificate in Form O issued",
-                    "Copy to person examined via registered post",
-                    "Copy to mine manager"
-                ],
-                applicable_forms=["Form O", "Form P", "Form P-I"],
-                visual_elements=[
-                    "Medical examination checklist",
-                    "Vision test: 6/12 better eye, 6/18 worse eye",
-                    "Hearing test",
-                    "Chest measurement",
-                    "Fitness certification process"
-                ],
-                forbidden_terms=["Form O", "Form P", "Form P-I", "certificate number"]
-            ),
-            
-            # Form P Standards (embedded in Rule 29F)
-            "form_p": ComplianceRule(
-                rule_number="Form P",
-                chapter="IV-A",
-                title="Medical Standard of fitness for Persons Employed",
-                key_requirements=[
-                    "Vision: Better eye 6/12, Worse eye 6/18",
-                    "No night blindness for underground/shift workers",
-                    "Good hearing, no progressive deafness",
-                    "Chest X-ray: 300mA machine, PA view",
-                    "Lung function tests: FVC and FEV1",
-                    "No active pulmonary disease",
-                    "Skeletal/nervous system: well-formed limbs, no deformity",
-                    "Circulatory system: no heart/vascular disease"
-                ],
-                visual_elements=[
-                    "Eye chart testing (6/12, 6/18 lines)",
-                    "Audiometry testing",
-                    "Chest X-ray imaging",
-                    "Spirometry lung test",
-                    "Physical examination"
-                ],
-                forbidden_terms=["Form P", "specific medical codes"]
-            ),
-            
-            # Chapter IV-B - Workmen's Inspector and Safety Committee
-            "rule_29q": ComplianceRule(
-                rule_number="29Q",
-                chapter="IV-B",
-                title="Workmen's Inspector",
-                key_requirements=[
-                    "500+ employees: 3 inspectors (mining, electrical, mechanical)",
-                    "1500+: additional inspector per 1000 workers",
-                    "Qualifications: Overman/Foreman certificate",
-                    "5 years experience, 2 years in current mine",
-                    "30-lecture orientation training course",
-                    "Inspection 2 days per week"
-                ],
-                visual_elements=[
-                    "Inspector conducting workplace examination",
-                    "Checking shafts and equipment",
-                    "Documenting findings",
-                    "Consulting with workers"
-                ],
-                forbidden_terms=["Rule 29Q", "Overman certificate number"]
-            ),
-            
-            "rule_29r": ComplianceRule(
-                rule_number="29R",
-                chapter="IV-B",
-                title="Duties of Workmen's Inspector",
-                key_requirements=[
-                    "Inspect shafts, inclines, roads, workplaces, equipment",
-                    "Report urgent/immediate dangers",
-                    "Suggest remedial measures",
-                    "Accompany Inspector during mine inspections",
-                    "Record findings in Form U register"
-                ],
-                applicable_forms=["Form U"],
-                visual_elements=[
-                    "Systematic inspection routine",
-                    "Hazard identification",
-                    "Documentation process",
-                    "Communication with management"
-                ],
-                forbidden_terms=["Rule 29R", "Form U"]
-            ),
-            
-            "rule_29s": ComplianceRule(
-                rule_number="29S",
-                chapter="IV-B",
-                title="Action on the report of Workmen's Inspector",
-                key_requirements=[
-                    "Owner/agent/manager enters remarks in Form U register within 15 days",
-                    "Show remedial measures taken and date",
-                    "Differences of opinion referred to Chief Inspector"
-                ],
-                applicable_forms=["Form U"],
-                visual_elements=[
-                    "Management reviewing inspection report",
-                    "Implementing corrective actions",
-                    "Follow-up verification",
-                    "Timeline tracking (15 days)"
-                ],
-                forbidden_terms=["Rule 29S", "Form U", "Chief Inspector name"]
-            ),
-            
-            "rule_29t": ComplianceRule(
-                rule_number="29T",
-                chapter="IV-B",
-                title="Safety Committee",
-                key_requirements=[
-                    "100+ employees: Safety Committee required",
-                    "Promotes safety in the mine",
-                    "Group Safety Committee option for multiple mines"
-                ],
-                visual_elements=[
-                    "Committee meeting",
-                    "Safety discussions",
-                    "Collaborative problem-solving",
-                    "Documentation review"
-                ],
-                forbidden_terms=["Rule 29T", "Committee composition details"]
-            ),
-            
-            "rule_29u": ComplianceRule(
-                rule_number="29U",
-                chapter="IV-B",
-                title="Composition of Safety Committee",
-                key_requirements=[
-                    "Manager as Chairman",
-                    "5 officials/competent persons nominated by Chairman",
-                    "5 workers nominated by workers/trade union",
-                    "Workmen's Inspector included",
-                    "Safety Officer or senior official as Secretary"
-                ],
-                visual_elements=[
-                    "Committee members (generic representation)",
-                    "Balanced worker-management participation",
-                    "Meeting structure",
-                    "Collaborative environment"
-                ],
-                forbidden_terms=["Rule 29U", "specific names/titles"]
-            ),
-            
-            "rule_29v": ComplianceRule(
-                rule_number="29V",
-                chapter="IV-B",
-                title="Functions of Safety Committee",
-                key_requirements=[
-                    "Discuss remedial measures for unsafe conditions",
-                    "Review new district/equipment/technique safety measures",
-                    "Discuss accident inquiry reports",
-                    "Formulate safety campaigns based on accident analysis",
-                    "Meet at least once in 30 days",
-                    "Forum for safety and health communication"
-                ],
-                visual_elements=[
-                    "Committee discussing hazard reports",
-                    "Reviewing accident data",
-                    "Planning safety campaigns",
-                    "Monthly meeting schedule"
-                ],
-                forbidden_terms=["Rule 29V", "30-day requirement"]
-            ),
-            
-            # Accident Reporting
-            "rule_76": ComplianceRule(
-                rule_number="76",
-                chapter="X",
-                title="Registers of reportable and minor accidents",
-                key_requirements=[
-                    "Reportable accidents in Form J",
-                    "Minor accidents in Form K",
-                    "Classification by place (underground/opencast/aboveground)",
-                    "Classification by cause (ground movement/machinery/electrical/etc)"
-                ],
-                applicable_forms=["Form J", "Form K", "Annexure I", "Annexure II"],
-                visual_elements=[
-                    "Accident location categories",
-                    "Cause classification system",
-                    "Immediate reporting steps",
-                    "Documentation process"
-                ],
-                forbidden_terms=["Rule 76", "Form J", "Form K", "Annexure"]
-            ),
-            
-            # Health & Sanitation
-            "rule_30": ComplianceRule(
-                rule_number="30",
-                chapter="V",
-                title="Quantity of drinking water",
-                key_requirements=[
-                    "Minimum 2 liters per person per shift",
-                    "Readily available at accessible points",
-                    "100+ workers: mechanically cooled if required by Inspector",
-                    "No charge for drinking water"
-                ],
-                visual_elements=[
-                    "Water dispenser/tap locations",
-                    "Worker accessing clean water",
-                    "Cooling mechanism (if applicable)",
-                    "Adequate quantity availability"
-                ],
-                forbidden_terms=["Rule 30", "2 liter requirement", "Inspector order"]
-            ),
-            
-            "rule_33": ComplianceRule(
-                rule_number="33",
-                chapter="V",
-                title="Surface latrines and urinals",
-                key_requirements=[
-                    "Adequate latrine and urinal accommodation",
-                    "Separate for males and females",
-                    "1 seat per 50 males",
-                    "1 seat per 50 females",
-                    "Conveniently accessible places"
-                ],
-                visual_elements=[
-                    "Separate facility signage",
-                    "Clean and maintained facilities",
-                    "Accessible locations",
-                    "Adequate number of units"
-                ],
-                forbidden_terms=["Rule 33", "50:1 ratio"]
-            ),
-            
-            "rule_35": ComplianceRule(
-                rule_number="35",
-                chapter="V",
-                title="Sign-boards to be displayed",
-                key_requirements=[
-                    "Signboard outside each latrine",
-                    "'For Males' or 'For Females'",
-                    "Language understood by majority",
-                    "Figure of man or woman on signboard"
-                ],
-                visual_elements=[
-                    "Clear signage with male/female symbols",
-                    "Multilingual text",
-                    "Visible placement",
-                    "Universal pictograms"
-                ],
-                forbidden_terms=["Rule 35", "specific language requirements"]
-            ),
+                forbidden_terms=["Rule", "Act", "Mines Rules 1955"]
+            )
         }
     
     def get_rule(self, rule_id: str) -> Optional[ComplianceRule]:
@@ -413,30 +104,34 @@ class MinesRulesDatabase:
         """Get all rules relevant to a topic using keyword matching"""
         topic_lower = topic.lower()
         
-        # Keyword-based mapping for broader topic coverage
-        topic_keywords = {
-            "emergency": ["rule_40", "rule_44", "rule_45", "rule_45a"],  # First-aid and emergency response
-            "exit": ["rule_40", "rule_44", "rule_45", "rule_45a"],  # Emergency exits and first-aid
-            "evacuation": ["rule_40", "rule_44", "rule_45", "rule_45a"],  # Emergency evacuation
-            "first_aid": ["rule_40", "rule_41", "rule_44", "rule_45", "rule_45a"],
-            "medical": ["rule_29b", "rule_29f", "rule_40", "rule_41", "rule_44", "rule_45", "rule_45a"],
-            "examination": ["rule_29b", "rule_29f"],
-            "safety_committee": ["rule_29q", "rule_29r", "rule_29s", "rule_29t", "rule_29u", "rule_29v"],
-            "accident": ["rule_76", "rule_40", "rule_45a"],
-            "reporting": ["rule_76"],
-            "sanitation": ["rule_30", "rule_33", "rule_35"],
-            "workmen": ["rule_29q", "rule_29r", "rule_29s"],
-            "inspector": ["rule_29q", "rule_29r", "rule_29s"],
-            "ventilation": ["rule_37", "rule_38", "rule_39"],
-            "gas": ["rule_37", "rule_38", "rule_39"],
-            "explosives": ["rule_99", "rule_100", "rule_101"],
-            "blasting": ["rule_99", "rule_100", "rule_101"],
-            "machinery": ["rule_47", "rule_48", "rule_49"],
-            "equipment": ["rule_47", "rule_48", "rule_49", "rule_45"],
-            "ppe": ["rule_47", "rule_48"],  # Personal Protective Equipment
-            "training": ["rule_40", "rule_41"],
-            "supervisor": ["rule_29q", "rule_29r", "rule_29s"]
-        }
+        # Use topic keywords from JSON if available, otherwise use hardcoded mapping
+        if self.topic_keywords:
+            topic_keywords = self.topic_keywords
+        else:
+            # Fallback hardcoded mapping
+            topic_keywords = {
+                "emergency": ["rule_40", "rule_44", "rule_45", "rule_45a", "rule_emergency_prep"],
+                "exit": ["rule_40", "rule_44", "rule_45", "rule_45a", "rule_emergency_prep"],
+                "evacuation": ["rule_40", "rule_44", "rule_45", "rule_45a", "rule_emergency_prep"],
+                "first_aid": ["rule_40", "rule_41", "rule_44", "rule_45", "rule_45a"],
+                "medical": ["rule_29b", "rule_29f", "rule_40", "rule_41", "rule_44", "rule_45", "rule_45a"],
+                "examination": ["rule_29b", "rule_29f"],
+                "safety_committee": ["rule_29q", "rule_29r", "rule_29s", "rule_29t", "rule_29u", "rule_29v"],
+                "accident": ["rule_76", "rule_40", "rule_45a"],
+                "reporting": ["rule_76"],
+                "sanitation": ["rule_30", "rule_33", "rule_35"],
+                "workmen": ["rule_29q", "rule_29r", "rule_29s"],
+                "inspector": ["rule_29q", "rule_29r", "rule_29s"],
+                "ventilation": ["rule_37", "rule_38", "rule_39"],
+                "gas": ["rule_37", "rule_38", "rule_39"],
+                "explosives": ["rule_99", "rule_100", "rule_101"],
+                "blasting": ["rule_99", "rule_100", "rule_101"],
+                "machinery": ["rule_47", "rule_48", "rule_49"],
+                "equipment": ["rule_47", "rule_48", "rule_49", "rule_45"],
+                "ppe": ["rule_47", "rule_48"],
+                "training": ["rule_40", "rule_41"],
+                "supervisor": ["rule_29q", "rule_29r", "rule_29s"]
+            }
         
         # Find matching rules based on keywords
         matching_rule_ids = set()
@@ -446,7 +141,7 @@ class MinesRulesDatabase:
         
         # If no keywords match, return general safety rules
         if not matching_rule_ids:
-            return [self.rules[rid] for rid in ["rule_40", "rule_44", "rule_45"] if rid in self.rules]
+            return [self.rules[rid] for rid in ["rule_emergency_prep"] if rid in self.rules]
         
         return [self.rules[rid] for rid in matching_rule_ids if rid in self.rules]
 

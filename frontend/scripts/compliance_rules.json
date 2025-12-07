@@ -1,0 +1,163 @@
+{
+  "rules": {
+    "rule_40": {
+      "rule_number": "40",
+      "chapter": "VI",
+      "title": "Arrangements for training persons in first-aid",
+      "key_requirements": [
+        "Adequate training arrangements for first-aid personnel",
+        "Provision of prescribed equipment",
+        "Speedy removal arrangements to dispensary/hospital",
+        "Proper ambulance van or suitable vehicle"
+      ],
+      "visual_elements": [
+        "First-aid training session",
+        "Equipment demonstration",
+        "Ambulance vehicle",
+        "Emergency response drill"
+      ],
+      "forbidden_terms": ["Rule 40", "Mines Rules 1955"]
+    },
+    "rule_41": {
+      "rule_number": "41",
+      "chapter": "VI",
+      "title": "First-aid qualifications",
+      "key_requirements": [
+        "St. John's Ambulance Association (India) certificate",
+        "Qualified nurse, dresser, compounder-cum-dresser or medical practitioner",
+        "Valid first-aid certificate holder"
+      ],
+      "visual_elements": [
+        "Certificate display (generic, not actual)",
+        "Trained personnel providing first-aid",
+        "Demonstration of proper techniques"
+      ],
+      "forbidden_terms": ["Rule 41", "St. John's certificate number"]
+    },
+    "rule_44": {
+      "rule_number": "44",
+      "chapter": "VI",
+      "title": "First-aid stations",
+      "key_requirements": [
+        "Above ground: at shaft tops, workshops, screening plants, every 50+ workers",
+        "Opencast: 1 station per 50 persons",
+        "Below ground: shaft bottoms, haulage drives, district entrances",
+        "Equipment as per Third Schedule"
+      ],
+      "applicable_forms": ["Third Schedule"],
+      "visual_elements": [
+        "First-aid station signage",
+        "Equipment layout",
+        "Accessible location markers",
+        "Worker approaching station"
+      ],
+      "forbidden_terms": ["Rule 44", "Third Schedule"]
+    },
+    "rule_45": {
+      "rule_number": "45",
+      "chapter": "VI",
+      "title": "Carrying of first-aid outfit by officials",
+      "key_requirements": [
+        "Overman, foreman, sirdar, mate, shot-firer, blaster, electrician, mechanic must carry",
+        "Outfit contents: 1 large sterilised dressing, 1 small sterilised dressing, iodine/antiseptic",
+        "Securely packed against dirt and water"
+      ],
+      "visual_elements": [
+        "Official checking first-aid kit",
+        "Contents display (generic)",
+        "Waterproof packaging",
+        "Proper carrying method"
+      ],
+      "forbidden_terms": ["Rule 45", "specific official titles"]
+    },
+    "rule_45a": {
+      "rule_number": "45A",
+      "chapter": "VI",
+      "title": "Medical attention in case of injury",
+      "key_requirements": [
+        "Immediate reporting of injury to official",
+        "Official arranges first-aid",
+        "Medical practitioner called if necessary",
+        "Person in charge of nearest first-aid station to render aid"
+      ],
+      "visual_elements": [
+        "Worker reporting injury",
+        "Official responding",
+        "First-aid being administered",
+        "Communication with medical personnel"
+      ],
+      "forbidden_terms": ["Rule 45A", "specific reporting forms"]
+    },
+    "rule_emergency_prep": {
+      "rule_number": "Emergency Preparedness",
+      "chapter": "General",
+      "title": "Emergency preparedness and evacuation procedures",
+      "key_requirements": [
+        "Familiarize yourself with all emergency exit routes before starting work",
+        "Follow illuminated emergency exit signs during evacuation",
+        "Stay low to the ground in smoky conditions to access cleaner air",
+        "Assist injured colleagues during evacuation when safe to do so",
+        "If an exit is blocked, immediately find an alternative route",
+        "Proceed to the nearest refuge chamber if escape is impossible",
+        "Move quickly but calmly, helping others and avoiding panic",
+        "Report your location and status to rescue teams when in refuge chamber"
+      ],
+      "visual_elements": [
+        "Emergency exit sign illumination",
+        "Mine map with highlighted escape routes",
+        "Low-visibility smoke-filled environment",
+        "Miner assisting injured colleague",
+        "Blocked emergency exit with debris",
+        "Refuge chamber with air supply and communication equipment",
+        "Miners walking calmly along exit tunnel",
+        "Miner entering refuge chamber and using communication device"
+      ],
+      "forbidden_terms": ["Rule", "Act", "Mines Rules 1955", "DGMS", "Inspector"]
+    },
+    "rule_safety_drills": {
+      "rule_number": "Safety Drills",
+      "chapter": "General",
+      "title": "Safety drills and emergency training",
+      "key_requirements": [
+        "Participate in regular emergency evacuation drills",
+        "Know the location and operation of all safety equipment",
+        "Practice emergency procedures under supervision",
+        "Report any safety concerns immediately to supervisors",
+        "Maintain calm and follow instructions during emergencies"
+      ],
+      "visual_elements": [
+        "Emergency evacuation drill in progress",
+        "Workers practicing safety procedures",
+        "Supervisor demonstrating emergency equipment",
+        "Team coordination during safety drill",
+        "Worker reporting safety concern"
+      ],
+      "forbidden_terms": ["Rule", "Act", "Mines Rules 1955", "mandatory drill"]
+    }
+  },
+  "topic_keywords": {
+    "emergency": ["rule_40", "rule_44", "rule_45", "rule_45a", "rule_emergency_prep", "rule_safety_drills"],
+    "exit": ["rule_40", "rule_44", "rule_45", "rule_45a", "rule_emergency_prep"],
+    "evacuation": ["rule_40", "rule_44", "rule_45", "rule_45a", "rule_emergency_prep"],
+    "refuge": ["rule_emergency_prep"],
+    "drill": ["rule_safety_drills"],
+    "first_aid": ["rule_40", "rule_41", "rule_44", "rule_45", "rule_45a"],
+    "medical": ["rule_29b", "rule_29f", "rule_40", "rule_41", "rule_44", "rule_45", "rule_45a"],
+    "examination": ["rule_29b", "rule_29f"],
+    "safety_committee": ["rule_29q", "rule_29r", "rule_29s", "rule_29t", "rule_29u", "rule_29v"],
+    "accident": ["rule_76", "rule_40", "rule_45a"],
+    "reporting": ["rule_76"],
+    "sanitation": ["rule_30", "rule_33", "rule_35"],
+    "workmen": ["rule_29q", "rule_29r", "rule_29s"],
+    "inspector": ["rule_29q", "rule_29r", "rule_29s"],
+    "ventilation": ["rule_37", "rule_38", "rule_39"],
+    "gas": ["rule_37", "rule_38", "rule_39"],
+    "explosives": ["rule_99", "rule_100", "rule_101"],
+    "blasting": ["rule_99", "rule_100", "rule_101"],
+    "machinery": ["rule_47", "rule_48", "rule_49"],
+    "equipment": ["rule_47", "rule_48", "rule_49", "rule_45"],
+    "ppe": ["rule_47", "rule_48"],
+    "training": ["rule_40", "rule_41", "rule_safety_drills"],
+    "supervisor": ["rule_29q", "rule_29r", "rule_29s"]
+  }
+}

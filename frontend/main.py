@@ -127,7 +127,7 @@ def run_pipeline(topic, language, config):
     
     # Stage 1: Scene Breakdown
     print("\n[1/5] Generating scene breakdown...")
-    scenes = generate_scene_breakdown(topic, config, language)
+    scenes, compliance_report = generate_scene_breakdown(topic, config, language)
     scene_file = save_scene_data(scenes, topic)
     print(f"[OK] Generated {len(scenes)} scenes")
     

@@ -1,0 +1,57 @@
+{
+  "pipeline": {
+    "scene_count": 8,
+    "animation_duration": 9,
+    "output_resolution": [1080, 1920],
+    "fps": 24
+  },
+  "models": {
+    "llm": {
+      "provider": "gemini",
+      "model": "gemini-2.0-flash",
+      "api_key_env": "GEMINI_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 2000
+    },
+    "image_generation": {
+      "provider": "huggingface",
+      "model": "black-forest-labs/FLUX.1-schnell",
+      "api_key_env": "HF_TOKEN"
+    },
+    "animation": {
+      "provider": "local_opencv",
+      "input_type": "image_to_video",
+      "duration_seconds": 4,
+      "fps": 30
+    },
+    "icon_generation": {
+      "provider": "cdn",
+      "mode": "lottiefiles-urls-only",
+      "icons_file": "icons.json"
+    },
+    "voiceover": {
+      "provider": "google_cloud_tts",
+      "api_key": "AIzaSyAluBBFG5RZ7TJ1vhAJ_uDVZ056ExiuPxE",
+      "language_code": "en-US",
+      "voice_name": "en-US-Neural2-D",
+      "voice_name_hindi": "hi-IN-Neural2-D",
+      "voice_name_telugu": "te-IN-Standard-A",
+      "audio_encoding": "MP3",
+      "speaking_rate": 1.0,
+      "pitch": 0.0
+    },
+    "speech_to_text": {
+      "provider": "auto_detect",
+      "api_key": "e032f0526428a7a90f4402a887a91e0aa5021e4f",
+      "language": "en"
+    }
+  },
+  "paths": {
+    "scripts": "scripts",
+    "images": "images",
+    "animations": "animations",
+    "icons": "icons",
+    "audio": "audio",
+    "output": "output"
+  }
+}

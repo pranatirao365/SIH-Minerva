@@ -12,11 +12,16 @@ FastAPI Hazard Detection Backend - Fire & Crack Models
 Supports: Fire detection (YOLO) and Crack segmentation (DeepCrack)
 """
 
+import os
 import io
 import cv2
 import base64
 import torch
 import numpy as np
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -126,9 +131,15 @@ async def load_models():
         crack_opt = CrackModelOptions()
         crack_model = DeepCrackModel(crack_opt)
         
-        # Load pretrained weights
+        # Load pretrained weights (check both with and without space in filename)
         checkpoint_path = os.path.join(script_dir, 'pretrained_net_G.pth')
-        checkpoint = torch.load(checkpoint_path, map_location=device)
+        if not os.path.exists(checkpoint_path):
+            checkpoint_path = os.path.join(script_dir, 'pretrained_net_G .pth')  # Try with space
+        
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Model file not found: pretrained_net_G.pth or 'pretrained_net_G .pth'")
+        
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
         if hasattr(crack_model.netG, 'module'):
             crack_model.netG.module.load_state_dict(checkpoint, strict=False)
         else:
@@ -394,4 +405,6 @@ async def predict(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001, reload=False)
+    port = int(os.getenv("PORT", 8080))
+    print(f"🚀 Starting Hazard Detection API on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port, reload=False)

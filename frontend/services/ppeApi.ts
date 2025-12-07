@@ -6,7 +6,7 @@
  */
 
 // ⚠️ CONFIGURATION: Use computer's IP when testing on physical device
-const BACKEND_URL = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '192.168.137.168'}:8888`; // Your computer's local IP from .env
+const BACKEND_URL = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.20.10.2'}:8888`; // Your computer's local IP from .env
 
 interface PPEItem {
   present: boolean;

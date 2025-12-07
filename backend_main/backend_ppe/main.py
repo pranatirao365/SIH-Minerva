@@ -90,12 +90,40 @@ DEPARTMENT_PPE_SETS = {
     }
 }
 
+# Department name mapping (friendly names to backend keys)
+DEPARTMENT_NAME_MAPPING = {
+    # Exact matches
+    "mining_operations": "mining_operations",
+    "blasting": "blasting",
+    "equipment_maintenance": "equipment_maintenance",
+    "safety_inspection": "safety_inspection",
+    # Friendly name mappings
+    "mining operations": "mining_operations",
+    "mining": "mining_operations",
+    "blasting operations": "blasting",
+    "blast": "blasting",
+    "equipment": "equipment_maintenance",
+    "maintenance": "equipment_maintenance",
+    "safety": "safety_inspection",
+    "inspection": "safety_inspection",
+    "test department": "mining_operations",  # Default for test users
+    "default": "mining_operations",
+}
+
+def normalize_department(department: str) -> str:
+    """Normalize department name to backend format"""
+    dept_lower = department.lower().strip()
+    return DEPARTMENT_NAME_MAPPING.get(dept_lower, dept_lower)
+
 # Helper function to get PPE requirements for a department/set
 def get_ppe_requirements(department: str, ppe_set: str = None):
     """
     Get PPE requirements for a specific department and set.
     If ppe_set is not specified, returns the first set (basic/mandatory/standard).
     """
+    # Normalize department name
+    department = normalize_department(department)
+    
     if department not in DEPARTMENT_PPE_SETS:
         raise HTTPException(
             status_code=400,
@@ -132,10 +160,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load YOLOv8 model from local path
+# Load YOLOv8 model from local path or use default
 model_path = os.path.join(os.path.dirname(__file__), "model", "yolov8s_custom.pt")
-print(f"🔄 Loading YOLO model from {model_path}...")
-model = YOLO(model_path)
+
+if os.path.exists(model_path):
+    print(f"🔄 Loading custom YOLO model from {model_path}...")
+    model = YOLO(model_path)
+else:
+    print(f"⚠️  Custom model not found at {model_path}")
+    print("🔄 Loading default YOLOv8s model (will download if needed)...")
+    model = YOLO("yolov8s.pt")  # Will auto-download if not present
+    
 print("✅ Model loaded successfully!")
 print(f"📋 Model has {len(model.names)} classes")
 for idx, name in model.names.items():
@@ -187,6 +222,9 @@ async def ppe_scan(
     Returns: PPE status based on department requirements with compliance flag
     """
     try:
+        # Normalize department name first
+        department = normalize_department(department)
+        
         # Validate content type
         if not file.content_type or not file.content_type.startswith("image/"):
             raise HTTPException(

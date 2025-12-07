@@ -1,0 +1,13 @@
+{
+  "name": "firebase-migration",
+  "version": "1.0.0",
+  "description": "Firebase Firestore migration scripts",
+  "main": "export-firestore.js",
+  "scripts": {
+    "export": "node export-firestore.js",
+    "import": "node import-firestore.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

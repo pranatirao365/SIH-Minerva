@@ -111,6 +111,11 @@ export default function PhoneLogin() {
       
       console.log('📱 Sending OTP to:', phone);
       
+      // Ensure recaptcha verifier is initialized
+      if (!recaptchaVerifier.current) {
+        throw new Error('reCAPTCHA verifier not initialized');
+      }
+      
       // Use PhoneAuthProvider.verifyPhoneNumber (matching your working flow)
       const phoneProvider = new PhoneAuthProvider(auth);
       const verificationIdResult = await phoneProvider.verifyPhoneNumber(

@@ -1,0 +1,2490 @@
+{
+  "assignmentProgress": [
+    {
+      "id": "RRc7lYPuAsJV8qrM6hea",
+      "data": {
+        "assignmentId": "assignment_1764674215350_w54us3j4c",
+        "minerId": "911234567890",
+        "videoId": "video_1764672700907_u8byoqv7z",
+        "lastWatchedAt": {
+          "_seconds": 1764676060,
+          "_nanoseconds": 161000000
+        },
+        "progress": 100,
+        "watched": true,
+        "status": "completed",
+        "completedAt": {
+          "_seconds": 1764678041,
+          "_nanoseconds": 48000000
+        },
+        "watchTime": 4152
+      }
+    }
+  ],
+  "dailyQuizzes": [
+    {
+      "id": "XOKj4YRQfOfkidcUbioF",
+      "data": {
+        "title": "PPE Essentials for a Safer Mine",
+        "description": "This quiz tests your understanding of Personal Protective Equipment (PPE) and its proper use in the mining environment. It covers essential PPE knowledge for both miners and supervisors.",
+        "topic": "Personal Protective Equipment (PPE)",
+        "difficulty": "easy",
+        "targetAudience": "all",
+        "language": "en",
+        "questions": [
+          {
+            "id": "ppe_1",
+            "question": "You are inspecting a worksite and notice a miner wearing safety glasses with a crack in the lens. What is the BEST course of action?",
+            "options": [
+              "Tell the miner to be more careful not to damage their glasses.",
+              "Instruct the miner to continue working, as long as the crack is small.",
+              "Immediately direct the miner to replace the damaged safety glasses with a new pair.",
+              "Advise the miner to tape the crack to prevent it from getting worse."
+            ],
+            "correctAnswer": 2,
+            "explanation": "Damaged PPE compromises its protective ability. Cracked safety glasses can shatter upon impact, causing serious eye injury. The miner must immediately replace the glasses. This is a fundamental safety principle for all personnel.",
+            "difficulty": "easy",
+            "category": "PPE"
+          },
+          {
+            "id": "ppe_2",
+            "question": "You're assigned to operate a jackleg drill. Which combination of PPE is MOST important for this task?",
+            "options": [
+              "Safety glasses, gloves, and steel-toed boots",
+              "Hearing protection, safety glasses/goggles, and steel-toed boots",
+              "Hard hat, safety glasses, and a dust mask",
+              "Respirator, gloves, and a reflective vest"
+            ],
+            "correctAnswer": 1,
+            "explanation": "Operating a jackleg drill exposes you to loud noise and potential eye hazards from flying debris. Hearing protection is crucial to prevent hearing loss, safety glasses/goggles protect your eyes, and steel-toed boots guard against foot injuries from falling objects. A hard hat is also essential but not included in the given options.",
+            "difficulty": "easy",
+            "category": "PPE"
+          },
+          {
+            "id": "ppe_3",
+            "question": "As a supervisor, you observe a miner wearing a respirator that doesn't seem to fit properly. What should you do FIRST?",
+            "options": [
+              "Tell the miner to tighten the straps of the respirator.",
+              "Instruct the miner to continue working, but avoid areas with high dust concentrations.",
+              "Immediately remove the miner from the work area and ensure they receive a proper respirator fit test and training.",
+              "Give the miner a different size respirator without performing a fit test."
+            ],
+            "correctAnswer": 2,
+            "explanation": "A properly fitted respirator is essential for respiratory protection. A respirator that doesn't fit correctly will not provide adequate protection. Removing the miner from the work area and ensuring a proper fit test and training is the priority to ensure their safety and compliance with regulations.",
+            "difficulty": "easy",
+            "category": "PPE"
+          }
+        ],
+        "questionsCount": 3,
+        "createdBy": "+911234567893",
+        "createdByName": "Test Safety Officer",
+        "status": "active",
+        "createdAt": {
+          "_seconds": 1764961744,
+          "_nanoseconds": 684000000
+        }
+      }
+    },
+    {
+      "id": "iytvtbtA7o80NAsqjwST",
+      "data": {
+        "title": "Blast Safety Quiz: Protecting Lives and Property",
+        "description": "This quiz assesses your understanding of critical blast safety procedures and protocols, essential for both miners and supervisors to ensure a safe working environment. It covers hazard recognition, emergency procedures, and equipment safety related to blasting operations.",
+        "topic": "Blast safety",
+        "difficulty": "medium",
+        "targetAudience": "all",
+        "language": "en",
+        "questions": [
+          {
+            "id": "blast_safety_1",
+            "question": "During pre-blast activities, you notice a damaged blasting mat with exposed steel cables near the blast area. What is the MOST appropriate immediate action?",
+            "options": [
+              "Continue with pre-blast procedures, as the mat is still partially functional.",
+              "Inform the blaster-in-charge and immediately replace or repair the damaged mat before proceeding.",
+              "Place warning tape around the damaged mat and proceed with the blast.",
+              "Temporarily cover the damaged area with sandbags and continue with the blast."
+            ],
+            "correctAnswer": 1,
+            "explanation": "Damaged blasting mats pose a significant safety hazard. Exposed steel cables can become projectiles during the blast. Informing the blaster-in-charge and immediately replacing or repairing the mat is crucial to prevent injuries and maintain a safe blast area. Ignoring the damage or attempting temporary fixes is unacceptable.",
+            "difficulty": "medium",
+            "category": "Hazard Recognition"
+          },
+          {
+            "id": "blast_safety_2",
+            "question": "After a blast, you are assigned to the re-entry inspection team. While approaching the blast area, you notice visible fumes and a faint odor of explosives. What is your BEST course of action?",
+            "options": [
+              "Proceed cautiously, holding your breath, to assess the blast area quickly.",
+              "Immediately retreat to a safe distance and notify the blaster-in-charge and ventilation personnel about the potential presence of post-blast gases.",
+              "Don your respirator and proceed with the inspection, assuming the fumes are dissipating.",
+              "Use a handheld fan to clear the fumes and then proceed with the inspection."
+            ],
+            "correctAnswer": 2,
+            "explanation": "Post-blast gases can be extremely hazardous. The presence of visible fumes and the odor of explosives indicates incomplete combustion or residual gases. The safest course of action is to retreat immediately and notify the blaster-in-charge and ventilation personnel. They will assess the situation, determine the appropriate ventilation measures, and clear the area before re-entry is permitted. Using a respirator is good, but the most important action is to notify the blast-in-charge.",
+            "difficulty": "medium",
+            "category": "Emergency Response"
+          },
+          {
+            "id": "blast_safety_3",
+            "question": "As a supervisor, you are reviewing the blast plan for an upcoming round. You notice that the plan includes the use of a new type of detonator that you are unfamiliar with. What should you do?",
+            "options": [
+              "Approve the plan, assuming the blaster-in-charge is competent and has used detonators before.",
+              "Request additional information and training on the new detonator type for yourself and the blasting crew before approving the plan.",
+              "Reject the plan and insist on using the previously used detonator type.",
+              "Approve the plan but closely monitor the blasting crew during the blast."
+            ],
+            "correctAnswer": 1,
+            "explanation": "Supervisors have a responsibility to ensure the safety of the blasting crew. If a new type of detonator is being used, it is crucial to understand its properties, handling procedures, and potential hazards. Requesting additional information and training ensures that everyone involved is competent and knowledgeable, minimizing the risk of accidents. Simply assuming competence or closely monitoring the crew is not sufficient. Rejecting the plan outright may not be necessary if proper training is provided.",
+            "difficulty": "medium",
+            "category": "Mining Operations"
+          }
+        ],
+        "questionsCount": 3,
+        "createdBy": "+911234567893",
+        "createdByName": "Test Safety Officer",
+        "status": "active",
+        "createdAt": {
+          "_seconds": 1764960652,
+          "_nanoseconds": 306000000
+        }
+      }
+    }
+  ],
+  "equipmentHazards": [
+    {
+      "id": "MBFoi4w0BmBfakzaHS9Z",
+      "data": {
+        "name": "Excavator EXC-2024-005",
+        "coordinates": {
+          "x": 80,
+          "y": 35
+        },
+        "riskLevel": "medium",
+        "status": "maintenance_required",
+        "description": "Hydraulic system leaking. Scheduled for repair during night shift.",
+        "lastInspection": {
+          "_seconds": 1764338400,
+          "_nanoseconds": 0
+        },
+        "assignedOfficer": "Officer Sharma",
+        "equipmentType": "Heavy Machinery",
+        "serialNumber": "EXC-2024-005",
+        "manufacturer": "Caterpillar",
+        "model": "320D",
+        "nextInspection": {
+          "_seconds": 1765353600,
+          "_nanoseconds": 0
+        }
+      }
+    },
+    {
+      "id": "OmdHvN2uKLLssmhQLykL",
+      "data": {
+        "name": "Hoist System HS-A3",
+        "coordinates": {
+          "x": 45,
+          "y": 80
+        },
+        "riskLevel": "low",
+        "status": "operational",
+        "description": "Routine maintenance completed. All systems operational.",
+        "lastInspection": {
+          "_seconds": 1764669600,
+          "_nanoseconds": 0
+        },
+        "assignedOfficer": "Officer Singh",
+        "equipmentType": "Lifting Equipment",
+        "serialNumber": "HS-A3-2022",
+        "manufacturer": "MineHoist Co",
+        "model": "MH-2000",
+        "nextInspection": {
+          "_seconds": 1765879200,
+          "_nanoseconds": 0
+        }
+      }
+    },
+    {
+      "id": "u6vUi3Bpw08uml9wwBXE",
+      "data": {
+        "name": "Ventilation Fan VF-12",
+        "coordinates": {
+          "x": 20,
+          "y": 55
+        },
+        "riskLevel": "high",
+        "status": "critical",
+        "description": "Main ventilation fan motor overheating. Emergency backup activated.",
+        "lastInspection": {
+          "_seconds": 1764748800,
+          "_nanoseconds": 0
+        },
+        "assignedOfficer": "Officer Kumar",
+        "equipmentType": "Ventilation",
+        "serialNumber": "VF-12-2023",
+        "manufacturer": "Industrial Fans Ltd",
+        "model": "IF-5000",
+        "nextInspection": {
+          "_seconds": 1764835200,
+          "_nanoseconds": 0
+        }
+      }
+    }
+  ],
+  "hazards": [
+    {
+      "id": "SBuyJpFPw6AClhEltlhp",
+      "data": {
+        "type": "blasting",
+        "coordinates": {
+          "x": 45,
+          "y": 30
+        },
+        "riskLevel": "high",
+        "description": "Scheduled blasting operation in Zone A. All personnel must evacuate by 14:00.",
+        "causes": [
+          "Controlled demolition",
+          "Rock excavation for tunnel expansion"
+        ],
+        "controls": [
+          "Safety perimeter established (500m radius)",
+          "Warning sirens activated 15 minutes prior",
+          "All entry points locked and guarded",
+          "Blast shelter available at checkpoint"
+        ],
+        "ppeRequired": [
+          "Hard hat",
+          "Safety vest",
+          "Ear protection",
+          "Safety boots",
+          "Eye protection"
+        ],
+        "lastInspection": {
+          "_seconds": 1764756000,
+          "_nanoseconds": 0
+        },
+        "assignedOfficer": "Officer Rajesh Kumar",
+        "createdAt": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        },
+        "updatedAt": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        }
+      }
+    },
+    {
+      "id": "StBDG1chIE9cLZQwf22n",
+      "data": {
+        "type": "electrical",
+        "coordinates": {
+          "x": 85,
+          "y": 40
+        },
+        "riskLevel": "high",
+        "description": "Exposed high-voltage cable near drill site. Repair scheduled for tonight.",
+        "causes": [
+          "Cable insulation damage",
+          "Heavy equipment contact"
+        ],
+        "controls": [
+          "Danger zone marked with barriers",
+          "Power isolated to affected section",
+          "Electrician team notified"
+        ],
+        "ppeRequired": [
+          "Insulated gloves",
+          "Hard hat",
+          "Safety vest",
+          "Insulated boots"
+        ],
+        "lastInspection": {
+          "_seconds": 1764752400,
+          "_nanoseconds": 0
+        },
+        "assignedOfficer": "Officer Suresh Patel",
+        "createdAt": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        },
+        "updatedAt": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        }
+      }
+    },
+    {
+      "id": "WtgDt1kxMD4cHRTrZ9tB",
+      "data": {
+        "type": "gas",
+        "coordinates": {
+          "x": 70,
+          "y": 55
+        },
+        "riskLevel": "critical",
+        "description": "Methane gas detected above safe levels (2.8%). Immediate evacuation required.",
+        "causes": [
+          "Natural gas pocket breach",
+          "Poor ventilation in Level 3"
+        ],
+        "controls": [
+          "Area sealed and marked",
+          "Ventilation system running at maximum",
+          "Gas monitors deployed",
+          "No entry without Level A PPE"
+        ],
+        "ppeRequired": [
+          "Gas mask",
+          "Full protective suit",
+          "Hard hat",
+          "Gloves",
+          "Boots"
+        ],
+        "lastInspection": {
+          "_seconds": 1764761400,
+          "_nanoseconds": 0
+        },
+        "assignedOfficer": "Officer Priya Sharma",
+        "createdAt": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        },
+        "updatedAt": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        }
+      }
+    },
+    {
+      "id": "tTlEhUcUNvn6FcH5R7EY",
+      "data": {
+        "type": "equipment",
+        "coordinates": {
+          "x": 25,
+          "y": 65
+        },
+        "riskLevel": "medium",
+        "description": "Conveyor belt malfunction detected. Maintenance in progress.",
+        "causes": [
+          "Worn bearings",
+          "Belt misalignment"
+        ],
+        "controls": [
+          "Equipment tagged out",
+          "Maintenance crew dispatched",
+          "Alternate route established"
+        ],
+        "ppeRequired": [
+          "Hard hat",
+          "Safety vest",
+          "Gloves",
+          "Safety boots"
+        ],
+        "lastInspection": {
+          "_seconds": 1764691200,
+          "_nanoseconds": 0
+        },
+        "assignedOfficer": "Officer Amit Singh",
+        "createdAt": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        },
+        "updatedAt": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        }
+      }
+    }
+  ],
+  "incidents": [
+    {
+      "id": "C5GxnQvcuBij46wk9m5A",
+      "data": {
+        "reportedBy": "911234567890",
+        "minerName": "User",
+        "type": "photo",
+        "mediaUrl": "https://firebasestorage.googleapis.com/v0/b/sihtut-1.firebasestorage.app/o/incidents%2F911234567890%2Fincident_1764606411548%2Fphoto_1764606411553.jpg?alt=media&token=172eee88-59d7-4ad1-a1a9-83fd5ab93123",
+        "description": "",
+        "transcript": "",
+        "transcriptionStatus": "n/a",
+        "title": "Incident 1",
+        "status": "pending",
+        "severity": "Medium",
+        "language": "en",
+        "timestamp": {
+          "_seconds": 1764606416,
+          "_nanoseconds": 102000000
+        }
+      }
+    },
+    {
+      "id": "ZhYHyJBLtvPsn0MCPGu3",
+      "data": {
+        "reportedBy": "911234567890",
+        "minerName": "Test Miner",
+        "type": "audio",
+        "mediaUrl": "https://firebasestorage.googleapis.com/v0/b/sihtut-1.firebasestorage.app/o/incidents%2F911234567890%2Fincident_1764608420286%2Faudio_1764608420290.m4a?alt=media&token=b80d855c-645b-46ce-9154-b54a4240246c",
+        "description": "",
+        "transcript": "Do you know how to talk in Hindi?",
+        "transcriptionStatus": "done",
+        "title": "Incident 3",
+        "status": "pending",
+        "severity": "Medium",
+        "language": "hi",
+        "timestamp": {
+          "_seconds": 1764608425,
+          "_nanoseconds": 413000000
+        }
+      }
+    },
+    {
+      "id": "waEB9ieJWnwB28ywdhek",
+      "data": {
+        "reportedBy": "911234567890",
+        "minerName": "User",
+        "type": "audio",
+        "mediaUrl": "https://firebasestorage.googleapis.com/v0/b/sihtut-1.firebasestorage.app/o/incidents%2F911234567890%2Fincident_1764607080639%2Faudio_1764607080643.m4a?alt=media&token=4ce3d1ae-8c29-42c7-ba21-d48ec63cb9b3",
+        "description": "",
+        "transcript": "This is about incident two.",
+        "transcriptionStatus": "done",
+        "title": "Incident 2",
+        "status": "pending",
+        "severity": "Medium",
+        "language": "en",
+        "timestamp": {
+          "_seconds": 1764607084,
+          "_nanoseconds": 440000000
+        }
+      }
+    }
+  ],
+  "mapConfig": [
+    {
+      "id": "default-mine-map",
+      "data": {
+        "id": "default-mine-map",
+        "backgroundImageUrl": "mine-location1.jpeg",
+        "mapWidth": 1920,
+        "mapHeight": 1080,
+        "scale": 1,
+        "coordinateSystem": "percentage",
+        "updatedAt": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        },
+        "createdBy": "System",
+        "notes": "Main mine layout with percentage-based coordinate system"
+      }
+    }
+  ],
+  "miners": [
+    {
+      "id": "PWljGx0O20Ajsh9Twx34",
+      "data": {
+        "name": "Priya Sharma",
+        "coordinates": {
+          "x": 30,
+          "y": 70
+        },
+        "PPEStatus": {
+          "helmet": true,
+          "vest": true,
+          "boots": true,
+          "gloves": true,
+          "goggles": true
+        },
+        "lastCheck": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        },
+        "assignedZone": "Zone C - Transport",
+        "status": "safe",
+        "department": "Transport",
+        "shift": "Morning",
+        "employeeId": "EMP-003",
+        "contactNumber": "+91-9876543212"
+      }
+    },
+    {
+      "id": "TAMa6JxrL83o4zVXqXbE",
+      "data": {
+        "name": "Rajesh Kumar",
+        "coordinates": {
+          "x": 40,
+          "y": 50
+        },
+        "PPEStatus": {
+          "helmet": true,
+          "vest": true,
+          "boots": true,
+          "gloves": true,
+          "goggles": true
+        },
+        "lastCheck": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        },
+        "assignedZone": "Zone A - Drilling Section",
+        "status": "safe",
+        "department": "Drilling",
+        "shift": "Morning",
+        "employeeId": "EMP-001",
+        "contactNumber": "+91-9876543210"
+      }
+    },
+    {
+      "id": "YwV3CnjjBMyDc7uaT5iV",
+      "data": {
+        "name": "Amit Singh",
+        "coordinates": {
+          "x": 65,
+          "y": 35
+        },
+        "PPEStatus": {
+          "helmet": true,
+          "vest": true,
+          "boots": true,
+          "gloves": false,
+          "goggles": false
+        },
+        "lastCheck": {
+          "_seconds": 1764702001,
+          "_nanoseconds": 695000000
+        },
+        "assignedZone": "Zone B - Excavation",
+        "status": "missingPPE",
+        "department": "Excavation",
+        "shift": "Morning",
+        "employeeId": "EMP-002",
+        "contactNumber": "+91-9876543211"
+      }
+    },
+    {
+      "id": "ZwMhGMlJXezXwejUovWl",
+      "data": {
+        "name": "Suresh Patel",
+        "coordinates": {
+          "x": 75,
+          "y": 60
+        },
+        "PPEStatus": {
+          "helmet": false,
+          "vest": true,
+          "boots": true,
+          "gloves": true,
+          "goggles": false
+        },
+        "lastCheck": {
+          "_seconds": 1764702091,
+          "_nanoseconds": 695000000
+        },
+        "assignedZone": "Zone D - Maintenance",
+        "status": "missingPPE",
+        "department": "Maintenance",
+        "shift": "Morning",
+        "employeeId": "EMP-004",
+        "contactNumber": "+91-9876543213"
+      }
+    },
+    {
+      "id": "gNpZhinrYMVro9kfd0H9",
+      "data": {
+        "name": "Vikram Rao",
+        "coordinates": {
+          "x": 55,
+          "y": 45
+        },
+        "PPEStatus": {
+          "helmet": true,
+          "vest": true,
+          "boots": true,
+          "gloves": true,
+          "goggles": true
+        },
+        "lastCheck": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        },
+        "assignedZone": "Zone A - Drilling Section",
+        "status": "safe",
+        "department": "Drilling",
+        "shift": "Morning",
+        "employeeId": "EMP-005",
+        "contactNumber": "+91-9876543214"
+      }
+    }
+  ],
+  "mlHazards": [
+    {
+      "id": "MqoYocwfudXzH4DNLzT1",
+      "data": {
+        "hazardType": "crack",
+        "coordinates": {
+          "x": 50,
+          "y": 85
+        },
+        "confidence": 0.79,
+        "riskLevel": "medium",
+        "severityScore": 65.8,
+        "crackArea": 320,
+        "maskUrl": "",
+        "imagePreviewUrl": "",
+        "timestamp": {
+          "_seconds": 1764701221,
+          "_nanoseconds": 695000000
+        },
+        "detectedBy": "DeepCrack Segmentation",
+        "cameraId": "CAM-D-012",
+        "notes": "Wall crack detected. Monitoring for expansion."
+      }
+    },
+    {
+      "id": "aK1mnCYaE7y5KXkFagBk",
+      "data": {
+        "hazardType": "fire",
+        "coordinates": {
+          "x": 35,
+          "y": 45
+        },
+        "confidence": 0.94,
+        "riskLevel": "critical",
+        "severityScore": 88.5,
+        "boundingBox": {
+          "x": 320,
+          "y": 180,
+          "width": 150,
+          "height": 120
+        },
+        "imagePreviewUrl": "",
+        "timestamp": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        },
+        "detectedBy": "YOLO Fire Detection v8",
+        "cameraId": "CAM-A-023",
+        "notes": "Fire detected near electrical panel. Emergency response activated."
+      }
+    },
+    {
+      "id": "giwWbgHR5RoS13vFJlS8",
+      "data": {
+        "hazardType": "crack",
+        "coordinates": {
+          "x": 60,
+          "y": 25
+        },
+        "confidence": 0.91,
+        "riskLevel": "high",
+        "severityScore": 82.3,
+        "crackArea": 450,
+        "maskUrl": "",
+        "imagePreviewUrl": "",
+        "timestamp": {
+          "_seconds": 1764702121,
+          "_nanoseconds": 695000000
+        },
+        "detectedBy": "DeepCrack Segmentation",
+        "cameraId": "CAM-C-007",
+        "notes": "Structural crack detected in tunnel ceiling. Structural engineer notified."
+      }
+    },
+    {
+      "id": "hF5qHeoQbQwwlezGy7uN",
+      "data": {
+        "hazardType": "fire",
+        "coordinates": {
+          "x": 15,
+          "y": 75
+        },
+        "confidence": 0.87,
+        "riskLevel": "high",
+        "severityScore": 76.2,
+        "boundingBox": {
+          "x": 150,
+          "y": 280,
+          "width": 100,
+          "height": 90
+        },
+        "imagePreviewUrl": "",
+        "timestamp": {
+          "_seconds": 1764701821,
+          "_nanoseconds": 695000000
+        },
+        "detectedBy": "YOLO Fire Detection v8",
+        "cameraId": "CAM-B-015",
+        "notes": "Small fire near storage area. Fire team dispatched."
+      }
+    }
+  ],
+  "notifications": [
+    {
+      "id": "06UY3ImajD68gGBVPUbn",
+      "data": {
+        "recipientId": "918000000002",
+        "recipientName": "Rakesh",
+        "senderId": "918074540124",
+        "senderName": "Charmi",
+        "type": "video_assignment",
+        "title": "📹 New Training Video Assigned",
+        "message": "You have been assigned to watch \"Drilling work\" for Drilling work on Tue, Dec 2, 2025. Please complete before the deadline.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764678245,
+          "_nanoseconds": 315000000
+        },
+        "metadata": {
+          "assignmentId": "assignment_1764678242480_5avvoynd3",
+          "videoId": "video_1764672700907_u8byoqv7z",
+          "videoTopic": "Drilling work",
+          "deadline": {
+            "_seconds": 1764764602,
+            "_nanoseconds": 837000000
+          },
+          "taskDate": "2025-12-02",
+          "workTitle": "Drilling work"
+        }
+      }
+    },
+    {
+      "id": "0oG7ek8VPCB4AEmm8eTu",
+      "data": {
+        "recipientId": "911234567890",
+        "recipientName": "Test Miner",
+        "senderId": "911234567892",
+        "senderName": "Test Supervisor",
+        "type": "video_assignment",
+        "title": "📹 New Training Video Assigned",
+        "message": "You have been assigned to watch \"Drilling work\" for Drilling work on Tue, Dec 2, 2025. Please complete before the deadline.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764674218,
+          "_nanoseconds": 214000000
+        },
+        "metadata": {
+          "assignmentId": "assignment_1764674215350_w54us3j4c",
+          "videoId": "video_1764672700907_u8byoqv7z",
+          "videoTopic": "Drilling work",
+          "deadline": {
+            "_seconds": 1764760501,
+            "_nanoseconds": 645000000
+          },
+          "taskDate": "2025-12-02",
+          "workTitle": "Drilling work"
+        }
+      }
+    },
+    {
+      "id": "64U2c0hZBzDMbi8v6sSO",
+      "data": {
+        "recipientId": "918000000002",
+        "recipientName": "Rakesh",
+        "senderId": "918074540124",
+        "senderName": "Charmi",
+        "type": "manual_reminder",
+        "title": "📢 Urgent Training Reminder",
+        "message": "📚 You have 2 pending video training assignments. Please complete them before your shift ends.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764659033,
+          "_nanoseconds": 508000000
+        },
+        "metadata": {
+          "assignmentCount": 2,
+          "reminderType": "immediate"
+        }
+      }
+    },
+    {
+      "id": "6yJTN8NvUJuA8WEhWKGf",
+      "data": {
+        "recipientId": "918000000001",
+        "recipientName": "Arun",
+        "senderId": "918074540124",
+        "senderName": "Charmi",
+        "type": "video_assignment",
+        "title": "📹 New Training Video Assigned",
+        "message": "You have been assigned to watch \"Drilling work\" for Drilling work on Tue, Dec 2, 2025. Please complete before the deadline.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764678244,
+          "_nanoseconds": 901000000
+        },
+        "metadata": {
+          "assignmentId": "assignment_1764678242480_5avvoynd3",
+          "videoId": "video_1764672700907_u8byoqv7z",
+          "videoTopic": "Drilling work",
+          "deadline": {
+            "_seconds": 1764764602,
+            "_nanoseconds": 837000000
+          },
+          "taskDate": "2025-12-02",
+          "workTitle": "Drilling work"
+        }
+      }
+    },
+    {
+      "id": "7b9dKQRgllndVoKkaMbW",
+      "data": {
+        "recipientId": "918000000004",
+        "recipientName": "Deepak",
+        "senderId": "918074540124",
+        "senderName": "Charmi",
+        "type": "video_assignment",
+        "title": "📹 New Training Video Assigned",
+        "message": "You have been assigned to watch \"Drilling work\" for Drilling work on Tue, Dec 2, 2025. Please complete before the deadline.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764678245,
+          "_nanoseconds": 720000000
+        },
+        "metadata": {
+          "assignmentId": "assignment_1764678242480_5avvoynd3",
+          "videoId": "video_1764672700907_u8byoqv7z",
+          "videoTopic": "Drilling work",
+          "deadline": {
+            "_seconds": 1764764602,
+            "_nanoseconds": 837000000
+          },
+          "taskDate": "2025-12-02",
+          "workTitle": "Drilling work"
+        }
+      }
+    },
+    {
+      "id": "C7v5OOUj7IjobvQOMW6y",
+      "data": {
+        "recipientId": "911234567890",
+        "recipientName": "Test Miner",
+        "senderId": "911234567892",
+        "senderName": "Test Supervisor",
+        "type": "video_assignment",
+        "title": "📹 New Training Video Assigned",
+        "message": "You have been assigned to watch \"Blasting\" for 2025-12-02. Please complete before the deadline.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764681657,
+          "_nanoseconds": 404000000
+        },
+        "metadata": {
+          "assignmentId": "assignment_1764681654962_1hwzqvliz",
+          "videoId": "video_1764681549976_kgml3l619",
+          "videoTopic": "Blasting",
+          "deadline": {
+            "_seconds": 1764720000,
+            "_nanoseconds": 0
+          },
+          "taskDate": "2025-12-02"
+        }
+      }
+    },
+    {
+      "id": "CmdbFzDyiX43odJTisvp",
+      "data": {
+        "recipientId": "918000000002",
+        "recipientName": "Rakesh",
+        "senderId": "918074540124",
+        "senderName": "Charmi",
+        "type": "video_assignment",
+        "title": "📹 New Training Video Assigned",
+        "message": "You have been assigned to watch \"Drilling work\" for Drilling work on Tue, Dec 2, 2025. Please complete before the deadline.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764679206,
+          "_nanoseconds": 690000000
+        },
+        "metadata": {
+          "assignmentId": "assignment_1764679202154_qqt4htbho",
+          "videoId": "video_1764672700907_u8byoqv7z",
+          "videoTopic": "Drilling work",
+          "deadline": {
+            "_seconds": 1764765548,
+            "_nanoseconds": 71000000
+          },
+          "taskDate": "2025-12-02",
+          "workTitle": "Drilling work"
+        }
+      }
+    },
+    {
+      "id": "HYAmvvucLKpZSCpiNIRt",
+      "data": {
+        "recipientId": "918000000009",
+        "recipientName": "Sunil",
+        "senderId": "SUP-0006",
+        "senderName": "Pranati ",
+        "type": "video_assignment",
+        "title": "📹 New Training Video Assigned",
+        "message": "You have been assigned to watch \"Drilling work\" for 2025-12-02. Please complete before the deadline.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764685916,
+          "_nanoseconds": 259000000
+        },
+        "metadata": {
+          "assignmentId": "assignment_1764685914353_sdhm1o62u",
+          "videoId": "video_1764672700907_u8byoqv7z",
+          "videoTopic": "Drilling work",
+          "deadline": {
+            "_seconds": 1764720000,
+            "_nanoseconds": 0
+          },
+          "taskDate": "2025-12-02"
+        }
+      }
+    },
+    {
+      "id": "UdlvDRnPsBO8L0taUGs4",
+      "data": {
+        "recipientId": "918000000001",
+        "recipientName": "Arun",
+        "senderId": "918074540124",
+        "senderName": "Charmi",
+        "type": "manual_reminder",
+        "title": "📢 Urgent Training Reminder",
+        "message": "📚 You have 2 pending video training assignments. Please complete them before your shift ends.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764659031,
+          "_nanoseconds": 946000000
+        },
+        "metadata": {
+          "assignmentCount": 2,
+          "reminderType": "immediate"
+        }
+      }
+    },
+    {
+      "id": "W4wVV9lWGFr29bXigaj0",
+      "data": {
+        "recipientId": "918000000009",
+        "recipientName": "Sunil",
+        "senderId": "SUP-0006",
+        "senderName": "Pranati ",
+        "type": "manual_reminder",
+        "title": "📢 Urgent Training Reminder",
+        "message": "📚 You have 1 pending video training assignments. Please complete them before your shift ends.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764686091,
+          "_nanoseconds": 776000000
+        },
+        "metadata": {
+          "assignmentCount": 1,
+          "reminderType": "immediate"
+        }
+      }
+    },
+    {
+      "id": "Xjpzl29PDFYILxI8mLHd",
+      "data": {
+        "recipientId": "911234567892",
+        "recipientName": "Supervisor",
+        "senderId": "911234567890",
+        "senderName": "Test Miner",
+        "type": "video_completed",
+        "title": "✅ Video Completed",
+        "message": "Test Miner has completed the video \"Drilling work\" for Drilling work.",
+        "priority": "medium",
+        "read": false,
+        "actionRequired": false,
+        "createdAt": {
+          "_seconds": 1764678041,
+          "_nanoseconds": 446000000
+        },
+        "metadata": {
+          "assignmentId": "assignment_1764674215350_w54us3j4c",
+          "videoId": "video_1764672700907_u8byoqv7z",
+          "videoTopic": "Drilling work",
+          "workTitle": "Drilling work",
+          "completedAt": {
+            "_seconds": 1764678041,
+            "_nanoseconds": 446000000
+          },
+          "watchTime": 4152
+        }
+      }
+    },
+    {
+      "id": "b73C8WjFaFqqjOncGMcV",
+      "data": {
+        "recipientId": "918000000005",
+        "recipientName": "Imran",
+        "senderId": "918074540124",
+        "senderName": "Charmi",
+        "type": "manual_reminder",
+        "title": "📢 Urgent Training Reminder",
+        "message": "📚 You have 2 pending video training assignments. Please complete them before your shift ends.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764659035,
+          "_nanoseconds": 519000000
+        },
+        "metadata": {
+          "assignmentCount": 2,
+          "reminderType": "immediate"
+        }
+      }
+    },
+    {
+      "id": "ghc2WP9jmgLmVb1yhMpM",
+      "data": {
+        "recipientId": "918000000001",
+        "recipientName": "Arun",
+        "senderId": "918074540124",
+        "senderName": "Charmi",
+        "type": "manual_reminder",
+        "title": "📢 Urgent Training Reminder",
+        "message": "📚 You have 2 pending video training assignments. Please complete them before your shift ends.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764659209,
+          "_nanoseconds": 267000000
+        },
+        "metadata": {
+          "assignmentCount": 2,
+          "reminderType": "immediate"
+        }
+      }
+    },
+    {
+      "id": "rn1ghwTC5xUueYwsXgSq",
+      "data": {
+        "recipientId": "918000000010",
+        "recipientName": "Gopal",
+        "senderId": "SUP-0006",
+        "senderName": "Pranati ",
+        "type": "video_assignment",
+        "title": "📹 New Training Video Assigned",
+        "message": "You have been assigned to watch \"Drilling work\" for 2025-12-02. Please complete before the deadline.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764685915,
+          "_nanoseconds": 840000000
+        },
+        "metadata": {
+          "assignmentId": "assignment_1764685914353_sdhm1o62u",
+          "videoId": "video_1764672700907_u8byoqv7z",
+          "videoTopic": "Drilling work",
+          "deadline": {
+            "_seconds": 1764720000,
+            "_nanoseconds": 0
+          },
+          "taskDate": "2025-12-02"
+        }
+      }
+    },
+    {
+      "id": "vVUAnldz9kjbaGFKEnZn",
+      "data": {
+        "recipientId": "911234567892",
+        "recipientName": "Supervisor",
+        "senderId": "911234567890",
+        "senderName": "Test Miner",
+        "type": "video_completed",
+        "title": "✅ Video Completed",
+        "message": "Test Miner has completed the video \"Drilling work\" for Drilling work.",
+        "priority": "medium",
+        "read": false,
+        "actionRequired": false,
+        "createdAt": {
+          "_seconds": 1764678040,
+          "_nanoseconds": 318000000
+        },
+        "metadata": {
+          "assignmentId": "assignment_1764674215350_w54us3j4c",
+          "videoId": "video_1764672700907_u8byoqv7z",
+          "videoTopic": "Drilling work",
+          "workTitle": "Drilling work",
+          "completedAt": {
+            "_seconds": 1764678040,
+            "_nanoseconds": 318000000
+          },
+          "watchTime": 2626
+        }
+      }
+    },
+    {
+      "id": "vnL1NBEmGpgwyr0d1wm3",
+      "data": {
+        "recipientId": "918000000003",
+        "recipientName": "Mahesh",
+        "senderId": "918074540124",
+        "senderName": "Charmi",
+        "type": "manual_reminder",
+        "title": "📢 Urgent Training Reminder",
+        "message": "📚 You have 2 pending video training assignments. Please complete them before your shift ends.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764659034,
+          "_nanoseconds": 173000000
+        },
+        "metadata": {
+          "assignmentCount": 2,
+          "reminderType": "immediate"
+        }
+      }
+    },
+    {
+      "id": "wIthPOmzmkb3jwqY8x6G",
+      "data": {
+        "recipientId": "918000000005",
+        "recipientName": "Imran",
+        "senderId": "918074540124",
+        "senderName": "Charmi",
+        "type": "video_assignment",
+        "title": "📹 New Training Video Assigned",
+        "message": "You have been assigned to watch \"Drilling work\" for Drilling work on Tue, Dec 2, 2025. Please complete before the deadline.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764678246,
+          "_nanoseconds": 109000000
+        },
+        "metadata": {
+          "assignmentId": "assignment_1764678242480_5avvoynd3",
+          "videoId": "video_1764672700907_u8byoqv7z",
+          "videoTopic": "Drilling work",
+          "deadline": {
+            "_seconds": 1764764602,
+            "_nanoseconds": 837000000
+          },
+          "taskDate": "2025-12-02",
+          "workTitle": "Drilling work"
+        }
+      }
+    },
+    {
+      "id": "wSEXeYZ51ZzbgSLleN2D",
+      "data": {
+        "recipientId": "918000000004",
+        "recipientName": "Deepak",
+        "senderId": "918074540124",
+        "senderName": "Charmi",
+        "type": "manual_reminder",
+        "title": "📢 Urgent Training Reminder",
+        "message": "📚 You have 1 pending video training assignments. Please complete them before your shift ends.",
+        "priority": "high",
+        "read": false,
+        "actionRequired": true,
+        "createdAt": {
+          "_seconds": 1764659034,
+          "_nanoseconds": 840000000
+        },
+        "metadata": {
+          "assignmentCount": 1,
+          "reminderType": "immediate"
+        }
+      }
+    }
+  ],
+  "quizResponses": [
+    {
+      "id": "EmhI9VaSNHHPCTWAnmKX",
+      "data": {
+        "quizId": "iytvtbtA7o80NAsqjwST",
+        "userId": "+919876543210",
+        "userName": "miner-1",
+        "userRole": "miner",
+        "score": 1,
+        "totalQuestions": 3,
+        "percentage": 33,
+        "timeTaken": 9,
+        "answers": [
+          1,
+          1,
+          3
+        ],
+        "completedAt": {
+          "_seconds": 1764961550,
+          "_nanoseconds": 180000000
+        }
+      }
+    },
+    {
+      "id": "dHrVoRKyCvYeCYziXGtJ",
+      "data": {
+        "quizId": "XOKj4YRQfOfkidcUbioF",
+        "userId": "+919876543210",
+        "userName": "miner-1",
+        "userRole": "miner",
+        "score": 0,
+        "totalQuestions": 3,
+        "percentage": 0,
+        "timeTaken": 10,
+        "answers": [
+          0,
+          2,
+          3
+        ],
+        "completedAt": {
+          "_seconds": 1764961766,
+          "_nanoseconds": 707000000
+        }
+      }
+    }
+  ],
+  "testimonials": [
+    {
+      "id": "3PCuSlWdynqQyIgjM4js",
+      "data": {
+        "userId": "+919876543211",
+        "userName": "miner-2",
+        "userRole": "miner",
+        "userPhone": "+919876543211",
+        "videoUri": "file:///var/mobile/Containers/Data/Application/BB0C983A-C923-4703-ACCD-355BEAFBA640/Library/Caches/ExponentExperienceData/@anonymous/minerva-mobile-81d188e2-6d1b-489a-b646-ab794452df13/ImagePicker/DC9EFF5E-D895-4323-A524-0BAE28619A8E.mp4",
+        "caption": "Binging",
+        "likes": 0,
+        "comments": 0,
+        "shares": 0,
+        "timestamp": 1764968970160,
+        "status": "pending",
+        "likedBy": [],
+        "createdAt": {
+          "_seconds": 1764968971,
+          "_nanoseconds": 213000000
+        }
+      }
+    },
+    {
+      "id": "E0fRu3j27LgP66AVZYEc",
+      "data": {
+        "userId": "+919876543210",
+        "userName": "miner-1",
+        "userRole": "miner",
+        "userPhone": "+919876543210",
+        "videoUri": "file:///var/mobile/Containers/Data/Application/BB0C983A-C923-4703-ACCD-355BEAFBA640/Library/Caches/ExponentExperienceData/@anonymous/minerva-mobile-81d188e2-6d1b-489a-b646-ab794452df13/ImagePicker/E5EA872F-41B5-47FC-BC75-41C53A2E4AAA.mp4",
+        "caption": "Health safety",
+        "comments": 0,
+        "shares": 0,
+        "timestamp": 1764964063576,
+        "createdAt": {
+          "_seconds": 1764964066,
+          "_nanoseconds": 86000000
+        },
+        "approvedBy": "+911234567893",
+        "approvedAt": {
+          "_seconds": 1764964258,
+          "_nanoseconds": 441000000
+        },
+        "status": "approved",
+        "likedBy": [
+          "+919876543210"
+        ],
+        "likes": 1
+      }
+    },
+    {
+      "id": "FC0thwBaNjbkZgxZ7qNc",
+      "data": {
+        "userId": "+919876543211",
+        "userName": "miner-2",
+        "userRole": "miner",
+        "userPhone": "+919876543211",
+        "videoUri": "file:///var/mobile/Containers/Data/Application/BB0C983A-C923-4703-ACCD-355BEAFBA640/Library/Caches/ExponentExperienceData/@anonymous/minerva-mobile-81d188e2-6d1b-489a-b646-ab794452df13/ImagePicker/5D107177-2986-4DF0-A482-570ADEAD6BAA.mp4",
+        "caption": "Epsom",
+        "likes": 0,
+        "comments": 0,
+        "shares": 0,
+        "timestamp": 1764969104480,
+        "likedBy": [],
+        "createdAt": {
+          "_seconds": 1764969106,
+          "_nanoseconds": 782000000
+        },
+        "approvedBy": "+911234567893",
+        "approvedAt": {
+          "_seconds": 1764969118,
+          "_nanoseconds": 873000000
+        },
+        "status": "approved"
+      }
+    },
+    {
+      "id": "GWDyt2h7vKYoXSWmcGTS",
+      "data": {
+        "userId": "+919876543211",
+        "userName": "miner-2",
+        "userRole": "miner",
+        "userPhone": "+919876543211",
+        "videoUri": "file:///var/mobile/Containers/Data/Application/BB0C983A-C923-4703-ACCD-355BEAFBA640/Library/Caches/ExponentExperienceData/@anonymous/minerva-mobile-81d188e2-6d1b-489a-b646-ab794452df13/ImagePicker/242BB0B2-25A2-442D-94AD-CA36A442A41D.mp4",
+        "caption": "Tiffin",
+        "likes": 0,
+        "comments": 0,
+        "shares": 0,
+        "timestamp": 1764969897178,
+        "likedBy": [],
+        "createdAt": {
+          "_seconds": 1764969898,
+          "_nanoseconds": 159000000
+        },
+        "approvedBy": "+911234567893",
+        "approvedAt": {
+          "_seconds": 1764970318,
+          "_nanoseconds": 552000000
+        },
+        "status": "approved"
+      }
+    },
+    {
+      "id": "OavBybMZzSwXad6PWsZq",
+      "data": {
+        "userId": "+919876543211",
+        "userName": "miner-2",
+        "userRole": "miner",
+        "userPhone": "+919876543211",
+        "videoUri": "file:///var/mobile/Containers/Data/Application/BB0C983A-C923-4703-ACCD-355BEAFBA640/Library/Caches/ExponentExperienceData/@anonymous/minerva-mobile-81d188e2-6d1b-489a-b646-ab794452df13/ImagePicker/9FEB674F-2665-49F1-B7BF-C3FCC55F0DB5.mp4",
+        "caption": "Civil",
+        "likes": 0,
+        "comments": 0,
+        "shares": 0,
+        "timestamp": 1764964916364,
+        "likedBy": [],
+        "createdAt": {
+          "_seconds": 1764964917,
+          "_nanoseconds": 546000000
+        },
+        "rejectedBy": "+911234567893",
+        "rejectedAt": {
+          "_seconds": 1764966002,
+          "_nanoseconds": 334000000
+        },
+        "rejectionReason": "Dijon",
+        "status": "rejected"
+      }
+    },
+    {
+      "id": "Tw1NwJyFQFNyC14zsk1w",
+      "data": {
+        "userId": "+919876543211",
+        "userName": "miner-2",
+        "userRole": "miner",
+        "userPhone": "+919876543211",
+        "videoUri": "file:///var/mobile/Containers/Data/Application/BB0C983A-C923-4703-ACCD-355BEAFBA640/Library/Caches/ExponentExperienceData/@anonymous/minerva-mobile-81d188e2-6d1b-489a-b646-ab794452df13/ImagePicker/932347FD-FF8D-452A-B18B-B555C0A1809D.mp4",
+        "caption": "Singing",
+        "likes": 0,
+        "comments": 0,
+        "shares": 0,
+        "timestamp": 1764966283559,
+        "status": "pending",
+        "likedBy": [],
+        "createdAt": {
+          "_seconds": 1764966285,
+          "_nanoseconds": 720000000
+        }
+      }
+    },
+    {
+      "id": "vDix5sH2r6T4t722Jr60",
+      "data": {
+        "userId": "+919876543210",
+        "userName": "miner-1",
+        "userRole": "miner",
+        "userPhone": "+919876543210",
+        "videoUri": "file:///var/mobile/Containers/Data/Application/BB0C983A-C923-4703-ACCD-355BEAFBA640/Library/Caches/ExponentExperienceData/@anonymous/minerva-mobile-81d188e2-6d1b-489a-b646-ab794452df13/ImagePicker/1F512E49-ED7A-4650-9B57-498950641806.mp4",
+        "caption": "Mine safety",
+        "comments": 0,
+        "shares": 0,
+        "timestamp": 1764964308035,
+        "createdAt": {
+          "_seconds": 1764964308,
+          "_nanoseconds": 857000000
+        },
+        "approvedBy": "+911234567893",
+        "approvedAt": {
+          "_seconds": 1764964383,
+          "_nanoseconds": 936000000
+        },
+        "status": "approved",
+        "likedBy": [
+          "+919876543211",
+          "+919876543210"
+        ],
+        "likes": 2
+      }
+    }
+  ],
+  "users": [
+    {
+      "id": "911234567890",
+      "data": {
+        "minerId": "MIN-TEST",
+        "name": "Test Miner",
+        "phoneNumber": "1234567890",
+        "age": 25,
+        "shift": "Morning",
+        "trainingCompleted": true,
+        "experience": 1,
+        "department": "Test Department",
+        "role": "miner",
+        "supervisorId": "SUP-TEST"
+      }
+    },
+    {
+      "id": "911234567891",
+      "data": {
+        "name": "Test Engineer",
+        "email": "engineer@test.com",
+        "phoneNumber": "1234567891",
+        "empId": "ENG-TEST",
+        "department": "Engineering",
+        "shift": "Morning",
+        "role": "engineer"
+      }
+    },
+    {
+      "id": "911234567892",
+      "data": {
+        "name": "Test Supervisor",
+        "email": "supervisor@test.com",
+        "phoneNumber": "1234567892",
+        "empId": "SUP-TEST",
+        "department": "Test Department",
+        "shift": "Morning",
+        "teamSize": 3,
+        "assignedMiners": [],
+        "role": "supervisor"
+      }
+    },
+    {
+      "id": "911234567893",
+      "data": {
+        "name": "Test Safety Officer",
+        "email": "safety@test.com",
+        "phoneNumber": "1234567893",
+        "empId": "SOF-TEST",
+        "age": 35,
+        "role": "safety_officer"
+      }
+    },
+    {
+      "id": "911234567894",
+      "data": {
+        "name": "Test Admin",
+        "email": "admin@test.com",
+        "phoneNumber": "1234567894",
+        "empId": "ADM-TEST",
+        "department": "Administration",
+        "role": "admin"
+      }
+    },
+    {
+      "id": "916301488233",
+      "data": {
+        "name": "Dattu",
+        "phoneNumber": "+916301488233",
+        "age": 25,
+        "department": "mining_ops",
+        "shift": "day",
+        "trainingCompleted": true,
+        "role": "miner",
+        "createdAt": "2025-12-05T14:21:17.036Z",
+        "createdBy": "admin"
+      }
+    },
+    {
+      "id": "916302954663",
+      "data": {
+        "name": "Pavanth",
+        "phoneNumber": "+916302954663",
+        "age": 20,
+        "department": "mining_ops",
+        "shift": "night",
+        "trainingCompleted": true,
+        "role": "miner",
+        "createdAt": "2025-12-01T19:43:00.323Z",
+        "createdBy": "admin",
+        "id": "916302954663"
+      }
+    },
+    {
+      "id": "917000000001",
+      "data": {
+        "name": "Anita",
+        "email": "anita@mine.com",
+        "phoneNumber": "7000000001",
+        "empId": "SOF-001",
+        "age": 36,
+        "role": "safety_officer"
+      }
+    },
+    {
+      "id": "917416013923",
+      "data": {
+        "name": "Sampath",
+        "phoneNumber": "+917416013923",
+        "age": 20,
+        "department": "blasting",
+        "shift": "day",
+        "trainingCompleted": true,
+        "role": "miner",
+        "createdAt": "2025-12-02T17:18:27.344Z",
+        "createdBy": "admin"
+      }
+    },
+    {
+      "id": "918000000001",
+      "data": {
+        "minerId": "MIN-001",
+        "name": "Arun",
+        "phoneNumber": "8000000001",
+        "age": 30,
+        "shift": "Morning",
+        "trainingCompleted": true,
+        "experience": 3,
+        "department": "Mining Operations",
+        "role": "miner",
+        "supervisorId": "SUP-001",
+        "id": "918000000001"
+      }
+    },
+    {
+      "id": "918000000002",
+      "data": {
+        "minerId": "MIN-002",
+        "name": "Rakesh",
+        "phoneNumber": "8000000002",
+        "age": 28,
+        "shift": "Morning",
+        "trainingCompleted": true,
+        "experience": 2,
+        "department": "Mining Operations",
+        "role": "miner",
+        "supervisorId": "SUP-001"
+      }
+    },
+    {
+      "id": "918000000004",
+      "data": {
+        "minerId": "MIN-004",
+        "name": "Deepak",
+        "phoneNumber": "8000000004",
+        "age": 27,
+        "shift": "Morning",
+        "trainingCompleted": true,
+        "experience": 2,
+        "department": "Loading & Haulage",
+        "role": "miner",
+        "supervisorId": "SUP-001"
+      }
+    },
+    {
+      "id": "918000000005",
+      "data": {
+        "minerId": "MIN-005",
+        "name": "Imran",
+        "phoneNumber": "8000000005",
+        "age": 31,
+        "shift": "Morning",
+        "trainingCompleted": true,
+        "experience": 5,
+        "department": "Blasting Support",
+        "role": "miner",
+        "supervisorId": "SUP-001"
+      }
+    },
+    {
+      "id": "918000000006",
+      "data": {
+        "minerId": "MIN-006",
+        "name": "Harish",
+        "phoneNumber": "8000000006",
+        "age": 30,
+        "shift": "Night",
+        "trainingCompleted": true,
+        "experience": 3,
+        "department": "Development / Drivage",
+        "role": "miner",
+        "supervisorId": "SUP-002"
+      }
+    },
+    {
+      "id": "918000000007",
+      "data": {
+        "minerId": "MIN-007",
+        "name": "Vijay",
+        "phoneNumber": "8000000007",
+        "age": 26,
+        "shift": "Night",
+        "trainingCompleted": false,
+        "experience": 2,
+        "department": "Ventilation Support",
+        "role": "miner",
+        "supervisorId": "SUP-002"
+      }
+    },
+    {
+      "id": "918000000008",
+      "data": {
+        "minerId": "MIN-008",
+        "name": "Santosh",
+        "phoneNumber": "8000000008",
+        "age": 28,
+        "shift": "Night",
+        "trainingCompleted": true,
+        "experience": 2,
+        "department": "Machinery Support",
+        "role": "miner",
+        "supervisorId": "SUP-002"
+      }
+    },
+    {
+      "id": "918000000009",
+      "data": {
+        "minerId": "MIN-009",
+        "name": "Sunil",
+        "phoneNumber": "8000000009",
+        "age": 33,
+        "shift": "Night",
+        "trainingCompleted": true,
+        "experience": 6,
+        "department": "Production Support",
+        "role": "miner",
+        "supervisorId": "SUP-002"
+      }
+    },
+    {
+      "id": "918000000010",
+      "data": {
+        "minerId": "MIN-010",
+        "name": "Gopal",
+        "phoneNumber": "8000000010",
+        "age": 29,
+        "shift": "Night",
+        "trainingCompleted": true,
+        "experience": 3,
+        "department": "Loading & Haulage",
+        "role": "miner",
+        "supervisorId": "SUP-002"
+      }
+    },
+    {
+      "id": "918074540124",
+      "data": {
+        "name": "Charmi",
+        "phoneNumber": "+918074540124",
+        "email": "supervisor3@gmail.com",
+        "department": "maintenance",
+        "teamSize": 5,
+        "assignedMiners": [
+          "918000000001",
+          "918000000002",
+          "918000000003",
+          "918000000004",
+          "918000000005"
+        ],
+        "role": "supervisor",
+        "createdAt": "2025-12-01T17:21:24.248Z",
+        "createdBy": "+918074540124",
+        "empId": "SUP-0004"
+      }
+    },
+    {
+      "id": "918919125074",
+      "data": {
+        "name": "Anudeep",
+        "phoneNumber": "+918919125074",
+        "age": 20,
+        "department": "blasting",
+        "shift": "night",
+        "address": "Karimnagar ",
+        "experience": 3,
+        "trainingCompleted": true,
+        "role": "miner",
+        "createdAt": "2025-12-05T17:02:40.866Z",
+        "createdBy": "admin"
+      }
+    },
+    {
+      "id": "918978531856",
+      "data": {
+        "name": "Nagasresht ",
+        "phoneNumber": "+918978531856",
+        "age": 45,
+        "department": "mining_ops",
+        "shift": "night",
+        "trainingCompleted": true,
+        "role": "miner",
+        "createdAt": "2025-12-02T17:49:01.284Z",
+        "createdBy": "+917416013923"
+      }
+    },
+    {
+      "id": "919000000001",
+      "data": {
+        "name": "Ravi",
+        "email": "ravi@mine.com",
+        "phoneNumber": "9000000001",
+        "empId": "SUP-001",
+        "department": "Mining Operations",
+        "shift": "Morning",
+        "teamSize": 5,
+        "assignedMiners": [
+          "MIN-001",
+          "MIN-002",
+          "MIN-003",
+          "MIN-004",
+          "MIN-005"
+        ],
+        "role": "supervisor"
+      }
+    },
+    {
+      "id": "919000000002",
+      "data": {
+        "name": "Suresh",
+        "email": "suresh@mine.com",
+        "phoneNumber": "9000000002",
+        "empId": "SUP-002",
+        "department": "Development / Drivage",
+        "shift": "Night",
+        "teamSize": 5,
+        "assignedMiners": [
+          "MIN-006",
+          "MIN-007",
+          "MIN-008",
+          "MIN-009",
+          "MIN-010"
+        ],
+        "role": "supervisor"
+      }
+    },
+    {
+      "id": "919100799524",
+      "data": {
+        "name": "Jayanth",
+        "phoneNumber": "+919100799524",
+        "age": 18,
+        "department": "blasting",
+        "shift": "rotating",
+        "address": "Jubliee Hills",
+        "experience": 2,
+        "trainingCompleted": true,
+        "role": "miner",
+        "createdAt": "2025-12-01T18:01:38.995Z",
+        "createdBy": "admin"
+      }
+    },
+    {
+      "id": "919876543210",
+      "data": {
+        "name": "miner-1",
+        "phoneNumber": "+919876543210",
+        "role": "miner",
+        "department": "blasting",
+        "employeeId": "MINER001",
+        "email": "miner1@test.com",
+        "active": true,
+        "testUser": true,
+        "metadata": {
+          "createdBy": "test_script",
+          "notes": "Test miner for PPE scanning - Department: Blasting"
+        },
+        "createdAt": {
+          "_seconds": 1764955715,
+          "_nanoseconds": 772000000
+        },
+        "updatedAt": {
+          "_seconds": 1764955715,
+          "_nanoseconds": 772000000
+        }
+      }
+    },
+    {
+      "id": "919876543211",
+      "data": {
+        "name": "miner-2",
+        "phoneNumber": "+919876543211",
+        "role": "miner",
+        "department": "equipment_maintenance",
+        "employeeId": "MINER002",
+        "email": "miner2@test.com",
+        "active": true,
+        "testUser": true,
+        "metadata": {
+          "createdBy": "test_script",
+          "notes": "Test miner for PPE scanning - Department: Equipment Maintenance"
+        },
+        "createdAt": {
+          "_seconds": 1764958637,
+          "_nanoseconds": 458000000
+        },
+        "updatedAt": {
+          "_seconds": 1764958637,
+          "_nanoseconds": 458000000
+        }
+      }
+    },
+    {
+      "id": "SOF-0003",
+      "data": {
+        "name": "Vaishnavi",
+        "phoneNumber": "+919848702369",
+        "email": "safety1@gmail.com",
+        "department": "safety_compliance",
+        "experience": 2,
+        "certifications": {
+          "lastModified": 1764607048000,
+          "name": "IMG-20251201-WA0018.jpg",
+          "mimeType": "image/jpeg",
+          "uri": "file:///data/user/0/host.exp.exponent/cache/DocumentPicker/834a5f67-af01-413b-829a-c896693dc038.jpg",
+          "size": 78862
+        },
+        "role": "safety_officer",
+        "createdAt": "2025-12-01T18:31:25.222Z",
+        "createdBy": "admin",
+        "empId": "SOF-0003"
+      }
+    },
+    {
+      "id": "SUP-0004",
+      "data": {
+        "name": "Charmi",
+        "phoneNumber": "+918074540124",
+        "email": "supervisor3@gmail.com",
+        "department": "maintenance",
+        "teamSize": 5,
+        "assignedMiners": [
+          "918000000001",
+          "918000000002",
+          "918000000003",
+          "918000000004",
+          "918000000005"
+        ],
+        "role": "supervisor",
+        "createdAt": "2025-12-01T17:21:24.248Z",
+        "createdBy": "+918074540124",
+        "empId": "SUP-0004"
+      }
+    },
+    {
+      "id": "SUP-0006",
+      "data": {
+        "name": "Pranati ",
+        "phoneNumber": "+919032017652",
+        "email": "pranatiraop@gmail.com",
+        "department": "blasting",
+        "teamSize": 5,
+        "assignedMiners": [
+          "918000000010",
+          "918000000009",
+          "918000000008",
+          "918000000007",
+          "918000000006"
+        ],
+        "role": "supervisor",
+        "createdAt": "2025-12-02T08:47:09.687Z",
+        "createdBy": "admin",
+        "empId": "SUP-0006"
+      }
+    },
+    {
+      "id": "miner_1764947059269",
+      "data": {
+        "id": "miner_1764947059269",
+        "phoneNumber": "+918977648652",
+        "role": "miner",
+        "name": "Ramesh Kumar",
+        "email": "ramesh.kumar@minesite.com",
+        "empId": "MIN2024563",
+        "department": "Underground Mining",
+        "shift": "Morning",
+        "age": 32,
+        "address": "Mining Colony, Sector 5, Mining Town",
+        "trainingCompleted": true,
+        "experience": 8,
+        "healthCheckup": {
+          "status": "fit",
+          "lastCheckup": {
+            "_seconds": 1764947059,
+            "_nanoseconds": 269000000
+          },
+          "nextDue": {
+            "_seconds": 1780499059,
+            "_nanoseconds": 269000000
+          }
+        },
+        "certifications": [
+          "Underground Safety",
+          "PPE Handling",
+          "Emergency Response"
+        ],
+        "createdAt": {
+          "_seconds": 1764947059,
+          "_nanoseconds": 269000000
+        },
+        "updatedAt": {
+          "_seconds": 1764947059,
+          "_nanoseconds": 269000000
+        },
+        "status": "active",
+        "lastLogin": null
+      }
+    }
+  ],
+  "videoAssignments": [
+    {
+      "id": "assignment_1764655691143_0wylpzll9",
+      "data": {
+        "videoId": "video_1764654291929_bsr2gu57j",
+        "videoTopic": "Mining Operations",
+        "assignedTo": [
+          "918000000001",
+          "918000000002",
+          "918000000003",
+          "918000000005"
+        ],
+        "assignedBy": "918074540124",
+        "deadline": {
+          "_seconds": 1764720000,
+          "_nanoseconds": 0
+        },
+        "isMandatory": true,
+        "isDailyTask": true,
+        "taskDate": "2025-12-02",
+        "departments": [
+          "Mining Operations",
+          "Production Support",
+          "Blasting Support"
+        ],
+        "description": "Mining Operations",
+        "status": "active",
+        "priority": "high",
+        "id": "assignment_1764655691143_0wylpzll9",
+        "assignedAt": {
+          "_seconds": 1764655691,
+          "_nanoseconds": 143000000
+        }
+      }
+    },
+    {
+      "id": "assignment_1764674215350_w54us3j4c",
+      "data": {
+        "videoId": "video_1764672700907_u8byoqv7z",
+        "videoTopic": "Drilling work",
+        "assignedTo": [
+          "911234567890"
+        ],
+        "assignedBy": "911234567892",
+        "deadline": {
+          "_seconds": 1764760501,
+          "_nanoseconds": 645000000
+        },
+        "isMandatory": true,
+        "isDailyTask": true,
+        "taskDate": "2025-12-02",
+        "workTitle": "Drilling work",
+        "departments": [
+          "Test Department"
+        ],
+        "description": "drilling work ",
+        "status": "active",
+        "priority": "high",
+        "id": "assignment_1764674215350_w54us3j4c",
+        "assignedAt": {
+          "_seconds": 1764674215,
+          "_nanoseconds": 350000000
+        },
+        "progress": {
+          "911234567890": {
+            "status": "completed",
+            "completedAt": {
+              "_seconds": 1764678038,
+              "_nanoseconds": 835000000
+            },
+            "watchedDuration": 0,
+            "totalDuration": 0,
+            "watchTime": 4152,
+            "progress": 100
+          }
+        }
+      }
+    },
+    {
+      "id": "assignment_1764678242480_5avvoynd3",
+      "data": {
+        "videoId": "video_1764672700907_u8byoqv7z",
+        "videoTopic": "Drilling work",
+        "assignedTo": [
+          "918000000001",
+          "918000000002",
+          "918000000004",
+          "918000000005"
+        ],
+        "assignedBy": "918074540124",
+        "assignedByName": "Charmi",
+        "deadline": {
+          "_seconds": 1764764602,
+          "_nanoseconds": 837000000
+        },
+        "isMandatory": true,
+        "isDailyTask": true,
+        "taskDate": "2025-12-02",
+        "workTitle": "Drilling work",
+        "departments": [
+          "Mining Operations",
+          "Loading & Haulage",
+          "Blasting Support"
+        ],
+        "description": "Drilling work  ",
+        "status": "active",
+        "priority": "high",
+        "id": "assignment_1764678242480_5avvoynd3",
+        "assignedAt": {
+          "_seconds": 1764678242,
+          "_nanoseconds": 480000000
+        }
+      }
+    },
+    {
+      "id": "assignment_1764679202154_qqt4htbho",
+      "data": {
+        "videoId": "video_1764672700907_u8byoqv7z",
+        "videoTopic": "Drilling work",
+        "assignedTo": [
+          "918000000002"
+        ],
+        "assignedBy": "918074540124",
+        "assignedByName": "Charmi",
+        "deadline": {
+          "_seconds": 1764765548,
+          "_nanoseconds": 71000000
+        },
+        "isMandatory": true,
+        "isDailyTask": true,
+        "taskDate": "2025-12-02",
+        "workTitle": "Drilling work",
+        "departments": [
+          "Mining Operations"
+        ],
+        "description": "Drilling work ",
+        "status": "active",
+        "priority": "high",
+        "id": "assignment_1764679202154_qqt4htbho",
+        "assignedAt": {
+          "_seconds": 1764679202,
+          "_nanoseconds": 154000000
+        }
+      }
+    },
+    {
+      "id": "assignment_1764681654962_1hwzqvliz",
+      "data": {
+        "videoId": "video_1764681549976_kgml3l619",
+        "videoTopic": "Blasting",
+        "assignedTo": [
+          "911234567890"
+        ],
+        "assignedBy": "911234567892",
+        "deadline": {
+          "_seconds": 1764720000,
+          "_nanoseconds": 0
+        },
+        "isMandatory": true,
+        "isDailyTask": true,
+        "taskDate": "2025-12-02",
+        "departments": [
+          "Test Department"
+        ],
+        "description": "Blasting",
+        "status": "active",
+        "priority": "high",
+        "id": "assignment_1764681654962_1hwzqvliz",
+        "assignedAt": {
+          "_seconds": 1764681654,
+          "_nanoseconds": 963000000
+        },
+        "progress": {
+          "911234567890": {
+            "status": "completed",
+            "watchedDuration": 100,
+            "totalDuration": 100,
+            "completedAt": {
+              "_seconds": 1764683379,
+              "_nanoseconds": 783000000
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "assignment_1764685914353_sdhm1o62u",
+      "data": {
+        "id": "assignment_1764685914353_sdhm1o62u",
+        "videoId": "video_1764672700907_u8byoqv7z",
+        "videoTopic": "Drilling work",
+        "workTitle": "Drilling work",
+        "assignedTo": [
+          "918000000010",
+          "918000000009"
+        ],
+        "assignedBy": "SUP-0006",
+        "assignedAt": {
+          "_seconds": 1764685914,
+          "_nanoseconds": 353000000
+        },
+        "deadline": {
+          "_seconds": 1764720000,
+          "_nanoseconds": 0
+        },
+        "isMandatory": true,
+        "isDailyTask": true,
+        "taskDate": "2025-12-02",
+        "departments": [
+          "Loading & Haulage",
+          "Production Support"
+        ],
+        "description": "Drilling work ",
+        "status": "active",
+        "priority": "high",
+        "progress": {
+          "918000000009": {
+            "status": "pending",
+            "watchedDuration": 0,
+            "totalDuration": 0,
+            "completedAt": null
+          },
+          "918000000010": {
+            "status": "completed",
+            "watchedDuration": 100,
+            "totalDuration": 100,
+            "completedAt": {
+              "_seconds": 1764686028,
+              "_nanoseconds": 456000000
+            }
+          }
+        }
+      }
+    }
+  ],
+  "videoLibrary": [
+    {
+      "id": "video_1764654291929_bsr2gu57j",
+      "data": {
+        "topic": "Mining Operations",
+        "description": "This comprehensive safety training video covers essential aspects of Mining Operations . The video provides practical demonstrations and clear guidelines to ensure miners understand and follow proper safety protocols. Through visual examples and expert narration, miners will learn the critical steps needed to maintain a safe working environment.",
+        "language": "en",
+        "languageName": "🇬🇧 English",
+        "videoUrl": "https://firebasestorage.googleapis.com/v0/b/sihtut-1.firebasestorage.app/o/videos%2F1764654288070_Mining_Operations_1764654287594.mp4?alt=media&token=655f004d-4c0a-46d6-8c3c-e7f1ad831c96",
+        "transcript": "This training video provides comprehensive coverage of Mining Operations  with practical demonstrations and safety guidelines.",
+        "createdBy": "911234567893",
+        "status": "active",
+        "tags": [
+          "mining safety",
+          "training",
+          "mining operations ",
+          "safety protocol",
+          "workplace safety",
+          "miners"
+        ],
+        "availableLanguages": [
+          "en"
+        ],
+        "metadata": {
+          "resolution": "1080p",
+          "format": "mp4",
+          "encoding": "H.264"
+        },
+        "id": "video_1764654291929_bsr2gu57j",
+        "createdAt": {
+          "_seconds": 1764654291,
+          "_nanoseconds": 930000000
+        },
+        "statistics": {
+          "completionRate": 0,
+          "averageRating": 0,
+          "totalViews": 0,
+          "totalAssignments": 3
+        },
+        "updatedAt": {
+          "_seconds": 1764655692,
+          "_nanoseconds": 531000000
+        }
+      }
+    },
+    {
+      "id": "video_1764672700907_u8byoqv7z",
+      "data": {
+        "topic": "Drilling work",
+        "description": "This comprehensive safety training video covers essential aspects of Drilling work. The video provides practical demonstrations and clear guidelines to ensure miners understand and follow proper safety protocols. Through visual examples and expert narration, miners will learn the critical steps needed to maintain a safe working environment.",
+        "language": "en",
+        "languageName": "🇬🇧 English",
+        "videoUrl": "https://firebasestorage.googleapis.com/v0/b/sihtut-1.firebasestorage.app/o/videos%2F1764672696353_Drilling_work_1764672696013.mp4?alt=media&token=d475940d-0306-4504-8151-961f777a1b1a",
+        "transcript": "This training video provides comprehensive coverage of Drilling work with practical demonstrations and safety guidelines.",
+        "createdBy": "911234567893",
+        "status": "active",
+        "tags": [
+          "mining safety",
+          "training",
+          "drilling work",
+          "safety protocol",
+          "workplace safety",
+          "miners"
+        ],
+        "availableLanguages": [
+          "en"
+        ],
+        "metadata": {
+          "resolution": "1080p",
+          "format": "mp4",
+          "encoding": "H.264"
+        },
+        "id": "video_1764672700907_u8byoqv7z",
+        "createdAt": {
+          "_seconds": 1764672700,
+          "_nanoseconds": 911000000
+        },
+        "statistics": {
+          "averageRating": 0,
+          "completionRate": 0,
+          "totalAssignments": 3,
+          "totalViews": 0
+        },
+        "updatedAt": {
+          "_seconds": 1764679205,
+          "_nanoseconds": 766000000
+        }
+      }
+    },
+    {
+      "id": "video_1764681549976_kgml3l619",
+      "data": {
+        "topic": "Blasting",
+        "description": "This comprehensive training video provides a detailed overview of blasting operations in mining, emphasizing safety protocols and best practices to minimize risks and ensure a safe working environment. Blasting is a crucial process in many mining operations, but it also presents significant hazards if not performed correctly. This video aims to equip miners with the knowledge and skills necessary to understand the entire blasting process, from pre-blast inspections and planning to post-blast assessments and hazard mitigation. By adhering to the procedures outlined in this video, miners can significantly reduce the potential for accidents, injuries, and equipment damage, contributing to a safer and more productive mining operation.\n\nSpecifically, this training will cover topics such as the types of explosives used in mining, proper handling and storage procedures, safe loading and stemming techniques, initiation methods, misfire procedures, and the importance of effective communication throughout the blasting process. Furthermore, the video addresses the environmental impact of blasting and the importance of minimizing dust and noise pollution. It emphasizes the critical role of pre-blast surveys, risk assessments, and post-blast inspections in identifying and mitigating potential hazards. Understanding and implementing these principles is essential for all personnel involved in or working near blasting operations.",
+        "language": "en",
+        "languageName": "🇬🇧 English",
+        "videoUrl": "https://firebasestorage.googleapis.com/v0/b/sihtut-1.firebasestorage.app/o/videos%2F1764681545439_Blasting_1764681545012.mp4?alt=media&token=eb13b212-63cd-49ea-9c75-64770ce42141",
+        "transcript": "This video will guide you through the entire blasting process, from pre-blast planning to post-blast inspections, highlighting critical safety measures at each stage to ensure a safe and productive mining operation.",
+        "createdBy": "911234567893",
+        "status": "active",
+        "tags": [
+          "Mining Safety",
+          "Blasting",
+          "Explosives",
+          "Safety Training",
+          "Misfire Procedures",
+          "Risk Assessment",
+          "Mine Operations"
+        ],
+        "availableLanguages": [
+          "en"
+        ],
+        "metadata": {
+          "resolution": "1080p",
+          "format": "mp4",
+          "encoding": "H.264"
+        },
+        "id": "video_1764681549976_kgml3l619",
+        "createdAt": {
+          "_seconds": 1764681549,
+          "_nanoseconds": 977000000
+        },
+        "statistics": {
+          "averageRating": 0,
+          "completionRate": 0,
+          "totalViews": 0,
+          "totalAssignments": 1
+        },
+        "updatedAt": {
+          "_seconds": 1764681656,
+          "_nanoseconds": 596000000
+        }
+      }
+    },
+    {
+      "id": "video_1764689974104_o0cwzcg2y",
+      "data": {
+        "topic": "Safety equipment in mines",
+        "description": "This comprehensive safety training video covers essential aspects of Safety equipment in mines. The video provides practical demonstrations and clear guidelines to ensure miners understand and follow proper safety protocols. Through visual examples and expert narration, miners will learn the critical steps needed to maintain a safe working environment.",
+        "language": "te",
+        "languageName": "🇮🇳 తెలుగు",
+        "videoUrl": "https://firebasestorage.googleapis.com/v0/b/sihtut-1.firebasestorage.app/o/videos%2F1764689968571_Safety_equipment_in_mines_1764689967344.mp4?alt=media&token=768d674a-1ab7-46b4-bd53-d55bd9b85ee7",
+        "transcript": "This training video provides comprehensive coverage of Safety equipment in mines with practical demonstrations and safety guidelines.",
+        "createdBy": "911234567893",
+        "status": "active",
+        "tags": [
+          "mining safety",
+          "training",
+          "safety equipment in mines",
+          "safety protocol",
+          "workplace safety",
+          "miners"
+        ],
+        "availableLanguages": [
+          "te"
+        ],
+        "metadata": {
+          "resolution": "1080p",
+          "format": "mp4",
+          "encoding": "H.264"
+        },
+        "statistics": {
+          "totalViews": 0,
+          "totalAssignments": 0,
+          "completionRate": 0,
+          "averageRating": 0
+        },
+        "id": "video_1764689974104_o0cwzcg2y",
+        "createdAt": {
+          "_seconds": 1764689974,
+          "_nanoseconds": 105000000
+        },
+        "updatedAt": {
+          "_seconds": 1764689974,
+          "_nanoseconds": 105000000
+        }
+      }
+    }
+  ],
+  "videoRequests": [
+    {
+      "id": "request_1764626616682_a07g90ta0",
+      "data": {
+        "topic": "Work on different tools how they should be used and safety procedures ",
+        "description": "Work on different tools how they should be used and safety procedures ",
+        "language": "en",
+        "requestedBy": "911234567892",
+        "priority": "medium",
+        "notes": "Auto-requested from Smart Work Assignment for date: 2025-12-02",
+        "id": "request_1764626616682_a07g90ta0",
+        "requestedAt": {
+          "_seconds": 1764626616,
+          "_nanoseconds": 682000000
+        },
+        "assignedTo": "911234567893",
+        "status": "in-progress",
+        "updatedAt": {
+          "_seconds": 1764657483,
+          "_nanoseconds": 318000000
+        }
+      }
+    },
+    {
+      "id": "request_1764626617683_qxukimqwt",
+      "data": {
+        "topic": "Work on different tools how they should be used and safety procedures ",
+        "description": "Work on different tools how they should be used and safety procedures ",
+        "language": "en",
+        "requestedBy": "911234567892",
+        "priority": "medium",
+        "id": "request_1764626617683_qxukimqwt",
+        "requestedAt": {
+          "_seconds": 1764626617,
+          "_nanoseconds": 683000000
+        },
+        "notes": "Request rejected",
+        "status": "rejected",
+        "updatedAt": {
+          "_seconds": 1764627187,
+          "_nanoseconds": 976000000
+        }
+      }
+    },
+    {
+      "id": "request_1764653954206_x6s7hrism",
+      "data": {
+        "topic": "Mining Operations ",
+        "description": "Mining Operations ",
+        "language": "en",
+        "requestedBy": "918074540124",
+        "requestedByName": "Charmi",
+        "priority": "medium",
+        "id": "request_1764653954206_x6s7hrism",
+        "requestedAt": {
+          "_seconds": 1764653954,
+          "_nanoseconds": 206000000
+        },
+        "assignedTo": "911234567893",
+        "notes": "",
+        "videoId": "video_1764654291929_bsr2gu57j",
+        "status": "completed",
+        "completedAt": {
+          "_seconds": 1764654383,
+          "_nanoseconds": 706000000
+        },
+        "updatedAt": {
+          "_seconds": 1764654383,
+          "_nanoseconds": 706000000
+        }
+      }
+    },
+    {
+      "id": "request_1764665641444_ixfz8w31b",
+      "data": {
+        "topic": "Drilling work ",
+        "description": "Drilling work ",
+        "language": "en",
+        "requestedBy": "911234567892",
+        "requestedByName": "Test Supervisor",
+        "priority": "medium",
+        "notes": "Auto-requested from Smart Work Assignment for date: 2025-12-02",
+        "id": "request_1764665641444_ixfz8w31b",
+        "requestedAt": {
+          "_seconds": 1764665641,
+          "_nanoseconds": 445000000
+        },
+        "assignedTo": "911234567893",
+        "status": "in-progress",
+        "updatedAt": {
+          "_seconds": 1764665772,
+          "_nanoseconds": 370000000
+        }
+      }
+    },
+    {
+      "id": "request_1764680449294_el3oje2kf",
+      "data": {
+        "topic": "Blasting ",
+        "description": "Blasting ",
+        "language": "en",
+        "requestedBy": "911234567892",
+        "requestedByName": "Test Supervisor",
+        "priority": "medium",
+        "id": "request_1764680449294_el3oje2kf",
+        "requestedAt": {
+          "_seconds": 1764680449,
+          "_nanoseconds": 294000000
+        },
+        "assignedTo": "911234567893",
+        "completedAt": {
+          "_seconds": 1764681586,
+          "_nanoseconds": 409000000
+        },
+        "notes": "",
+        "videoId": "video_1764681549976_kgml3l619",
+        "status": "completed",
+        "updatedAt": {
+          "_seconds": 1764681586,
+          "_nanoseconds": 409000000
+        }
+      }
+    }
+  ]
+}

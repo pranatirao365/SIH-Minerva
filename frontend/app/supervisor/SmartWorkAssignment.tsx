@@ -136,11 +136,17 @@ export default function SmartWorkAssignment() {
       setShowResults(true);
 
       if (matches.length === 0) {
-        // No matching videos found - will need to request generation
+        // No matching videos found - offer to request generation
         Alert.alert(
           '🔍 No Matching Videos',
-          'No videos found matching your description (80% threshold). You can request a new video to be generated.',
-          [{ text: 'OK' }]
+          'No videos found matching your description (80% threshold). Would you like to request a new video to be generated?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Request Video', 
+              onPress: () => requestVideoGeneration()
+            }
+          ]
         );
       } else {
         // Show top match
@@ -335,6 +341,7 @@ export default function SmartWorkAssignment() {
         requestedBy: user?.id || 'unknown',
         requestedByName: user?.name || 'Supervisor',
         priority,
+        minerIds: selectedMiners, // Include selected miners for assignment
         notes: `Auto-requested from Smart Work Assignment for date: ${workDate}`,
       };
 

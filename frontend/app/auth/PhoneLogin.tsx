@@ -31,7 +31,9 @@ const TEST_PHONES = [
   '+918000000010',  // Gopal (Miner)
   '+917000000001',  // Anita (Safety Officer)
   '+919876543210',  // miner-1 (Blasting Department) - Test OTP: 123456
-  '+919876543211'   // miner-2 (Equipment Maintenance) - Test OTP: 123456
+  '+919876543211',  // miner-2 (Equipment Maintenance) - Test OTP: 123456
+  '+919032017652'   // Supervisor testing account - Test OTP: 123456
+
 ];
 const IS_TEST_MODE = true; // Set to false in production
 

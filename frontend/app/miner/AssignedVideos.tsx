@@ -268,26 +268,60 @@ export default function AssignedVideos() {
 
   // Normalize video URL to ensure it's accessible from mobile app
   const normalizeVideoUrl = (videoUrl: string): string => {
-    if (!videoUrl) return '';
+    if (!videoUrl) {
+      console.warn('[VIDEO_URL] Empty video URL provided');
+      return '';
+    }
 
-    // If it's already a full HTTP URL, return as is
+    console.log('[VIDEO_URL] Original URL:', videoUrl);
+
+    // If it's already a full HTTP URL, check if IP needs updating
     if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
-      return videoUrl;
+      // Update old IP addresses to current one from .env
+      const currentIP = process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.121';
+      const oldIPPatterns = [
+        '192.168.137.122',
+        '192.168.1.',
+        '10.0.0.',
+        '172.16.'
+      ];
+      
+      let updatedUrl = videoUrl;
+      for (const oldPattern of oldIPPatterns) {
+        if (videoUrl.includes(oldPattern)) {
+          // Extract the old IP and replace with current
+          const urlMatch = videoUrl.match(/http:\/\/([0-9.]+):([0-9]+)/);
+          if (urlMatch) {
+            const oldIP = urlMatch[1];
+            const port = urlMatch[2];
+            updatedUrl = videoUrl.replace(`http://${oldIP}:${port}`, `http://${currentIP}:${port}`);
+            console.log('[VIDEO_URL] Updated old IP:', oldIP, '->', currentIP);
+            break;
+          }
+        }
+      }
+      
+      console.log('[VIDEO_URL] Final URL:', updatedUrl);
+      return updatedUrl;
     }
 
     // If it's a relative path starting with /videos/, convert to full URL
     if (videoUrl.startsWith('/videos/')) {
-      return getVideoUrl(videoUrl);
+      const fullUrl = getVideoUrl(videoUrl);
+      console.log('[VIDEO_URL] Converted relative path:', fullUrl);
+      return fullUrl;
     }
 
     // For local file paths, try to convert to backend URL
-    // This assumes the video is in the output directory
     if (videoUrl.includes('output/') || videoUrl.includes('.mp4')) {
       const filename = videoUrl.split('/').pop() || videoUrl.split('\\').pop() || '';
-      return getVideoUrl(`videos/${filename}`);
+      const fullUrl = getVideoUrl(`videos/${filename}`);
+      console.log('[VIDEO_URL] Converted local path:', fullUrl);
+      return fullUrl;
     }
 
     // Fallback: try to use as-is
+    console.warn('[VIDEO_URL] Using URL as-is (might fail):', videoUrl);
     return videoUrl;
   };
 
@@ -306,6 +340,17 @@ export default function AssignedVideos() {
       );
       return;
     }
+
+    // Validate video URL
+    if (!video.videoUrl) {
+      Alert.alert('Error', 'Video URL is missing. Please contact your supervisor.');
+      return;
+    }
+
+    const normalizedUrl = normalizeVideoUrl(video.videoUrl);
+    console.log('[START_WATCHING] Assignment:', assignment.id);
+    console.log('[START_WATCHING] Video URL:', normalizedUrl);
+    console.log('[START_WATCHING] Current .env IP:', process.env.EXPO_PUBLIC_IP_ADDRESS);
 
     // Check if video URL is accessible
     if (!video.videoUrl || video.videoUrl.trim() === '') {
@@ -604,18 +649,28 @@ export default function AssignedVideos() {
                 setIsVideoLoading(false);
               }}
               onError={(error) => {
+                const videoUrl = normalizeVideoUrl(selectedVideo.videoUrl);
                 console.error('Video load error:', error);
+                console.error('Failed URL:', videoUrl);
+                console.error('Current IP from .env:', process.env.EXPO_PUBLIC_IP_ADDRESS);
+                
+                const errorCode = error?.error || 'Unknown';
+                const isDomain = errorCode.includes('NSURLErrorDomain') || errorCode.includes('-1008');
+                
                 Alert.alert(
                   'Video Error',
-                  'Failed to load video. Please check your internet connection and try again.',
+                  isDomain 
+                    ? `Cannot reach video server.\n\nURL: ${videoUrl}\n\nTroubleshooting:\n1. Ensure video backend is running (port 4000)\n2. Check IP address in .env: ${process.env.EXPO_PUBLIC_IP_ADDRESS}\n3. Device and server must be on same network\n4. Try: ipconfig (Windows) to verify server IP`
+                    : `Failed to load video.\n\nError: ${errorCode}\n\nPlease check your connection and try again.`,
                   [
                     { text: 'Retry', onPress: () => {
-                      // Reset video state to allow retry
                       setIsPlaying(false);
                       if (videoRef.current) {
                         videoRef.current.unloadAsync();
                         setTimeout(() => {
-                          videoRef.current?.loadAsync({ uri: normalizeVideoUrl(selectedVideo.videoUrl) });
+                          const retryUrl = normalizeVideoUrl(selectedVideo.videoUrl);
+                          console.log('[RETRY] Attempting to load:', retryUrl);
+                          videoRef.current?.loadAsync({ uri: retryUrl });
                         }, 1000);
                       }
                     }},

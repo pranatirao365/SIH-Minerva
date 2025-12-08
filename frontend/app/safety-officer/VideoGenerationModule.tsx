@@ -52,6 +52,7 @@ export default function VideoGenerationModule() {
   const [showVideoLibrary, setShowVideoLibrary] = useState(false);
   const [videoError, setVideoError] = useState<string>('');
   const [videoLoading, setVideoLoading] = useState(false);
+  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
   
   // Load video history and check for pending request data on mount
   useEffect(() => {
@@ -82,6 +83,7 @@ export default function VideoGenerationModule() {
         // Auto-fill the form
         setTopic(requestData.topic || '');
         setSelectedLanguage(requestData.language || '');
+        setCurrentRequestId(requestData.requestId || null);
         
         // Clear the pending request data
         await AsyncStorage.removeItem('pendingVideoRequest');
@@ -334,6 +336,68 @@ Example format: "Proper PPE Usage in Underground Mining Operations"`;
       const videoId = await VideoLibraryService.createVideo(videoData);
       console.log('✅ Video saved to Firestore with ID:', videoId);
 
+      // Update video request status if this was generated from a request
+      if (currentRequestId) {
+        try {
+          console.log('📝 Updating video request status...');
+          await VideoLibraryService.updateVideoRequest(currentRequestId, {
+            status: 'completed',
+            videoId: videoId,
+            completedAt: Timestamp.now(),
+          });
+          console.log('✅ Video request updated successfully');
+
+          // Create assignments for miners if specified in the request
+          const requestDetails = await VideoLibraryService.getVideoRequestById(currentRequestId);
+          if (requestDetails?.minerIds && requestDetails.minerIds.length > 0) {
+            console.log('👥 Creating assignments for miners:', requestDetails.minerIds);
+            for (const minerId of requestDetails.minerIds) {
+              try {
+                const assignmentData = {
+                  videoId: videoId,
+                  videoTopic: aiTitle,
+                  assignedTo: [minerId],
+                  assignedBy: currentUserId,
+                  deadline: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), // 7 days from now
+                  isMandatory: true,
+                  isDailyTask: false,
+                  departments: [], // Will be populated based on miner data
+                  description: `Auto-assigned video for work: ${requestDetails.description}`,
+                  status: 'active' as const,
+                  priority: 'high' as const,
+                };
+
+                await VideoLibraryService.createAssignment(assignmentData);
+                console.log('✅ Assignment created for miner:', minerId);
+              } catch (assignmentError) {
+                console.error('❌ Failed to create assignment for miner:', minerId, assignmentError);
+              }
+            }
+            console.log('✅ All assignments created successfully');
+
+            // Notify the supervisor that video is ready and assignments created
+            try {
+              await VideoLibraryService.createNotification({
+                userId: requestDetails.requestedBy,
+                title: 'Video Generated & Assigned',
+                message: `Video "${aiTitle}" has been generated and assigned to ${requestDetails.minerIds.length} miner(s) for the requested work.`,
+                type: 'success',
+                relatedId: videoId,
+                actionUrl: '/supervisor/SmartWorkAssignment',
+              });
+              console.log('✅ Notification sent to supervisor');
+            } catch (notificationError) {
+              console.error('❌ Failed to send notification:', notificationError);
+            }
+          }
+
+          setCurrentRequestId(null); // Clear the request ID
+        } catch (requestError) {
+          console.error('❌ Failed to update video request:', requestError);
+          // Don't fail the whole process for this
+        }
+      }
+
       // Also save to local AsyncStorage for backward compatibility
       const videoEntry = {
         id: videoId,
@@ -494,6 +558,7 @@ Example format: "Proper PPE Usage in Underground Mining Operations"`;
       console.log('📝 Topic:', topic.trim());
       console.log('🌐 Language:', selectedLanguage);
       console.log('🌐 API URL:', apiUrl);
+      console.log('🌐 Environment IP:', process.env.EXPO_PUBLIC_IP_ADDRESS);
       
       // Create AbortController for timeout (5 minutes for initial request)
       const controller = new AbortController();
@@ -544,7 +609,7 @@ Example format: "Proper PPE Usage in Underground Mining Operations"`;
       
       Alert.alert(
         'Connection Error', 
-        `Failed to start video generation:\n${errorMessage}\n\nTroubleshooting:\n• Backend server: ${currentApiUrl}\n• Check server is running (port 4000)\n• Ensure same Wi-Fi network\n• Check firewall settings\n• Current IP: ${process.env.EXPO_PUBLIC_IP_ADDRESS || '192.168.137.122'}`,
+        `Failed to start video generation:\n${errorMessage}\n\nTroubleshooting:\n• Backend server: ${currentApiUrl}\n• Check server is running (port 4000)\n• Ensure same Wi-Fi network\n• Check firewall settings\n• Current IP: ${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.121'}`,
         [
           { text: 'OK' },
           { 

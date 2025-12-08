@@ -164,6 +164,13 @@ export default function MinerHome() {
       completed: moduleProgress.game,
       locked: true
     },
+    { 
+      icon: Award, 
+      label: 'The Second Skin', 
+      route: '/miner/TheSecondSkinGame', 
+      completed: false,
+      locked: false
+    },
   ];
 
   return (

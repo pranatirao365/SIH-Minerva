@@ -26,7 +26,7 @@ export async function completeChecklistItem(req: Request, res: Response) {
 
 export async function sosSignal(req: Request, res: Response) {
   const { uid, location, message } = req.body;
-  await db().collection('sos').add({ uid, location, message, ts: Date.now() });
+  await db().collection('sos_alerts').add({ uid, location, message, ts: Date.now() });
   return res.json({ ok: true });
 }
 

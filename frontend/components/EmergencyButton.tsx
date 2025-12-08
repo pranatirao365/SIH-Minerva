@@ -110,10 +110,12 @@ export const EmergencyButton: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 110,
     right: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 999,
+    display: 'none', // Hidden
   },
   glowRing: {
     position: 'absolute',

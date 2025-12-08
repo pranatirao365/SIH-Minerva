@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmergencyButton } from '../../components/EmergencyButton';
-import AppHeader from '../../components/AppHeader';
+import { MinerFooter } from '../../components/BottomNav';
 import {
     Activity,
     AlertTriangle,
@@ -25,6 +25,7 @@ import {
     Tool,
     TrendingUp,
     Trophy,
+    Upload,
     User,
     Video
 } from '../../components/Icons';
@@ -33,7 +34,6 @@ import { getWebSocketURL } from '../../config/smartHelmetConfig';
 import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import { translator } from '../../services/translator';
-import GamingModule from './GamingModule';
 
 interface HelmetData {
   env: {
@@ -54,7 +54,6 @@ interface HelmetData {
 export default function MinerHome() {
   const router = useRouter();
   const { user, moduleProgress, safetyScore } = useRoleStore();
-  const [showInlineGame, setShowInlineGame] = useState(false);
   
   // Smart Helmet WebSocket State
   const [helmetConnected, setHelmetConnected] = useState(false);
@@ -112,59 +111,37 @@ export default function MinerHome() {
   }, []);
 
   const quickActions = [
-    { icon: Trophy, label: 'Training Journey', route: '/miner/TrainingModule', color: '#9C27B0' },
-    { icon: Clipboard, label: 'Daily Checklist', route: '/miner/DailyChecklist', color: '#10B981' },
-    { icon: Tool, label: 'Equipment Check', route: '/miner/EquipmentCheck', color: '#3B82F6' },
+    { icon: Clipboard, label: 'Pre-Shift Inspection', route: '/miner/DailyChecklist', color: '#10B981' },
     { icon: Heart, label: 'Health Monitor', route: '/miner/HealthMonitoring', color: '#EF4444' },
-    { icon: Activity, label: 'Helmet History', route: '/miner/HelmetHistory', color: '#8B5CF6' },
     { icon: Award, label: 'Leaderboard', route: '/miner/ProgressTracker', color: '#FFD700' },
-    { icon: MessageCircle, label: 'AI Assistant', route: '/miner/AIChatbot', color: '#6366F1' },
     { icon: User, label: 'Testimonials', route: '/miner/Testimonials', color: '#EC4899' },
     { icon: BookOpen, label: 'Case Studies', route: '/miner/CaseStudies', color: '#F59E0B' },
     { icon: Map, label: 'Heat Map', route: '/miner/HeatMapView', color: COLORS.primary },
     { icon: Camera, label: 'Hazard Scan', route: '/miner/HazardScan', color: COLORS.destructive },
     { icon: Shield, label: 'PPE Scan', route: '/miner/PPEScanScreen', color: COLORS.accent },
-    { icon: AlertTriangle, label: 'Report', route: '/miner/IncidentReport', color: '#F59E0B' },
-    { icon: Trophy, label: 'Fire Safety', route: '/miner/SimulationScreen', color: '#DC2626' },
-    { icon: Trophy, label: 'Blasting', route: '/miner/BlastingGame', color: '#F59E0B' },
-    { icon: Trophy, label: 'Roof Fall', route: '/miner/RoofInstabilityGame', color: '#7C2D12' },
   ];
 
   const trainingModules = [
     { 
       icon: Video, 
       label: 'Watch Video', 
-      route: '/miner/watch-video', 
+      route: '/miner/SafetyVideoPlayer', 
       completed: moduleProgress.video,
       locked: false
     },
     { 
-      icon: Mic, 
-      label: 'Voice Briefing', 
-      route: '/miner/VoiceBriefing', 
-      completed: moduleProgress.briefing,
-      locked: !moduleProgress.video
-    },
-    { 
-      icon: BookOpen, 
-      label: 'Daily Quiz', 
+      icon: CheckCircle, 
+      label: 'Take Quiz', 
       route: '/shared/AvailableQuizzes', 
       completed: moduleProgress.quiz,
       locked: false
     },
     { 
-      icon: CheckCircle, 
-      label: 'Old Quiz', 
-      route: '/miner/SafetyQuiz', 
-      completed: moduleProgress.quiz,
-      locked: !moduleProgress.briefing
-    },
-    { 
       icon: Trophy, 
       label: 'Play Game', 
-      route: '/miner/GamingModule', 
+      route: '/miner/SafetyGames', 
       completed: moduleProgress.game,
-      locked: true
+      locked: false
     },
   ];
 
@@ -172,34 +149,132 @@ export default function MinerHome() {
     <SafeAreaView style={styles.container}>
       <OfflineBanner />
       
-      {/* App Header with Notification & Profile */}
-      <AppHeader 
-        userName={user.name || 'Miner'}
-        showBack={false}
-        showNotifications={true}
-        showProfile={true}
-      />
-      
       <ScrollView style={styles.scrollView}>
-        {/* Safety Score Card */}
-        <View style={styles.scoreCard}>
-          <View style={styles.scoreContent}>
-            <View>
-              <Text style={styles.scoreLabel}>
-                {translator.translate('safetyScore')}
-              </Text>
-              <Text style={styles.scoreValue}>{safetyScore}%</Text>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.welcomeText}>Welcome back,</Text>
+          <Text style={styles.userName}>{user.name || 'Miner'}</Text>
+          
+          {/* Safety Score */}
+          <View style={styles.scoreCard}>
+            <View style={styles.scoreContent}>
+              <View>
+                <Text style={styles.scoreLabel}>
+                  {translator.translate('safetyScore')}
+                </Text>
+                <Text style={styles.scoreValue}>{safetyScore}%</Text>
+              </View>
+              <TrendingUp size={40} color={COLORS.primary} />
             </View>
-            <TrendingUp size={40} color={COLORS.primary} />
+          </View>
+        </View>
+
+        {/* Training Progress */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {translator.translate('safetyTraining')}
+          </Text>
+          
+          <View style={styles.moduleGrid}>
+            {trainingModules.map((module, index) => {
+              const Icon = module.icon;
+              if (!Icon) {
+                console.warn('Missing icon for module:', module.label);
+                return null;
+              }
+              return (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => !module.locked && router.push(module.route as any)}
+                  disabled={module.locked}
+                  style={[
+                    styles.moduleCard,
+                    module.locked && styles.moduleCardLocked,
+                    module.completed && styles.moduleCardCompleted,
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Icon 
+                    size={40} 
+                    color={module.locked ? '#525252' : module.completed ? COLORS.accent : COLORS.primary} 
+                  />
+                  <View style={styles.moduleInfo}>
+                    <Text style={[
+                      styles.moduleLabel,
+                      module.locked && styles.moduleLabelLocked
+                    ]}>
+                      {module.label}
+                    </Text>
+                    {module.completed && (
+                      <Text style={styles.completedText}>✓ Completed</Text>
+                    )}
+                    {module.locked && (
+                      <Text style={styles.lockedText}>🔒 Locked</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Assigned Videos Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Mandatory Videos</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/miner/AssignedVideos' as any)}
+            style={styles.assignedVideosCard}
+            activeOpacity={0.7}
+          >
+            <View style={styles.assignedVideosContent}>
+              <Video size={32} color={COLORS.primary} />
+              <View style={styles.assignedVideosInfo}>
+                <Text style={styles.assignedVideosTitle}>View Assigned Videos</Text>
+                <Text style={styles.assignedVideosSubtitle}>
+                  Watch mandatory training videos before entering work routes
+                </Text>
+              </View>
+              <Lock size={20} color={COLORS.textMuted} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          
+          <View style={styles.actionGrid}>
+            {quickActions.map((action, index) => {
+              const Icon = action.icon;
+              if (!Icon) {
+                console.warn('Missing icon for action:', action.label);
+                return null;
+              }
+              return (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => router.push(action.route as any)}
+                  style={styles.actionCardWrapper}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.actionCard, { backgroundColor: action.color + '20' }]}>
+                    <Icon size={32} color={action.color} />
+                    <Text style={styles.actionLabel}>{action.label}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         {/* Smart Helmet Status Widget */}
-        <View style={styles.helmetCard}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Smart Helmet Status</Text>
+          <View style={styles.helmetCard}>
             <View style={styles.helmetHeader}>
               <View style={styles.helmetTitleRow}>
                 <Activity size={24} color="#10B981" />
-                <Text style={styles.helmetTitle}>Smart Helmet</Text>
+                <Text style={styles.helmetTitle}>Live Monitoring</Text>
               </View>
               <View style={[styles.connectionStatus, helmetConnected ? styles.connected : styles.disconnected]}>
                 <View style={[styles.connectionDot, helmetConnected ? styles.connectedDot : styles.disconnectedDot]} />
@@ -262,10 +337,10 @@ export default function MinerHome() {
 
                 {/* Temperature */}
                 <View style={styles.sensorRow}>
-                  <Thermometer size={20} color={helmetData.env.temp > 35 ? '#F59E0B' : '#6B7280'} />
+                  <Thermometer size={20} color={(helmetData.env.temp ?? 0) > 35 ? '#F59E0B' : '#6B7280'} />
                   <Text style={styles.sensorLabel}>Temperature:</Text>
-                  <Text style={[styles.sensorValue, helmetData.env.temp > 35 && styles.warningValue]}>
-                    {helmetData.env.temp.toFixed(1)}°C
+                  <Text style={[styles.sensorValue, (helmetData.env.temp ?? 0) > 35 && styles.warningValue]}>
+                    {helmetData.env.temp?.toFixed(1) ?? 'N/A'}°C
                   </Text>
                 </View>
 
@@ -274,18 +349,28 @@ export default function MinerHome() {
                   <Droplets size={20} color="#6B7280" />
                   <Text style={styles.sensorLabel}>Humidity:</Text>
                   <Text style={styles.sensorValue}>
-                    {helmetData.env.hum.toFixed(0)}%
+                    {helmetData.env.hum?.toFixed(0) ?? 'N/A'}%
                   </Text>
                 </View>
 
-                {/* Tap for details */}
-                <TouchableOpacity 
-                  style={styles.detailsButton}
-                  onPress={() => router.push('/miner/SmartHelmetStatus')}
-                >
-                  <Text style={styles.detailsButtonText}>View Full Details</Text>
-                  <ChevronRight size={16} color={COLORS.primary} />
-                </TouchableOpacity>
+                {/* Action Buttons */}
+                <View style={styles.helmetButtonsRow}>
+                  <TouchableOpacity 
+                    style={styles.helmetButton}
+                    onPress={() => router.push('/miner/SmartHelmetStatus')}
+                  >
+                    <Activity size={18} color={COLORS.primary} />
+                    <Text style={styles.helmetButtonText}>Full Details</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.helmetButton}
+                    onPress={() => router.push('/miner/HelmetHistory')}
+                  >
+                    <Activity size={18} color={COLORS.primary} />
+                    <Text style={styles.helmetButtonText}>History</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ) : (
               <View style={styles.helmetDisconnected}>
@@ -297,111 +382,6 @@ export default function MinerHome() {
                 </Text>
               </View>
             )}
-        </View>
-
-        {/* Training Progress */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {translator.translate('safetyTraining')}
-          </Text>
-          
-          <View style={styles.moduleGrid}>
-            {trainingModules.map((module, index) => {
-              const Icon = module.icon;
-              if (!Icon) {
-                console.warn('Missing icon for module:', module.label);
-                return null;
-              }
-              return (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => !module.locked && (module.route === '/miner/GamingModule' ? setShowInlineGame(true) : router.push(module.route as any))}
-                  disabled={module.locked}
-                  style={[
-                    styles.moduleCard,
-                    module.locked && styles.moduleCardLocked,
-                    module.completed && styles.moduleCardCompleted,
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <Icon 
-                    size={32} 
-                    color={module.locked ? '#525252' : module.completed ? COLORS.accent : COLORS.primary} 
-                  />
-                  <Text style={[
-                    styles.moduleLabel,
-                    module.locked && styles.moduleLabelLocked
-                  ]}>
-                    {module.label}
-                  </Text>
-                  {module.completed && (
-                    <Text style={styles.completedText}>✓ Completed</Text>
-                  )}
-                  {module.locked && (
-                    <Text style={styles.lockedText}>🔒 Locked</Text>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Assigned Videos Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mandatory Videos</Text>
-          <TouchableOpacity
-            onPress={() => router.push('/miner/AssignedVideos' as any)}
-            style={styles.assignedVideosCard}
-            activeOpacity={0.7}
-          >
-            <View style={styles.assignedVideosContent}>
-              <Video size={32} color={COLORS.primary} />
-              <View style={styles.assignedVideosInfo}>
-                <Text style={styles.assignedVideosTitle}>View Assigned Videos</Text>
-                <Text style={styles.assignedVideosSubtitle}>
-                  Watch mandatory training videos before entering work routes
-                </Text>
-              </View>
-              <Lock size={20} color={COLORS.textMuted} />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Inline Game Container (expanded on demand) */}
-        {showInlineGame && (
-          <View style={[styles.section, { paddingTop: 0 }]}>
-            <Text style={styles.sectionTitle}>Play: Safety Reflex Game</Text>
-            <View style={{ height: 420 }}>
-              <GamingModule inline onClose={() => setShowInlineGame(false)} />
-            </View>
-          </View>
-        )}
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          
-          <View style={styles.actionGrid}>
-            {quickActions.map((action, index) => {
-              const Icon = action.icon;
-              if (!Icon) {
-                console.warn('Missing icon for action:', action.label);
-                return null;
-              }
-              return (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => router.push(action.route as any)}
-                  style={styles.actionCardWrapper}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.actionCard, { backgroundColor: action.color + '20' }]}>
-                    <Icon size={32} color={action.color} />
-                    <Text style={styles.actionLabel}>{action.label}</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
           </View>
         </View>
 
@@ -426,6 +406,7 @@ export default function MinerHome() {
       </ScrollView>
 
       <EmergencyButton />
+      <MinerFooter activeTab="home" />
     </SafeAreaView>
   );
 }
@@ -437,9 +418,27 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    paddingBottom: 100,
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+  },
+  userName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginTop: 4,
   },
   scoreCard: {
-    margin: 16,
+    marginTop: 16,
     backgroundColor: COLORS.primary + '20',
     borderRadius: 12,
     padding: 16,
@@ -475,18 +474,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   moduleGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    gap: 12,
   },
   moduleCard: {
-    width: '48%',
+    width: '100%',
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   moduleCardLocked: {
     opacity: 0.5,
@@ -496,10 +495,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent + '20',
     borderColor: COLORS.accent,
   },
+  moduleInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
   moduleLabel: {
-    marginTop: 8,
     fontWeight: '600',
     color: COLORS.text,
+    fontSize: 16,
   },
   moduleLabelLocked: {
     color: COLORS.textMuted,
@@ -590,7 +593,6 @@ const styles = StyleSheet.create({
   },
   // Smart Helmet Widget Styles
   helmetCard: {
-    marginTop: 16,
     backgroundColor: COLORS.card,
     borderRadius: 12,
     borderWidth: 1,
@@ -698,17 +700,22 @@ const styles = StyleSheet.create({
   warningValue: {
     color: '#F59E0B',
   },
-  detailsButton: {
+  helmetButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  helmetButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
     paddingVertical: 10,
     borderRadius: 8,
     backgroundColor: COLORS.primary + '10',
-    gap: 4,
+    gap: 6,
   },
-  detailsButtonText: {
+  helmetButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.primary,

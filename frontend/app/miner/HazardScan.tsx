@@ -21,7 +21,7 @@ import { useRoleStore } from '../../hooks/useRoleStore';
 // Backend API URL - automatically uses correct address for web/mobile
 const API_URL = Platform.OS === 'web' 
   ? 'http://localhost:8080'
-  : `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.80'}:8080`; // Your PC's IP from .env
+  : `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.121'}:8080`; // Your PC's IP from .env
 
 type HazardType = 'crack' | 'leakage' | 'fire' | 'obstruction';
 

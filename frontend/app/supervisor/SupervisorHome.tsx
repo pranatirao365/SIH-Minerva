@@ -148,9 +148,10 @@ export default function SupervisorHome() {
     {
       icon: BookOpen,
       title: 'Daily Safety Quizzes',
-      description: 'Take daily safety assessments',
+      description: 'Take AI-generated safety assessments',
       route: '/shared/AvailableQuizzes',
       color: '#06B6D4',
+      isNew: true,
     },
   ];
 

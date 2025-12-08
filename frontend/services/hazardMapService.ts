@@ -344,7 +344,7 @@ export const updateMapConfig = async (configData: Partial<MapConfig>): Promise<v
 // ML BACKEND API INTEGRATION
 // ===========================
 
-const ML_BACKEND_URL = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.80'}:8080`;
+const ML_BACKEND_URL = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.121'}:8080`;
 
 export interface FireDetectionResult {
   hazard_type: 'fire';

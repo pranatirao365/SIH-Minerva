@@ -44,3 +44,27 @@ export async function getAiVideoSuggestions(req: Request, res: Response) {
   // stub: would call AI/ML pipeline
   return res.json({ suggestions: [] });
 }
+
+export async function getSosAlerts(req: Request, res: Response) {
+  const snap = await db().collection('sos').orderBy('ts', 'desc').get();
+  const alertsPromises = snap.docs.map(async (d) => {
+    const data = d.data();
+    const userDoc = await db().collection('users').doc(data.uid).get();
+    const userData = userDoc.exists ? userDoc.data() : {};
+    return {
+      id: d.id,
+      minerName: userData?.name || 'Unknown',
+      minerId: userData?.minerId || data.uid,
+      helmetId: userData?.helmetId || 'Unknown',
+      timestamp: new Date(data.ts),
+      location: data.location,
+      status: data.status || 'active',
+      heartRate: data.heartRate,
+      spO2: data.spO2,
+      temperature: data.temperature,
+      message: data.message,
+    };
+  });
+  const alerts = await Promise.all(alertsPromises);
+  return res.json(alerts);
+}

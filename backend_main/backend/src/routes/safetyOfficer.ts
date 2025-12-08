@@ -22,4 +22,7 @@ r.post('/testimonials/review/:id/approve', controller.approveTestimonial);
 // AI video suggestions (stub)
 r.get('/ai/video-suggestions', controller.getAiVideoSuggestions);
 
+// SOS alerts
+r.get('/sos/alerts', controller.getSosAlerts);
+
 export default r;

@@ -61,6 +61,21 @@ export const GAME_EVENTS = [
     ],
     duration: 10,
     severity: 'critical'
+  },
+  {
+    id: 'exit',
+    position: 250,
+    type: 'exit',
+    title: 'Tunnel Exit Reached',
+    description: 'Congratulations! You have safely reached the exit.',
+    instructions: [
+      'Exit completed successfully',
+      'All safety protocols followed',
+      'Report to surface control',
+      'Log the incident details'
+    ],
+    duration: 5,
+    severity: 'safe'
   }
 ];
 
@@ -120,7 +135,7 @@ interface GameStoreState {
 }
 
 const useGameStore = create<GameStoreState>((set, get) => ({
-  // Game state
+  // Game state - explicitly initialize progress at 0
   gameState: 'intro',
   progress: 0,
   totalDistance: TOTAL_DISTANCE,
@@ -148,6 +163,7 @@ const useGameStore = create<GameStoreState>((set, get) => ({
   
   // Actions
   startGame: () => {
+    // Explicitly reset progress to 0 at game start
     set({
       gameState: 'playing',
       progress: 0,
@@ -160,6 +176,7 @@ const useGameStore = create<GameStoreState>((set, get) => ({
       currentEvent: null,
       warningEvent: null,
       isWarningActive: false,
+      isPaused: false,
     });
   },
   

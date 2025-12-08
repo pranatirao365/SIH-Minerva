@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body style="padding: 40px; font-family: Arial;">
+    <h2>Supervisor Alert Panel</h2>
+
+  <button onclick="sendAlert()" 
+    style="padding: 15px; font-size: 20px; background:red; color:white;">
+    🚨 Send Emergency Call
+  </button>
+
+  <p id="status"></p>
+
+  <script>
+    function sendAlert() {
+      document.getElementById("status").innerText = "Sending emergency calls...";
+
+      fetch("http://localhost:5000/alert", { method: "POST" })
+        .then(res => res.json())
+        .then(data => document.getElementById("status").innerText = data.message)
+        .catch(() => document.getElementById("status").innerText = "Error sending alert!");
+    }
+  </script>
+</body>
+</html>

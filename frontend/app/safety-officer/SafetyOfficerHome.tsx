@@ -9,6 +9,7 @@ import {
     CheckCircle,
     FileText,
     MapPin,
+    Phone,
     Settings,
     Shield,
     Video,
@@ -57,6 +58,14 @@ export default function SafetyOfficerHome() {
       gradient: true,
     },
     {
+      icon: Phone,
+      title: 'Miner Call Center',
+      description: 'Make toll-free calls to miners',
+      route: '/safety-officer/MinerCallCenter',
+      color: '#10B981',
+      isNew: true,
+    },
+    {
       icon: Youtube,
       title: 'Video Library',
       description: 'Browse all generated videos',
@@ -69,27 +78,6 @@ export default function SafetyOfficerHome() {
       description: 'Explore 3D mine zone visualizations',
       route: '/safety-officer/HazardZoneHeatMap',
       color: '#06B6D4',
-    },
-    {
-      icon: BarChart3,
-      title: 'Analytics Dashboard',
-      description: 'View safety metrics and insights',
-      route: '/safety-officer/AnalyticsDashboard',
-      color: COLORS.secondary,
-    },
-    {
-      icon: AlertTriangle,
-      title: 'Emergency Protocols',
-      description: 'Manage emergency procedures',
-      route: '/safety-officer/EmergencyProtocols',
-      color: COLORS.destructive,
-    },
-    {
-      icon: CheckCircle,
-      title: 'Compliance Tracker',
-      description: 'Monitor compliance status',
-      route: '/safety-officer/ComplianceTracker',
-      color: COLORS.accent,
     },
     {
       icon: Shield,
@@ -115,10 +103,11 @@ export default function SafetyOfficerHome() {
     {
       icon: BookOpen,
       title: 'Daily Quiz Manager',
-      description: 'Create AI-generated safety quizzes',
+      description: 'Create AI-powered safety quizzes with Gemini',
       route: '/safety-officer/DailyQuizManager',
       color: '#06B6D4',
       gradient: true,
+      isNew: true,
     },
   ];
 
@@ -156,6 +145,7 @@ export default function SafetyOfficerHome() {
             {mainModules.map((module, index) => {
               const Icon = module.icon;
               const showBadge = module.title === 'Testimonial Review' && pendingTestimonialsCount > 0;
+              const showNew = (module as any).isNew;
               
               return (
                 <TouchableOpacity
@@ -180,6 +170,11 @@ export default function SafetyOfficerHome() {
                     {showBadge && (
                       <View style={styles.badge}>
                         <Text style={styles.badgeText}>{pendingTestimonialsCount}</Text>
+                      </View>
+                    )}
+                    {showNew && !showBadge && (
+                      <View style={[styles.badge, { backgroundColor: '#10B981' }]}>
+                        <Text style={styles.badgeText}>NEW</Text>
                       </View>
                     )}
                   </View>
@@ -208,91 +203,121 @@ const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    gap: 12,
-    marginTop: 20,
-    marginBottom: 24,
+    gap: 14,
+    marginTop: 24,
+    marginBottom: 28,
   },
   statCard: {
     flex: 1,
     backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 4,
+    fontSize: 28,
+    fontWeight: '800',
+    color: COLORS.primary,
+    marginBottom: 6,
+    letterSpacing: -0.5,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.textMuted,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   section: {
     paddingHorizontal: 20,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '700',
     color: COLORS.text,
-    marginBottom: 16,
+    marginBottom: 18,
+    letterSpacing: -0.5,
   },
   modulesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 14,
   },
   moduleCard: {
     width: '48%',
     backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   moduleCardGradient: {
     borderColor: COLORS.primary,
     borderWidth: 2,
+    backgroundColor: COLORS.primary + '08',
   },
   moduleIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
   },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -6,
+    right: -6,
     backgroundColor: '#EF4444',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
+    borderRadius: 14,
+    minWidth: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
-    borderWidth: 2,
+    paddingHorizontal: 8,
+    borderWidth: 3,
     borderColor: COLORS.card,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   badgeText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
     color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   moduleTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text,
-    marginBottom: 4,
+    marginBottom: 6,
+    lineHeight: 20,
+    letterSpacing: -0.2,
   },
   moduleDescription: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.textMuted,
-    lineHeight: 16,
+    lineHeight: 18,
+    fontWeight: '400',
   },
 });

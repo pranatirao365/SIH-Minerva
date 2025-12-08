@@ -1,7 +1,7 @@
 {
   "pipeline": {
-    "scene_count": 8,
-    "animation_duration": 9,
+    "scene_count": 6,
+    "animation_duration": 6,
     "output_resolution": [1080, 1920],
     "fps": 24
   },

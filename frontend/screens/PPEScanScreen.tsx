@@ -27,7 +27,7 @@ interface PPEResults {
   'No-Vest': PPEResult;
 }
 
-const API_URL = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.80'}:8888/ppe-scan`;
+const API_URL = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.121'}:8888/ppe-scan`;
 
 export default function PPEScanScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);

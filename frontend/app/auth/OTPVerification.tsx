@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getApp } from 'firebase/app';
 import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
@@ -8,7 +7,7 @@ import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShieldCheck } from '../../components/Icons';
-import { auth, db, firebaseConfig } from '../../config/firebase';
+import { auth, db } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import { translator } from '../../services/translator';
@@ -16,6 +15,7 @@ import { translator } from '../../services/translator';
 // 🧪 TEST MODE - Remove this in production!
 const TEST_OTP = '123456';
 const IS_TEST_MODE = true; // Set to false in production
+const SKIP_RECAPTCHA_IN_TEST = true; // Skip reCAPTCHA entirely in test mode
 
 /**
  * Helper function to find user by phone number.
@@ -40,14 +40,8 @@ async function getUserByPhone(phoneWithPrefix: string) {
       console.log('✅ User found via document ID:', phone);
       return { id: userDoc.id, ...userDoc.data() };
     }
-  } catch (error: any) {
-    console.log('⚠️ Direct lookup failed:', error.message || error);
-    
-    // Check if offline
-    if (error.code === 'unavailable' || error.message?.includes('offline')) {
-      console.log('🔌 OFFLINE MODE: Using test user fallback');
-      return getTestUserFallback(phoneWithPrefix);
-    }
+  } catch (error) {
+    console.log('⚠️ Direct lookup failed:', error);
   }
   
   console.log('📊 Strategy 2: Query by phoneNumber field (with + prefix)');
@@ -62,14 +56,8 @@ async function getUserByPhone(phoneWithPrefix: string) {
       console.log('✅ User found via phoneNumber query (with +):', userDoc.id);
       return { id: userDoc.id, ...userDoc.data() };
     }
-  } catch (error: any) {
-    console.log('⚠️ Query with + prefix failed:', error.message || error);
-    
-    // Check if offline
-    if (error.code === 'unavailable' || error.message?.includes('offline')) {
-      console.log('🔌 OFFLINE MODE: Using test user fallback');
-      return getTestUserFallback(phoneWithPrefix);
-    }
+  } catch (error) {
+    console.log('⚠️ Query with + prefix failed:', error);
   }
   
   console.log('📊 Strategy 3: Query by phoneNumber field (without + prefix)');
@@ -85,61 +73,11 @@ async function getUserByPhone(phoneWithPrefix: string) {
       console.log('✅ User found via phoneNumber query (no +):', userDoc.id);
       return { id: userDoc.id, ...userDoc.data() };
     }
-  } catch (error: any) {
-    console.log('⚠️ Query without + prefix failed:', error.message || error);
-    
-    // Check if offline
-    if (error.code === 'unavailable' || error.message?.includes('offline')) {
-      console.log('🔌 OFFLINE MODE: Using test user fallback');
-      return getTestUserFallback(phoneWithPrefix);
-    }
+  } catch (error) {
+    console.log('⚠️ Query without + prefix failed:', error);
   }
   
   console.log('❌ User not found with any strategy');
-  
-  // Final fallback for offline/testing
-  return getTestUserFallback(phoneWithPrefix);
-}
-
-/**
- * Fallback user data when Firestore is offline or user not found
- * Maps test phone numbers to their roles
- */
-function getTestUserFallback(phoneNumber: string) {
-  const phoneMap: { [key: string]: { name: string; role: string } } = {
-    '+911234567890': { name: 'Test Miner', role: 'miner' },
-    '+911234567891': { name: 'Test Engineer', role: 'engineer' },
-    '+911234567892': { name: 'Test Supervisor', role: 'supervisor' },
-    '+911234567893': { name: 'Test Safety Officer', role: 'safety-officer' },
-    '+911234567894': { name: 'Test Admin', role: 'admin' },
-    '+919000000001': { name: 'Ravi Kumar', role: 'supervisor' },
-    '+919000000002': { name: 'Suresh Patil', role: 'supervisor' },
-    '+918000000001': { name: 'Arun Singh', role: 'miner' },
-    '+918000000002': { name: 'Rakesh Sharma', role: 'miner' },
-    '+918000000003': { name: 'Mahesh Kumar', role: 'miner' },
-    '+918000000004': { name: 'Deepak Rao', role: 'miner' },
-    '+918000000005': { name: 'Imran Khan', role: 'miner' },
-    '+918000000006': { name: 'Harish Reddy', role: 'miner' },
-    '+918000000007': { name: 'Vijay Patel', role: 'miner' },
-    '+918000000008': { name: 'Santosh Desai', role: 'miner' },
-    '+918000000009': { name: 'Sunil Joshi', role: 'miner' },
-    '+918000000010': { name: 'Gopal Mehta', role: 'miner' },
-    '+917000000001': { name: 'Anita Verma', role: 'safety-officer' },
-    '+919876543210': { name: 'Test Miner 1', role: 'miner' },
-    '+919876543211': { name: 'Test Miner 2', role: 'miner' },
-  };
-  
-  const userData = phoneMap[phoneNumber];
-  if (userData) {
-    console.log('✅ OFFLINE FALLBACK: Using test user for', phoneNumber);
-    return {
-      id: phoneNumber.replace('+91', ''),
-      phoneNumber: phoneNumber,
-      ...userData
-    };
-  }
-  
-  console.log('⚠️ No fallback data for', phoneNumber);
   return null;
 }
 
@@ -152,8 +90,6 @@ export default function OTPVerification() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
-  const recaptchaVerifier = useRef<any>(null);
-  const firebaseApp = getApp();
   const { setRole, setUser } = useRoleStore();
 
   const handleOtpChange = (value: string, index: number) => {
@@ -272,7 +208,7 @@ export default function OTPVerification() {
       }
 
       // 🧪 TEST MODE: Bypass Firebase authentication for test mode
-      if (IS_TEST_MODE && isTestMode && verificationId === 'TEST_VERIFICATION_ID') {
+      if (IS_TEST_MODE && (isTestMode || verificationId.startsWith('MOCK_'))) {
         console.log('🧪 TEST MODE: Bypassing Firebase authentication');
         
         if (otpCode !== TEST_OTP) {
@@ -451,11 +387,6 @@ export default function OTPVerification() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebaseConfig}
-        attemptInvisibleVerification={true}
-      />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <ShieldCheck size={80} color={COLORS.primary} />

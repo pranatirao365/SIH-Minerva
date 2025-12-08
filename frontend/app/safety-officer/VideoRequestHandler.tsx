@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState, useMemo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Alert,
   FlatList,
@@ -45,6 +46,13 @@ export default function VideoRequestHandler() {
   useEffect(() => {
     loadRequests();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Refresh data when screen comes into focus
+      loadRequests();
+    }, [])
+  );
 
   const loadRequests = async () => {
     try {

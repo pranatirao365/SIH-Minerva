@@ -847,7 +847,18 @@ export class VideoLibraryService {
    */
   static async updateVideoRequest(requestId: string, updates: Partial<VideoRequestDocument>): Promise<void> {
     try {
+      console.log('🔄 Updating video request:', requestId, 'with updates:', updates);
       const requestRef = doc(db, 'videoRequests', requestId);
+      
+      // Check if document exists first
+      const docSnap = await getDoc(requestRef);
+      if (!docSnap.exists()) {
+        console.error('❌ Video request document does not exist:', requestId);
+        throw new Error(`Video request ${requestId} does not exist`);
+      }
+      
+      console.log('📄 Current request data:', docSnap.data());
+      
       await updateDoc(requestRef, {
         ...updates,
         updatedAt: Timestamp.now(),
@@ -855,6 +866,8 @@ export class VideoLibraryService {
       console.log('✅ Video request updated successfully:', requestId);
     } catch (error) {
       console.error('❌ Error updating video request:', error);
+      console.error('❌ Request ID:', requestId);
+      console.error('❌ Updates:', updates);
       throw error;
     }
   }

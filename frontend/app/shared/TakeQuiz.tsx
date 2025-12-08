@@ -74,7 +74,6 @@ export default function TakeQuiz() {
       
       setQuiz(quizData);
     } catch (error) {
-      console.error('Error loading quiz:', error);
       Alert.alert('Error', 'Failed to load quiz');
       router.back();
     } finally {
@@ -163,7 +162,6 @@ export default function TakeQuiz() {
       );
       
     } catch (error) {
-      console.error('Error submitting quiz:', error);
       Alert.alert('Error', 'Failed to submit quiz. Please try again.');
     } finally {
       setSubmitting(false);

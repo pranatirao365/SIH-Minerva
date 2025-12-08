@@ -150,7 +150,8 @@ export default function MinerHome() {
       label: 'Daily Quiz', 
       route: '/shared/AvailableQuizzes', 
       completed: moduleProgress.quiz,
-      locked: false
+      locked: false,
+      isNew: true
     },
     { 
       icon: CheckCircle, 

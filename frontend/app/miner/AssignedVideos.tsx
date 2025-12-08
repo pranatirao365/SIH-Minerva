@@ -278,7 +278,7 @@ export default function AssignedVideos() {
     // If it's already a full HTTP URL, check if IP needs updating
     if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
       // Update old IP addresses to current one from .env
-      const currentIP = process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.121';
+      const currentIP = process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.80';
       const oldIPPatterns = [
         '192.168.137.122',
         '192.168.1.',

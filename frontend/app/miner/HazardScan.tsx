@@ -21,7 +21,7 @@ import { useRoleStore } from '../../hooks/useRoleStore';
 // Backend API URL - automatically uses correct address for web/mobile
 const API_URL = Platform.OS === 'web' 
   ? 'http://localhost:8080'
-  : `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '192.168.137.122'}:8080`; // Your PC's IP from .env
+  : `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.80'}:8080`; // Your PC's IP from .env
 
 type HazardType = 'crack' | 'leakage' | 'fire' | 'obstruction';
 
@@ -221,7 +221,7 @@ export default function HazardScan() {
           `Cannot connect to backend at ${API_URL}.\n\n` +
           `Ensure:\n` +
           `1. Backend is running (python hazard_detection_api.py)\n` +
-          `2. Phone and PC are on same network (IP: ${process.env.EXPO_PUBLIC_IP_ADDRESS || '192.168.137.x'})\n` +
+          `2. Phone and PC are on same network (IP: ${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.x'})\n` +
           `3. Check if PC firewall is blocking port 8001`
         );
       }

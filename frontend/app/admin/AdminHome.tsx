@@ -563,28 +563,28 @@ export default function AdminHome() {
     {
       value: 'miner',
       label: 'Miner',
-      color: '#FF6B00',
+      color: '#3A3A3A',
       icon: 'pickaxe',
       description: 'Field workers responsible for mining operations and safety compliance'
     },
     {
       value: 'supervisor',
       label: 'Supervisor',
-      color: '#FF6B00',
+      color: '#4A3B7A',
       icon: 'account-tie',
       description: 'Oversees mining teams, manages operations, and coordinates with management'
     },
     {
       value: 'safety_officer',
       label: 'Safety Officer',
-      color: '#FF6B00',
+      color: '#5A3B3B',
       icon: 'shield-check',
       description: 'Ensures workplace safety, conducts inspections, and manages compliance'
     },
     {
       value: 'engineer',
       label: 'Engineer',
-      color: '#FF6B00',
+      color: '#3B5998',
       icon: 'cog',
       description: 'Technical experts handling equipment, systems, and engineering solutions'
     },
@@ -945,7 +945,7 @@ export default function AdminHome() {
   };
 
   const getRoleColor = (role: string) => {
-    return roles.find((r) => r.value === role)?.color || '#FF6B00';
+    return roles.find((r) => r.value === role)?.color || '#888888';
   };
 
   const getRoleLabel = (role: string) => {
@@ -1043,7 +1043,7 @@ export default function AdminHome() {
           </View>
 
           {refreshing ? (
-            <ActivityIndicator size="large" color="#FF6B00" style={styles.loader} />
+            <ActivityIndicator size="large" color="#888888" style={styles.loader} />
           ) : (
             <View style={styles.roleCategories}>
               {roles.map((role) => {
@@ -1051,7 +1051,7 @@ export default function AdminHome() {
                 return (
                   <TouchableOpacity
                     key={role.value}
-                    style={[styles.roleCategoryCard, { borderColor: role.color }]}
+                    style={[styles.roleCategoryCard, { backgroundColor: role.color }]}
                     onPress={() => {
                       try {
                         setSelectedRoleForDetails(role.value);
@@ -1061,11 +1061,8 @@ export default function AdminHome() {
                       }
                     }}
                   >
-                    <View style={[styles.roleCategoryIcon, { backgroundColor: role.color }]}>
-                      <Icon name={role.icon} size={32} color="#FFFFFF" />
-                    </View>
                     <View style={styles.roleCategoryInfo}>
-                      <Text style={styles.roleCategoryTitle}>{role.label}</Text>
+                      <Text style={styles.roleCategoryTitle}>{role.label.toUpperCase()}</Text>
                       <Text style={styles.roleCategoryCount}>{roleUsers.length} users</Text>
                     </View>
                   </TouchableOpacity>
@@ -1197,7 +1194,7 @@ export default function AdminHome() {
                   setSelectedRoleForDetails('');
                 }}
               >
-                <Icon name="close" size={24} color="#FFFFFF" />
+                <Icon name="close" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
@@ -1216,190 +1213,123 @@ export default function AdminHome() {
                 <View style={styles.roleDetailCard}>
                   {selectedRoleForDetails === 'miner' && (
                     <View style={styles.minerCardWrapper}>
-                      <TouchableOpacity
-                        style={styles.minerClickableAreaWithButtons}
-                        onPress={() => {
-                          try {
-                            const supervisor = getSupervisorDetails(user.id);
-                            if (supervisor) {
-                              setSelectedSupervisor(supervisor);
-                              setSelectedMinerForSupervisor(user);
-                              setShowRoleDetailsModal(false);
-                              requestAnimationFrame(() => {
-                                setShowMinerSupervisorModal(true);
-                              });
-                            } else {
-                              Alert.alert('No Supervisor', 'This miner is not assigned to any supervisor yet.');
-                            }
-                          } catch (error) {
-                            console.error('Error opening miner supervisor details:', error);
-                          }
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.roleDetailHeader}>
-                          <View style={styles.userInfoSection}>
-                            <Text style={styles.roleDetailName}>{user.name || 'Unnamed Miner'}</Text>
-                            <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                              <Icon name="phone" size={12} color="#CCCCCC" />
-                              <Text style={styles.roleDetailSubInfo}>
-                                {user.phoneNumber || 'No phone'}
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                          <Icon name="account-tie" size={14} color="#E0E0E0" />
-                          <Text style={styles.roleDetailInfo}>
+                      <View style={styles.minerCardContent}>
+                        <View style={styles.minerInfoLeft}>
+                          <Text style={styles.roleDetailName}>{user.name || 'Unnamed Miner'}</Text>
+                          <Text style={styles.roleDetailPhone}>{user.phoneNumber || 'No phone'}</Text>
+                          <Text style={styles.roleDetailSupervisor}>
                             Supervisor: {getSupervisorName(user.id) || 'Unassigned'}
                           </Text>
                         </View>
-                      </TouchableOpacity>
-                      <View style={styles.cardActionButtons} pointerEvents="box-none">
-                        <TouchableOpacity
-                          style={styles.roleDetailEditButtonAbsolute}
-                          onPress={() => {
-                            console.log('Edit button clicked for miner:', user.name);
-                            setSelectedUserForDetails(user);
-                            setEditedUserData({...user});
-                            setIsEditingUser(true);
-                            setShowRoleDetailsModal(false);
-                            setTimeout(() => {
-                              setShowUserDetailsModal(true);
-                            }, 100);
-                          }}
-                          activeOpacity={0.6}
-                        >
-                          <Icon name="pencil" size={16} color="#000000" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.roleDetailDeleteButtonAbsoluteSmall}
-                          onPress={() => {
-                            handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
-                          }}
-                          activeOpacity={0.6}
-                        >
-                          <Icon name="delete" size={16} color="#000000" />
-                        </TouchableOpacity>
+                        <View style={styles.minerActionButtons}>
+                          <TouchableOpacity
+                            style={styles.editButtonMiner}
+                            onPress={() => {
+                              console.log('Edit button clicked for miner:', user.name);
+                              setSelectedUserForDetails(user);
+                              setEditedUserData({...user});
+                              setIsEditingUser(true);
+                              setShowRoleDetailsModal(false);
+                              setTimeout(() => {
+                                setShowUserDetailsModal(true);
+                              }, 100);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.editButtonTextMiner}>EDIT</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.deleteButtonMiner}
+                            onPress={() => {
+                              handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.deleteButtonTextMiner}>DELETE</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     </View>
                   )}
 
                   {selectedRoleForDetails === 'supervisor' && (
                     <View style={styles.supervisorCardWrapper}>
-                      <TouchableOpacity
-                        style={styles.minerClickableAreaWithButtons}
-                        onPress={() => {
-                          try {
-                            setSelectedSupervisor(user);
-                            setShowRoleDetailsModal(false);
-                            requestAnimationFrame(() => {
-                              setShowSupervisorMinersModal(true);
-                            });
-                          } catch (error) {
-                            console.error('Error opening supervisor miners:', error);
-                          }
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.roleDetailHeader}>
-                          <View style={styles.userInfoSection}>
-                            <Text style={styles.roleDetailName}>{user.name || 'Unnamed Supervisor'}</Text>
-                            <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                              <Icon name="phone" size={12} color="#CCCCCC" />
-                              <Text style={styles.roleDetailSubInfo}>
-                                {user.phoneNumber || 'No phone'}
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                          <Icon name="account-hard-hat" size={14} color="#E0E0E0" />
-                          <Text style={styles.roleDetailInfo}>
+                      <View style={styles.minerCardContent}>
+                        <View style={styles.minerInfoLeft}>
+                          <Text style={styles.roleDetailName}>{user.name || 'Unnamed Supervisor'}</Text>
+                          <Text style={styles.roleDetailPhone}>{user.phoneNumber || 'No phone'}</Text>
+                          <Text style={styles.roleDetailSupervisor}>
                             Assigned Miners: {getAssignedMinersCount(user.id)}
                           </Text>
                         </View>
-                      </TouchableOpacity>
-                      <View style={styles.cardActionButtons} pointerEvents="box-none">
-                        <TouchableOpacity
-                          style={styles.roleDetailEditButtonAbsolute}
-                          onPress={() => {
-                            console.log('Edit button clicked for supervisor:', user.name);
-                            setSelectedUserForDetails(user);
-                            setEditedUserData({...user});
-                            setIsEditingUser(true);
-                            setShowRoleDetailsModal(false);
-                            setTimeout(() => {
-                              setShowUserDetailsModal(true);
-                            }, 100);
-                          }}
-                          activeOpacity={0.6}
-                        >
-                          <Icon name="pencil" size={16} color="#000000" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.roleDetailDeleteButtonAbsoluteSmall}
-                          onPress={() => {
-                            handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
-                          }}
-                          activeOpacity={0.6}
-                        >
-                          <Icon name="delete" size={16} color="#000000" />
-                        </TouchableOpacity>
+                        <View style={styles.minerActionButtons}>
+                          <TouchableOpacity
+                            style={styles.editButtonMiner}
+                            onPress={() => {
+                              console.log('Edit button clicked for supervisor:', user.name);
+                              setSelectedUserForDetails(user);
+                              setEditedUserData({...user});
+                              setIsEditingUser(true);
+                              setShowRoleDetailsModal(false);
+                              setTimeout(() => {
+                                setShowUserDetailsModal(true);
+                              }, 100);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.editButtonTextMiner}>EDIT</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.deleteButtonMiner}
+                            onPress={() => {
+                              handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.deleteButtonTextMiner}>DELETE</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     </View>
                   )}
 
                   {(selectedRoleForDetails === 'safety_officer' || selectedRoleForDetails === 'engineer') && (
                     <View style={styles.minerCardWrapper}>
-                      <TouchableOpacity
-                        style={styles.minerClickableAreaWithButtons}
-                        onPress={() => {
-                          setSelectedUserForDetails(user);
-                          setEditedUserData({...user});
-                          setIsEditingUser(false);
-                          setShowUserDetailsModal(true);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.roleDetailHeader}>
-                          <View style={styles.userInfoSection}>
-                            <Text style={styles.roleDetailName}>{user.name || `Unnamed ${getRoleLabel(selectedRoleForDetails)}`}</Text>
-                            <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                              <Icon name="phone" size={12} color="#CCCCCC" />
-                              <Text style={styles.roleDetailSubInfo}>
-                                {user.phoneNumber || 'No phone'}
-                              </Text>
-                            </View>
-                          </View>
+                      <View style={styles.minerCardContent}>
+                        <View style={styles.minerInfoLeft}>
+                          <Text style={styles.roleDetailName}>{user.name || `Unnamed ${getRoleLabel(selectedRoleForDetails)}`}</Text>
+                          <Text style={styles.roleDetailPhone}>{user.phoneNumber || 'No phone'}</Text>
+                          <Text style={styles.roleDetailSupervisor}>
+                            {user.department || 'No department'}
+                          </Text>
                         </View>
-                      </TouchableOpacity>
-                      <View style={styles.cardActionButtons} pointerEvents="box-none">
-                        <TouchableOpacity
-                          style={styles.roleDetailEditButtonAbsolute}
-                          onPress={() => {
-                            console.log('Edit button clicked for:', user.role, user.name);
-                            setSelectedUserForDetails(user);
-                            setEditedUserData({...user});
-                            setIsEditingUser(true);
-                            setShowRoleDetailsModal(false);
-                            setTimeout(() => {
-                              setShowUserDetailsModal(true);
-                            }, 100);
-                          }}
-                          activeOpacity={0.6}
-                        >
-                          <Icon name="pencil" size={16} color="#000000" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.roleDetailDeleteButtonAbsoluteSmall}
-                          onPress={() => {
-                            handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
-                          }}
-                          activeOpacity={0.6}
-                        >
-                          <Icon name="delete" size={16} color="#000000" />
-                        </TouchableOpacity>
+                        <View style={styles.minerActionButtons}>
+                          <TouchableOpacity
+                            style={styles.editButtonMiner}
+                            onPress={() => {
+                              console.log('Edit button clicked for:', user.role, user.name);
+                              setSelectedUserForDetails(user);
+                              setEditedUserData({...user});
+                              setIsEditingUser(true);
+                              setShowRoleDetailsModal(false);
+                              setTimeout(() => {
+                                setShowUserDetailsModal(true);
+                              }, 100);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.editButtonTextMiner}>EDIT</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.deleteButtonMiner}
+                            onPress={() => {
+                              handleDeleteUser(user.id, user.name || user.phoneNumber || 'Unknown');
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.deleteButtonTextMiner}>DELETE</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     </View>
                   )}
@@ -1957,7 +1887,7 @@ export default function AdminHome() {
                       }}
                     >
                       <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-                        <Icon name="close" size={18} color="#FF6B00" />
+                        <Icon name="close" size={18} color="#888888" />
                         <Text style={styles.cancelButtonText}>Cancel</Text>
                       </View>
                     </TouchableOpacity>
@@ -2167,7 +2097,7 @@ export default function AdminHome() {
                   {/* Supervisor Header */}
                   <View style={styles.supervisorDetailsHeader}>
                     <View style={styles.supervisorIconContainer}>
-                      <Icon name="account-tie" size={32} color="#FF6B00" />
+                      <Icon name="account-tie" size={32} color="#BBBBBB" />
                     </View>
                     <View style={styles.supervisorHeaderInfo}>
                       <Text style={styles.supervisorDetailsName}>{selectedSupervisor.name || 'Unnamed Supervisor'}</Text>
@@ -2178,7 +2108,7 @@ export default function AdminHome() {
                   {/* Contact Information Section */}
                   <View style={styles.detailsSection}>
                     <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-                      <Icon name="phone" size={16} color="#FF6B00" />
+                      <Icon name="phone" size={16} color="#BBBBBB" />
                       <Text style={styles.detailsSectionTitle}>Contact Information</Text>
                     </View>
                     <View style={styles.detailsRow}>
@@ -2196,7 +2126,7 @@ export default function AdminHome() {
                   {/* Work Information Section */}
                   <View style={styles.detailsSection}>
                     <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-                      <Icon name="briefcase" size={16} color="#FF6B00" />
+                      <Icon name="briefcase" size={16} color="#BBBBBB" />
                       <Text style={styles.detailsSectionTitle}>Work Information</Text>
                     </View>
                     {selectedSupervisor.empId && (
@@ -2237,7 +2167,7 @@ export default function AdminHome() {
                   {/* Team Information Section */}
                   <View style={styles.detailsSection}>
                     <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-                      <Icon name="account-group" size={16} color="#FF6B00" />
+                      <Icon name="account-group" size={16} color="#BBBBBB" />
                       <Text style={styles.detailsSectionTitle}>Team Information</Text>
                     </View>
                     <View style={styles.detailsRow}>
@@ -2258,7 +2188,7 @@ export default function AdminHome() {
                   {(selectedSupervisor.age || selectedSupervisor.address) && (
                     <View style={styles.detailsSection}>
                       <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-                        <Icon name="account" size={16} color="#FF6B00" />
+                        <Icon name="account" size={16} color="#BBBBBB" />
                         <Text style={styles.detailsSectionTitle}>Personal Information</Text>
                       </View>
                       {selectedSupervisor.age && (
@@ -2309,7 +2239,7 @@ export default function AdminHome() {
       {loading && (
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FF6B00" />
+            <ActivityIndicator size="large" color="#888888" />
             <Text style={styles.loadingText}>Processing...</Text>
           </View>
         </View>
@@ -2331,36 +2261,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FF6B00',
+    color: '#FFFFFF',
     letterSpacing: 1,
   },
   signOutButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#FF6B00',
-    borderRadius: 12,
-    shadowColor: '#FF6B00',
+    backgroundColor: '#2A1A1A',
+    borderRadius: 8,
+    borderWidth: 0,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
   },
   signOutText: {
-    color: '#000000',
+    color: '#FF6B6B',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   content: {
     flex: 1,
@@ -2372,12 +2305,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
   },
@@ -2388,22 +2321,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#FF6B00',
+    color: '#FFFFFF',
     marginBottom: 16,
     letterSpacing: 0.5,
   },
   refreshButton: {
     padding: 10,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: 'transparent',
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 0,
   },
   refreshIcon: {
-    fontSize: 22,
-    color: '#FF6B00',
+    fontSize: 26,
+    color: '#888888',
     fontWeight: 'bold',
   },
   inputGroup: {
@@ -2412,7 +2344,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FF6B00',
+    color: '#BBBBBB',
     marginBottom: 8,
     letterSpacing: 0.3,
   },
@@ -2424,7 +2356,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
     backgroundColor: '#000000',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -2449,23 +2381,23 @@ const styles = StyleSheet.create({
   roleButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FF6B00',
+    color: '#BBBBBB',
   },
   roleButtonTextActive: {
     color: '#000000',
   },
   addButton: {
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#6B9BD1',
     padding: 16,
     borderRadius: 14,
     alignItems: 'center',
     marginTop: 12,
-    shadowColor: '#FF6B00',
+    shadowColor: '#6B9BD1',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 5,
   },
@@ -2490,14 +2422,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1A1A',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     marginBottom: 8,
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 1,
     },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
   },
@@ -2540,7 +2472,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    color: '#FF6B00',
+    color: '#888888',
     fontSize: 14,
     paddingVertical: 20,
   },
@@ -2555,7 +2487,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     marginBottom: 16,
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -2590,7 +2522,7 @@ const styles = StyleSheet.create({
     padding: 24,
     width: '90%',
     maxWidth: 400,
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 6,
@@ -2604,7 +2536,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#FF6B00',
+    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 20,
     flex: 1,
@@ -2617,8 +2549,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: '#2A2A2A',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderWidth: 0,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   roleIcon: {
     width: 40,
@@ -2642,31 +2578,30 @@ const styles = StyleSheet.create({
   },
   modalRoleDescription: {
     fontSize: 12,
-    color: '#FF6B00',
+    color: '#999999',
   },
   modalCancelButton: {
     padding: 16,
-    backgroundColor: '#000000',
-    borderRadius: 14,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
   },
   modalCancelText: {
     fontSize: 16,
-    color: '#FF6B00',
+    color: '#BBBBBB',
     fontWeight: '700',
   },
   // Simple role button styles
   simpleRoleButton: {
     padding: 16,
-    backgroundColor: '#000000',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#2A2A2A',
+    borderRadius: 12,
+    borderWidth: 0,
     alignItems: 'center',
     marginBottom: 12,
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -2674,9 +2609,9 @@ const styles = StyleSheet.create({
   },
   simpleRoleText: {
     fontSize: 16,
-    color: '#FF6B00',
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   // Additional Form styles
   pickerContainer: {
@@ -2684,7 +2619,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 12,
     backgroundColor: '#000000',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -2715,7 +2650,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   checkboxChecked: {
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#6B9BD1',
     borderColor: '#FF6B00',
   },
   checkboxMark: {
@@ -2777,7 +2712,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 8,
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 4,
@@ -2815,7 +2750,7 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.6,
     shadowRadius: 12,
@@ -2865,7 +2800,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.5,
     shadowRadius: 6,
@@ -2885,17 +2820,18 @@ const styles = StyleSheet.create({
   roleCategoryCard: {
     width: '48%',
     backgroundColor: '#0A0A0A',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    padding: 24,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 0,
     alignItems: 'center',
-    shadowColor: '#FF6B00',
+    justifyContent: 'center',
+    minHeight: 120,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   roleCategoryIcon: {
     width: 60,
@@ -2905,7 +2841,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
     backgroundColor: '#FF6B00',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 4,
@@ -2918,18 +2854,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   roleCategoryTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#FF6B00',
-    marginBottom: 4,
+    color: '#A0A0A0',
+    marginBottom: 8,
     textAlign: 'center',
     letterSpacing: 0.3,
   },
   roleCategoryCount: {
-    fontSize: 14,
-    color: '#FFFFFF',
+    fontSize: 15,
+    color: '#999999',
     textAlign: 'center',
-    fontWeight: '600',
+    fontWeight: '500',
   },
   roleDetailsModalContent: {
     backgroundColor: '#000000',
@@ -2939,9 +2875,9 @@ const styles = StyleSheet.create({
     maxHeight: Dimensions.get('window').height * 0.85,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.5,
     shadowRadius: 12,
     elevation: 10,
   },
@@ -2949,17 +2885,16 @@ const styles = StyleSheet.create({
     maxHeight: Dimensions.get('window').height * 0.6,
   },
   roleDetailCard: {
-    backgroundColor: '#0A0A0A',
-    borderRadius: 14,
+    backgroundColor: '#2A2A2A',
+    borderRadius: 12,
     padding: 18,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#FF6B00',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 5,
+    borderWidth: 0,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   roleDetailHeader: {
     flexDirection: 'row',
@@ -3016,13 +2951,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 24,
     top: 24,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FF6B00',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FF6B6B',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#FF6B00',
+    shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 4,
@@ -3077,7 +3012,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
     zIndex: 10,
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
@@ -3116,7 +3051,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
@@ -3133,7 +3068,7 @@ const styles = StyleSheet.create({
     height: Dimensions.get('window').height * 0.80,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.6,
     shadowRadius: 15,
@@ -3177,7 +3112,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.4,
     shadowRadius: 6,
@@ -3211,7 +3146,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -3233,7 +3168,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 4,
@@ -3345,7 +3280,7 @@ const styles = StyleSheet.create({
     height: Dimensions.get('window').height * 0.85,
     borderWidth: 2,
     borderColor: '#FF6B00',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -3366,7 +3301,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 4,
@@ -3389,7 +3324,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 4,
@@ -3457,7 +3392,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.6,
     shadowRadius: 10,
@@ -3473,6 +3408,52 @@ const styles = StyleSheet.create({
   // Miner Card Wrapper Styles
   minerCardWrapper: {
     position: 'relative',
+  },
+  minerCardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  minerInfoLeft: {
+    flex: 1,
+  },
+  roleDetailPhone: {
+    fontSize: 14,
+    color: '#BBBBBB',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  roleDetailSupervisor: {
+    fontSize: 12,
+    color: '#999999',
+  },
+  minerActionButtons: {
+    flexDirection: 'column',
+    gap: 8,
+    alignItems: 'flex-end',
+  },
+  editButtonMiner: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  editButtonTextMiner: {
+    color: '#6B9BD1',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  deleteButtonMiner: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  deleteButtonTextMiner: {
+    color: '#FF6B6B',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   minerClickableArea: {
     flex: 1,
@@ -3490,7 +3471,7 @@ const styles = StyleSheet.create({
     height: Dimensions.get('window').height * 0.85,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.6,
     shadowRadius: 15,
@@ -3530,7 +3511,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -3552,7 +3533,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.5,
     shadowRadius: 6,
@@ -3621,7 +3602,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 10,
-    shadowColor: '#FF6B00',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.5,
     shadowRadius: 6,

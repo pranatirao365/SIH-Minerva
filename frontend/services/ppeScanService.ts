@@ -5,7 +5,7 @@
  * Use this in your React Native app to perform PPE scans based on miner's assigned department.
  */
 
-const API_BASE_URL = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.121'}:8888`;
+const API_BASE_URL = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.80'}:8888`;
 
 
 /**

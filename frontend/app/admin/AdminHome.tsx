@@ -43,6 +43,7 @@ interface User {
   healthCheckup?: any;
   certifications?: any;
   qualifications?: any;
+  specialization?: string;
 }
 
 // Form Components with React.memo to prevent unnecessary re-renders
@@ -1092,7 +1093,7 @@ export default function AdminHome() {
                     }}
                   >
                     <View style={[styles.roleCategoryIcon, { backgroundColor: role.color }]}>
-                      <Icon name={role.icon} size={32} color="#FFFFFF" />
+                      <Icon name={role.icon as any} size={32} color="#FFFFFF" />
                     </View>
                     <View style={styles.roleCategoryInfo}>
                       <Text style={styles.roleCategoryTitle}>{role.label}</Text>

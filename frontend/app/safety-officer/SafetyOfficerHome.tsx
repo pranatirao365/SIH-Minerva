@@ -9,6 +9,7 @@ import {
     CheckCircle,
     FileText,
     MapPin,
+    Phone,
     Settings,
     Shield,
     Video,
@@ -54,6 +55,14 @@ export default function SafetyOfficerHome() {
       route: '/safety-officer/VideoGenerationModule',
       color: COLORS.primary,
       gradient: true,
+    },
+    {
+      icon: Phone,
+      title: 'Miner Call Center',
+      description: 'Make toll-free calls to miners',
+      route: '/safety-officer/MinerCallCenter',
+      color: '#10B981',
+      isNew: true,
     },
     {
       icon: Youtube,

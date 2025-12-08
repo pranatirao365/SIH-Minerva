@@ -1,4 +1,3 @@
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { useRouter } from 'expo-router';
 import { getApp } from 'firebase/app';
 import { PhoneAuthProvider } from 'firebase/auth';
@@ -6,7 +5,7 @@ import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Phone } from '../../components/Icons';
-import { auth, firebaseConfig } from '../../config/firebase';
+import { auth } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
 import { translator } from '../../services/translator';
 
@@ -40,9 +39,6 @@ export default function PhoneLogin() {
   const [phone, setPhone] = useState('+91');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const recaptchaVerifier = useRef<any>(null);
-  const [verificationId, setVerificationId] = useState<string | null>(null);
-  const firebaseApp = getApp();
 
   // Validate phone number in E.164 format (+91XXXXXXXXXX)
   const validatePhone = (number: string) => {
@@ -109,42 +105,12 @@ export default function PhoneLogin() {
         return;
       }
       
-      console.log('📱 Sending OTP to:', phone);
-      
-      // Ensure recaptcha verifier is initialized
-      if (!recaptchaVerifier.current) {
-        throw new Error('reCAPTCHA verifier not initialized');
-      }
-      
-      // Use PhoneAuthProvider.verifyPhoneNumber (matching your working flow)
-      const phoneProvider = new PhoneAuthProvider(auth);
-      const verificationIdResult = await phoneProvider.verifyPhoneNumber(
-        phone,
-        recaptchaVerifier.current
-      );
-      
-      setVerificationId(verificationIdResult);
-      
-      console.log('✅ OTP sent successfully!');
-      console.log('📧 Check your phone for the verification code');
-      
+      // Production mode requires Firebase Phone Auth to be properly configured
+      // For now, show an alert that production auth is not available
       Alert.alert(
-        'OTP Sent',
-        `A verification code has been sent to ${phone}.\n\nPlease check your SMS messages.`,
-        [
-          { 
-            text: 'OK', 
-            onPress: () => {
-              router.push({
-                pathname: '/auth/OTPVerification',
-                params: { 
-                  phoneNumber: phone,
-                  verificationId: verificationIdResult
-                }
-              });
-            }
-          }
-        ]
+        'Production Mode Not Available',
+        'Phone authentication in production requires:\n\n1. Firebase Phone Auth configuration\n2. reCAPTCHA setup\n3. SMS quota and billing\n\nPlease use test phone numbers for development.',
+        [{ text: 'OK' }]
       );
     } catch (err: any) {
       console.error('❌ Error sending OTP:', err);
@@ -175,11 +141,6 @@ export default function PhoneLogin() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebaseConfig}
-        attemptInvisibleVerification={true}
-      />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Phone size={80} color={COLORS.primary} />

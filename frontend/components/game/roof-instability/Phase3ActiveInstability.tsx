@@ -1,14 +1,16 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Alert,
     Animated,
     Dimensions,
     ImageBackground,
+    PanResponder,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { ACTIVE_INSTABILITY_DATA } from '../../../data/roofInstabilityData';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -31,6 +33,9 @@ const Phase3ActiveInstability: React.FC<Phase3ActiveInstabilityProps> = ({
 }) => {
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [boundaryPoints, setBoundaryPoints] = useState<{ x: number; y: number }[]>([]);
+  const [drawingPath, setDrawingPath] = useState<string>('');
+  const [drawnArea, setDrawnArea] = useState<number>(0);
+  const [usePhase3Background, setUsePhase3Background] = useState(false);
   const [barricadePlaced, setBarricadePlaced] = useState(false);
   const [stopWorkSelected, setStopWorkSelected] = useState<boolean | null>(null);
   const [startTime] = useState(Date.now());
@@ -43,6 +48,11 @@ const Phase3ActiveInstability: React.FC<Phase3ActiveInstabilityProps> = ({
   // Animations
   const [shakeAnimation] = useState(new Animated.Value(0));
   const [fallingRockAnimation] = useState(new Animated.Value(-50));
+  
+  // Drawing state
+  const pathRef = useRef<string>('');
+  const pointsRef = useRef<{ x: number; y: number }[]>([]);
+  const taskCompleteRef = useRef<(() => void) | null>(null);
 
   const currentTask = ACTIVE_INSTABILITY_DATA.tasks[currentTaskIndex];
 
@@ -100,19 +110,68 @@ const Phase3ActiveInstability: React.FC<Phase3ActiveInstabilityProps> = ({
     }
   }, [elapsedTime, anomalyIndex, language]);
 
-  const handleTapToMarkBoundary = useCallback((event: any) => {
-    if (currentTask?.id !== 'mark_unsafe_zone') return;
-
-    const { locationX, locationY } = event.nativeEvent;
-    setBoundaryPoints(prev => [...prev, { x: locationX, y: locationY }]);
-
-    // Auto-complete when 4+ points marked (forming a boundary)
-    if (boundaryPoints.length >= 3) {
-      setTimeout(() => {
-        handleTaskComplete();
-      }, 500);
+  const handleTaskComplete = useCallback(() => {
+    if (currentTaskIndex < ACTIVE_INSTABILITY_DATA.tasks.length - 1) {
+      setCurrentTaskIndex(prev => prev + 1);
+    } else {
+      // Phase complete
+      const coverage = drawnArea > 0 ? drawnArea : Math.min(100, (boundaryPoints.length / 4) * 100);
+      onComplete({
+        boundaryCoveragePercent: coverage,
+        stopWorkChosen: stopWorkSelected ?? false,
+        timeToStopWorkMs: timeToStopWork,
+        xpEarned,
+      });
     }
-  }, [currentTask, boundaryPoints]);
+  }, [currentTaskIndex, drawnArea, boundaryPoints, stopWorkSelected, timeToStopWork, xpEarned, onComplete]);
+
+  // Update ref whenever handleTaskComplete changes
+  useEffect(() => {
+    taskCompleteRef.current = handleTaskComplete;
+  }, [handleTaskComplete]);
+
+  // PanResponder for free-hand drawing
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => currentTask?.id === 'mark_unsafe_zone',
+      onMoveShouldSetPanResponder: () => currentTask?.id === 'mark_unsafe_zone',
+      onPanResponderGrant: (evt) => {
+        const { locationX, locationY } = evt.nativeEvent;
+        pathRef.current = `M ${locationX} ${locationY}`;
+        pointsRef.current = [{ x: locationX, y: locationY }];
+        setDrawingPath(pathRef.current);
+      },
+      onPanResponderMove: (evt) => {
+        const { locationX, locationY } = evt.nativeEvent;
+        pathRef.current += ` L ${locationX} ${locationY}`;
+        pointsRef.current.push({ x: locationX, y: locationY });
+        setDrawingPath(pathRef.current);
+        
+        // Calculate approximate area drawn
+        const points = pointsRef.current.length;
+        setDrawnArea(Math.min(100, Math.round((points / 150) * 100)));
+      },
+      onPanResponderRelease: () => {
+        // Check if enough area is covered using the ref (immediate value)
+        const currentPoints = pointsRef.current.length;
+        const coverage = Math.min(100, Math.round((currentPoints / 150) * 100));
+        
+        if (coverage >= 60) {
+          setTimeout(() => {
+            setUsePhase3Background(true);
+            if (currentTask?.xpReward) {
+              const earnedXP = currentTask.xpReward;
+              setXpEarned(prev => prev + earnedXP);
+              onXPEarned(earnedXP);
+            }
+            setTimeout(() => {
+              taskCompleteRef.current?.();
+            }, 800);
+          }, 500);
+        }
+      },
+    })
+  ).current;
 
   const handlePlaceBarricade = useCallback(() => {
     setBarricadePlaced(true);
@@ -122,7 +181,7 @@ const Phase3ActiveInstability: React.FC<Phase3ActiveInstabilityProps> = ({
       onXPEarned(earnedXP);
     }
     handleTaskComplete();
-  }, [currentTask, onXPEarned]);
+  }, [currentTask, onXPEarned, handleTaskComplete]);
 
   const handleStopWorkDecision = useCallback((stopWork: boolean) => {
     setStopWorkSelected(stopWork);
@@ -145,31 +204,16 @@ const Phase3ActiveInstability: React.FC<Phase3ActiveInstabilityProps> = ({
         [{ text: 'OK', onPress: handleTaskComplete }]
       );
     }
-  }, [language, startTime, onXPEarned]);
-
-  const handleTaskComplete = useCallback(() => {
-    if (currentTaskIndex < ACTIVE_INSTABILITY_DATA.tasks.length - 1) {
-      setCurrentTaskIndex(prev => prev + 1);
-    } else {
-      // Phase complete
-      const coverage = Math.min(100, (boundaryPoints.length / 4) * 100);
-      onComplete({
-        boundaryCoveragePercent: coverage,
-        stopWorkChosen: stopWorkSelected ?? false,
-        timeToStopWorkMs: timeToStopWork,
-        xpEarned,
-      });
-    }
-  }, [currentTaskIndex, boundaryPoints, stopWorkSelected, timeToStopWork, xpEarned, onComplete]);
+  }, [language, startTime, onXPEarned, handleTaskComplete]);
 
   const calculateCoverage = () => {
-    return Math.min(100, Math.round((boundaryPoints.length / 4) * 100));
+    return drawnArea;
   };
 
   return (
     <Animated.View style={[styles.container, { transform: [{ translateX: shakeAnimation }] }]}>
       <ImageBackground
-        source={require('../../../assets/images/pahse3.jpg')}
+        source={usePhase3Background ? require('../../../assets/images/pahse3.jpg') : require('../../../assets/images/phase2.jpg')}
         style={styles.background}
         resizeMode="cover"
       >
@@ -203,19 +247,19 @@ const Phase3ActiveInstability: React.FC<Phase3ActiveInstabilityProps> = ({
       {currentTask?.id === 'mark_unsafe_zone' && (
         <View
           style={styles.markingZone}
-          onStartShouldSetResponder={() => true}
-          onResponderGrant={handleTapToMarkBoundary}
+          {...panResponder.panHandlers}
         >
-          {/* Render boundary points */}
-          {boundaryPoints.map((point, index) => (
-            <View
-              key={index}
-              style={[
-                styles.boundaryPoint,
-                { left: point.x - 10, top: point.y - 10 },
-              ]}
+          {/* SVG Canvas for drawing */}
+          <Svg style={StyleSheet.absoluteFillObject}>
+            <Path
+              d={drawingPath}
+              stroke="#EF4444"
+              strokeWidth={8}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
-          ))}
+          </Svg>
           
           {/* Danger zone visualization */}
           <View style={styles.dangerZoneIndicator}>
@@ -231,13 +275,11 @@ const Phase3ActiveInstability: React.FC<Phase3ActiveInstabilityProps> = ({
             </Text>
           </View>
 
-          {boundaryPoints.length > 0 && (
-            <Text style={styles.tapHint}>
-              {language === 'en' 
-                ? `Tap ${4 - boundaryPoints.length} more corners` 
-                : `${4 - boundaryPoints.length} और कोने टैप करें`}
-            </Text>
-          )}
+          <Text style={styles.tapHint}>
+            {language === 'en' 
+              ? drawnArea < 60 ? '✏️ Draw around the danger zone' : '✅ Release to confirm' 
+              : drawnArea < 60 ? '✏️ खतरे के क्षेत्र के चारों ओर बनाएं' : '✅ पुष्टि करने के लिए छोड़ें'}
+          </Text>
         </View>
       )}
 
@@ -327,9 +369,10 @@ const styles = StyleSheet.create({
     marginTop: 260,
     marginHorizontal: 16,
     height: 320,
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderRadius: 16,
-    borderWidth: 2,
+    borderWidth: 3,
+    borderStyle: 'dashed',
     borderColor: '#EF4444',
     position: 'relative',
   },

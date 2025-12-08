@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, ImageBackground } from 'react-native';
 import { BLAST_SEQUENCE_DATA } from '../../../data/blastingGameData';
 
 interface BlastSequenceMonitoringProps {
@@ -66,7 +66,12 @@ const BlastSequenceMonitoring: React.FC<BlastSequenceMonitoringProps> = ({ langu
   };
 
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={require('../../../assets/images/pahse3.jpg')}
+      style={styles.container}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay} />
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
@@ -179,14 +184,18 @@ const BlastSequenceMonitoring: React.FC<BlastSequenceMonitoringProps> = ({ langu
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1f2937' },
+  container: { flex: 1 },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
   header: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     paddingVertical: 16,
     paddingHorizontal: 16,
     marginTop: 80,
@@ -195,31 +204,35 @@ const styles = StyleSheet.create({
   headerSubtitle: { color: '#fde047', fontSize: 14, textAlign: 'center', marginTop: 4 },
   content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     borderRadius: 16,
     padding: 32,
     width: '100%',
     maxWidth: 600,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  cardTitle: { fontSize: 24, fontWeight: '700', color: '#1f2937', marginBottom: 24, textAlign: 'center' },
+  cardTitle: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 24, textAlign: 'center' },
   checklist: { gap: 12, marginBottom: 32 },
   checklistItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     padding: 16,
-    backgroundColor: '#dcfce7',
+    backgroundColor: 'rgba(34, 197, 94, 0.2)',
     borderWidth: 2,
-    borderColor: '#16a34a',
+    borderColor: '#22c55e',
     borderRadius: 8,
   },
   checkIcon: { fontSize: 24 },
-  checklistText: { fontSize: 16, fontWeight: '600', color: '#1f2937', flex: 1 },
+  checklistText: { fontSize: 16, fontWeight: '600', color: '#fff', flex: 1 },
   startButton: {
     backgroundColor: '#dc2626',
     paddingVertical: 20,
     borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   startButtonText: { color: '#fff', fontSize: 20, fontWeight: '700' },
   countdownText: { fontSize: 80, fontWeight: '700', color: '#ef4444', marginBottom: 16 },

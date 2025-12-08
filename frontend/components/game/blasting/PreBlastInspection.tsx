@@ -142,7 +142,7 @@ const PreBlastInspection: React.FC<PreBlastInspectionProps> = ({ language, onCom
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={{ uri: 'https://images.unsplash.com/photo-1628744448840-55bdb2497bd4?w=3840&q=80&fit=crop' }}
+        source={require('../../../assets/images/blasting1.png')}
         style={styles.background}
         resizeMode="cover"
       >
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   blastText: { color: '#fde047', fontSize: 12, fontWeight: '700', marginTop: 4 },
   taskPanel: {
     position: 'absolute',
-    bottom: 16,
+    bottom: 80,
     left: 16,
     right: 16,
     backgroundColor: '#fff',

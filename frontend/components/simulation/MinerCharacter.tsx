@@ -75,8 +75,10 @@ export default function MinerCharacter() {
     ).start();
   }, []);
   
-  // Calculate horizontal position (8%-85% of screen)
-  const horizontalPosition = 8 + (progress / totalDistance) * 77;
+  // Calculate horizontal position - start from leftmost edge to rightmost
+  // At progress 0m, miner is at far left (accounting for 280px container width)
+  // At progress 250m, miner is at far right
+  const horizontalPosition = (progress / totalDistance) * 90;
   
   return (
     <Animated.View
@@ -84,6 +86,7 @@ export default function MinerCharacter() {
         styles.container,
         {
           left: `${horizontalPosition}%`,
+          marginLeft: -100, // Offset to position character at true start
           transform: [
             { scale: scaleAnim },
             {

@@ -122,6 +122,7 @@ export default function GameHUD() {
               fire: '🔥',
               blockage: '🚧',
               gas: '☠️',
+              exit: '🏁',
             };
             
             return (
@@ -312,7 +313,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(139, 92, 46, 0.3)',
     position: 'relative',
-    overflow: 'hidden',
+    overflow: 'visible',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
   miniMapGrid: {
     ...StyleSheet.absoluteFillObject,

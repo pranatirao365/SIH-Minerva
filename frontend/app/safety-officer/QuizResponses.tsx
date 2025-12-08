@@ -86,7 +86,7 @@ export default function QuizResponses() {
       }
       
     } catch (error) {
-      console.error('Error loading responses:', error);
+      // Silently fail to load responses
     } finally {
       setLoading(false);
     }

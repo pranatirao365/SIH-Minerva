@@ -57,11 +57,11 @@ export default function AvailableQuizzes() {
   const loadQuizzes = async () => {
     try {
       setLoading(true);
+      setCompletedQuizzes(new Set()); // Reset completed quizzes
       
       // Load available quizzes
       const quizzesQuery = query(
         collection(db, 'dailyQuizzes'),
-        where('status', '==', 'active'),
         orderBy('createdAt', 'desc')
       );
       
@@ -71,12 +71,18 @@ export default function AvailableQuizzes() {
         ...doc.data(),
       })) as Quiz[];
       
-      // Filter quizzes based on target audience
-      const filteredQuizzes = quizzesData.filter(quiz => 
-        quiz.targetAudience === 'all' || quiz.targetAudience === user.role
-      );
+      // Filter quizzes based on status and target audience (client-side filtering)
+      // Miners see: 'miner' or 'all' quizzes
+      // Supervisors see: 'supervisor' or 'all' quizzes
+      const filteredQuizzes = quizzesData.filter(quiz => {
+        const isActive = quiz.status === 'active';
+        const isForCurrentUser = 
+          quiz.targetAudience === 'all' || 
+          quiz.targetAudience === user.role;
+        return isActive && isForCurrentUser;
+      });
       
-      setQuizzes(filteredQuizzes);
+      console.log(`📚 [AvailableQuizzes] Loaded ${filteredQuizzes.length} quizzes for ${user.role}`);
       
       // Load user's completed quizzes
       const userIdentifier = user.phone || user.id || 'anonymous';
@@ -89,9 +95,15 @@ export default function AvailableQuizzes() {
       const completed = new Set<string>();
       responsesSnapshot.docs.forEach(doc => {
         const data = doc.data() as QuizResponse;
-        completed.add(data.quizId);
+        // Only add to completed if the quiz is in the filtered list
+        if (filteredQuizzes.some(q => q.id === data.quizId)) {
+          completed.add(data.quizId);
+        }
       });
       
+      console.log(`✅ [AvailableQuizzes] Completed ${completed.size} quizzes`);
+      
+      setQuizzes(filteredQuizzes);
       setCompletedQuizzes(completed);
       
     } catch (error) {
@@ -101,11 +113,18 @@ export default function AvailableQuizzes() {
     }
   };
 
-  const handleStartQuiz = (quizId: string) => {
-    router.push({
-      pathname: '/shared/TakeQuiz',
-      params: { quizId },
-    });
+  const handleStartQuiz = (quizId: string, isCompleted: boolean = false) => {
+    if (isCompleted) {
+      router.push({
+        pathname: '/shared/QuizResults',
+        params: { quizId },
+      });
+    } else {
+      router.push({
+        pathname: '/shared/TakeQuiz',
+        params: { quizId },
+      });
+    }
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -129,7 +148,9 @@ export default function AvailableQuizzes() {
           <ArrowLeft size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Daily Safety Quizzes</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={loadQuizzes} style={styles.refreshButton}>
+          <Text style={styles.refreshButtonText}>🔄</Text>
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -139,6 +160,16 @@ export default function AvailableQuizzes() {
         </View>
       ) : (
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Info Banner for Miners */}
+          {user.role === 'miner' && (
+            <View style={styles.infoBanner}>
+              <Text style={styles.infoBannerTitle}>📋 Daily Safety Quizzes</Text>
+              <Text style={styles.infoBannerText}>
+                Complete quizzes assigned by Safety Officers to test your mining safety knowledge. Your results will be reviewed by the Safety Officer.
+              </Text>
+            </View>
+          )}
+
           {/* Stats */}
           <View style={styles.statsContainer}>
             <View style={styles.statCard}>
@@ -154,7 +185,7 @@ export default function AvailableQuizzes() {
             <View style={styles.statCard}>
               <Clock size={24} color="#F59E0B" />
               <Text style={styles.statValue}>
-                {quizzes.length - completedQuizzes.size}
+                {Math.max(0, quizzes.length - completedQuizzes.size)}
               </Text>
               <Text style={styles.statLabel}>Pending</Text>
             </View>
@@ -183,8 +214,7 @@ export default function AvailableQuizzes() {
                       styles.quizCard,
                       isCompleted && styles.quizCardCompleted,
                     ]}
-                    onPress={() => handleStartQuiz(quiz.id)}
-                    disabled={isCompleted}
+                    onPress={() => handleStartQuiz(quiz.id, isCompleted)}
                   >
                     <View style={styles.quizHeader}>
                       <View style={styles.quizHeaderLeft}>
@@ -237,9 +267,9 @@ export default function AvailableQuizzes() {
                       </View>
 
                       {isCompleted ? (
-                        <View style={styles.completedBadge}>
+                        <View style={styles.viewResultsButton}>
                           <Trophy size={16} color="#10B981" />
-                          <Text style={styles.completedText}>Completed</Text>
+                          <Text style={styles.viewResultsButtonText}>View Results</Text>
                         </View>
                       ) : (
                         <View style={styles.startButton}>
@@ -263,6 +293,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginHorizontal: 2,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -274,6 +321,18 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 4,
+  },
+  refreshButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary + '20',
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refreshButtonText: {
+    fontSize: 20,
   },
   headerTitle: {
     fontSize: 20,
@@ -290,35 +349,43 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: COLORS.textSecondary,
+    color: COLORS.secondary,
   },
   content: {
     flex: 1,
     padding: 20,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: COLORS.card,
-    padding: 16,
+  infoBanner: {
+    backgroundColor: COLORS.primary + '15',
     borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    padding: 16,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
   },
-  statValue: {
-    fontSize: 24,
+  infoBannerTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.text,
+    marginBottom: 8,
+  },
+  infoBannerText: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    lineHeight: 20,
     marginVertical: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: COLORS.secondary,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginTop: 4,
+    marginBottom: 2,
+    textAlign: 'center',
   },
   sectionTitle: {
     fontSize: 18,
@@ -441,5 +508,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#10B981',
+  },
+  viewResultsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  viewResultsButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

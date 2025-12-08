@@ -9,6 +9,7 @@ import {
     CheckCircle,
     FileText,
     MapPin,
+    Phone,
     Settings,
     Shield,
     Video,
@@ -55,6 +56,14 @@ export default function SafetyOfficerHome() {
       route: '/safety-officer/VideoGenerationModule',
       color: COLORS.primary,
       gradient: true,
+    },
+    {
+      icon: Phone,
+      title: 'Miner Call Center',
+      description: 'Make toll-free calls to miners',
+      route: '/safety-officer/MinerCallCenter',
+      color: '#10B981',
+      isNew: true,
     },
     {
       icon: Youtube,
@@ -115,10 +124,11 @@ export default function SafetyOfficerHome() {
     {
       icon: BookOpen,
       title: 'Daily Quiz Manager',
-      description: 'Create AI-generated safety quizzes',
+      description: 'Create AI-powered safety quizzes with Gemini',
       route: '/safety-officer/DailyQuizManager',
       color: '#06B6D4',
       gradient: true,
+      isNew: true,
     },
   ];
 
@@ -156,6 +166,7 @@ export default function SafetyOfficerHome() {
             {mainModules.map((module, index) => {
               const Icon = module.icon;
               const showBadge = module.title === 'Testimonial Review' && pendingTestimonialsCount > 0;
+              const showNew = (module as any).isNew;
               
               return (
                 <TouchableOpacity
@@ -180,6 +191,11 @@ export default function SafetyOfficerHome() {
                     {showBadge && (
                       <View style={styles.badge}>
                         <Text style={styles.badgeText}>{pendingTestimonialsCount}</Text>
+                      </View>
+                    )}
+                    {showNew && !showBadge && (
+                      <View style={[styles.badge, { backgroundColor: '#10B981' }]}>
+                        <Text style={styles.badgeText}>NEW</Text>
                       </View>
                     )}
                   </View>

@@ -1,45 +1,172 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Icons } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
+import { collection, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc, getDocs } from 'firebase/firestore';
+import { db } from '../../config/firebase';
+import { useRoleStore } from '../../hooks/useRoleStore';
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  createdAt: any;
+  read: boolean;
+  recipientId?: string;
+  priority?: string;
+  metadata?: {
+    requestId?: string;
+    videoTopic?: string;
+    requestPriority?: string;
+    requestDescription?: string;
+    requestLanguage?: string;
+    [key: string]: any;
+  };
+  senderName?: string;
+}
 
 export default function NotificationScreen() {
   const router = useRouter();
+  const { user } = useRoleStore();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const notifications = [
-    {
-      id: 1,
-      type: 'alert',
-      title: 'Safety Alert',
-      message: 'Gas levels elevated in Sector B. Exercise caution.',
-      time: '5 min ago',
-      read: false,
-    },
-    {
-      id: 2,
-      type: 'training',
-      title: 'Training Reminder',
-      message: 'Complete "Hazard Spotting" level 3 before end of shift.',
-      time: '1 hour ago',
-      read: false,
-    },
-    {
-      id: 3,
-      type: 'achievement',
-      title: 'Achievement Unlocked',
-      message: 'You earned the "Safety Champion" badge!',
-      time: '2 hours ago',
-      read: true,
-    },
-  ];
+  useEffect(() => {
+    const userId = user?.id || user?.phone;
+    if (!userId) {
+      console.log('⚠️ No user ID found for notifications');
+      return;
+    }
 
-  const getIconColor = (type: string) => {
+    console.log('📱 Subscribing to notifications for user:', userId);
+
+    // Subscribe to notifications
+    const notificationsRef = collection(db, 'notifications');
+    const q = query(
+      notificationsRef,
+      where('recipientId', '==', userId)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const notifs: Notification[] = [];
+      snapshot.forEach((doc) => {
+        notifs.push({ id: doc.id, ...doc.data() } as Notification);
+      });
+      
+      console.log(`✅ Fetched ${notifs.length} notifications for user ${userId}`);
+      if (notifs.length > 0) {
+        console.log('First notification:', notifs[0]);
+      }
+      
+      // Sort in memory by createdAt descending
+      notifs.sort((a, b) => {
+        const aTime = a.createdAt?.toMillis?.() || a.createdAt?.seconds * 1000 || 0;
+        const bTime = b.createdAt?.toMillis?.() || b.createdAt?.seconds * 1000 || 0;
+        return bTime - aTime;
+      });
+      setNotifications(notifs);
+    }, (error) => {
+      console.error('❌ Error fetching notifications:', error);
+    });
+
+    return () => unsubscribe();
+  }, [user?.id, user?.phone]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // The onSnapshot listener will automatically update
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const handleClearAll = () => {
+    Alert.alert(
+      'Clear All Notifications',
+      'Are you sure you want to clear all notifications?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              for (const notif of notifications) {
+                await deleteDoc(doc(db, 'notifications', notif.id));
+              }
+            } catch (error) {
+              console.error('Error clearing notifications:', error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleMarkAsRead = async (notification: Notification, e?: any) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    
+    try {
+      // Delete the notification instead of just marking as read
+      await deleteDoc(doc(db, 'notifications', notification.id));
+      console.log('✅ Notification deleted:', notification.id);
+    } catch (error) {
+      console.error('❌ Error deleting notification:', error);
+    }
+  };
+
+  const handleNotificationPress = async (notification: Notification) => {
+    // Handle different notification types with navigation
+    if (notification.type === 'video_request' && user?.role === 'safety-officer') {
+      // Navigate to Video Request Handler for safety officers
+      router.push('/safety-officer/VideoRequestHandler' as any);
+    } else if (notification.type === 'video_request' && user?.role === 'safety_officer') {
+      router.push('/safety-officer/VideoRequestHandler' as any);
+    } else if (notification.type === 'sos-alert' || notification.type === 'safety_alert') {
+      // Navigate to SOS notifications for supervisors/safety officers
+      if (user?.role === 'safety-officer' || user?.role === 'safety_officer') {
+        router.push('/safety-officer/SOSNotifications' as any);
+      }
+    } else if (notification.type === 'video_assignment') {
+      // Navigate to video library for miners
+      if (user?.role === 'miner') {
+        router.push('/miner/TrainingSafety' as any);
+      }
+    }
+  };
+
+  const formatTimestamp = (timestamp: any) => {
+    if (!timestamp) return 'Just now';
+    
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 60000); // minutes
+
+    if (diff < 1) return 'Just now';
+    if (diff < 60) return `${diff}m ago`;
+    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
+    if (diff < 10080) return `${Math.floor(diff / 1440)}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const getIconColor = (type: string, priority?: string) => {
     switch (type) {
       case 'alert':
+      case 'sos-alert':
+      case 'safety_alert':
         return '#EF4444';
+      case 'video_request':
+        // Color based on priority
+        if (priority === 'urgent') return '#EF4444';
+        if (priority === 'high') return '#F59E0B';
+        if (priority === 'medium') return '#0EA5E9';
+        return '#10B981';
       case 'training':
+      case 'daily_reminder':
+      case 'video_assignment':
         return '#0EA5E9';
       case 'achievement':
         return '#10B981';
@@ -51,8 +178,14 @@ export default function NotificationScreen() {
   const getIcon = (type: string) => {
     switch (type) {
       case 'alert':
+      case 'sos-alert':
+      case 'safety_alert':
         return Icons.AlertTriangle;
+      case 'video_request':
+        return Icons.Video;
       case 'training':
+      case 'daily_reminder':
+      case 'video_assignment':
         return Icons.BookOpen;
       case 'achievement':
         return Icons.Award;
@@ -69,37 +202,118 @@ export default function NotificationScreen() {
           <Icons.ChevronLeft size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
-        <TouchableOpacity style={styles.clearButton}>
+        <TouchableOpacity style={styles.clearButton} onPress={handleClearAll}>
           <Text style={styles.clearText}>Clear All</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView}>
-        {notifications.map((notification) => {
-          const IconComponent = getIcon(notification.type);
-          return (
-            <TouchableOpacity
-              key={notification.id}
-              style={[
-                styles.notificationCard,
-                !notification.read && styles.unreadCard,
-              ]}
-            >
-              <View style={styles.notificationIcon}>
-                <IconComponent size={24} color={getIconColor(notification.type)} />
+      <ScrollView 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {notifications.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Icons.Bell size={64} color={COLORS.textMuted} />
+            <Text style={styles.emptyStateTitle}>No Notifications</Text>
+            <Text style={styles.emptyStateText}>
+              You're all caught up! New notifications will appear here.
+            </Text>
+          </View>
+        ) : (
+          notifications.map((notification) => {
+            const IconComponent = getIcon(notification.type);
+            const isVideoRequest = notification.type === 'video_request';
+            
+            return (
+              <View
+                key={notification.id}
+                style={[
+                  styles.notificationCard,
+                  !notification.read && styles.unreadCard,
+                  isVideoRequest && styles.videoRequestCard,
+                ]}
+              >
+                <TouchableOpacity
+                  style={styles.notificationPressable}
+                  onPress={() => handleNotificationPress(notification)}
+                >
+                  {isVideoRequest ? (
+                    // Enhanced Video Request Display
+                    <>
+                      <View style={styles.videoRequestHeader}>
+                        <View style={styles.videoRequestIcon}>
+                          <IconComponent size={24} color={getIconColor(notification.type, notification.metadata?.requestPriority || notification.priority)} />
+                        </View>
+                        <View style={styles.videoRequestInfo}>
+                          <View style={styles.videoRequestTitleRow}>
+                            <Text style={styles.videoRequestTopic} numberOfLines={2}>
+                              {notification.metadata?.videoTopic || notification.title}
+                            </Text>
+                            {!notification.read && <View style={styles.unreadDot} />}
+                          </View>
+                          <View style={styles.priorityBadgeContainer}>
+                            <View style={[
+                              styles.priorityBadge, 
+                              { backgroundColor: getIconColor(notification.type, notification.metadata?.requestPriority || notification.priority) + '20' }
+                            ]}>
+                              <Text style={[
+                                styles.priorityBadgeText,
+                                { color: getIconColor(notification.type, notification.metadata?.requestPriority || notification.priority) }
+                              ]}>
+                                {(notification.metadata?.requestPriority || notification.priority || 'MEDIUM').toUpperCase()}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                      <View style={styles.videoRequestMeta}>
+                        <Text style={styles.videoRequestMetaText}>
+                          Requested by: {notification.senderName || 'Supervisor'}
+                        </Text>
+                        <Text style={styles.videoRequestMetaText}>
+                          {notification.metadata?.requestLanguage === 'en' ? '🇬🇧 English' : 
+                           notification.metadata?.requestLanguage === 'hi' ? '🇮🇳 Hindi' :
+                           notification.metadata?.requestLanguage === 'te' ? '🇮🇳 Telugu' : 'English'} • {formatTimestamp(notification.createdAt)}
+                        </Text>
+                      </View>
+                      {notification.metadata?.requestDescription && (
+                        <Text style={styles.videoRequestDescription} numberOfLines={2}>
+                          {notification.metadata.requestDescription}
+                        </Text>
+                      )}
+                    </>
+                  ) : (
+                    // Standard Notification Display
+                    <>
+                      <View style={styles.notificationIcon}>
+                        <IconComponent size={24} color={getIconColor(notification.type, notification.priority)} />
+                      </View>
+                      <View style={styles.notificationContent}>
+                        <View style={styles.notificationHeader}>
+                          <Text style={styles.notificationTitle}>{notification.title}</Text>
+                          {!notification.read && <View style={styles.unreadDot} />}
+                        </View>
+                        <Text style={styles.notificationMessage}>{notification.message}</Text>
+                        <Text style={styles.notificationTime}>{formatTimestamp(notification.createdAt)}</Text>
+                      </View>
+                    </>
+                  )}
+                </TouchableOpacity>
+                
+                {/* Mark as Read Button */}
+                <TouchableOpacity 
+                  style={styles.markAsReadButton}
+                  onPress={(e) => handleMarkAsRead(notification, e)}
+                >
+                  <Icons.Check size={18} color={COLORS.primary} />
+                  <Text style={styles.markAsReadText}>Mark as Read</Text>
+                </TouchableOpacity>
               </View>
-
-              <View style={styles.notificationContent}>
-                <View style={styles.notificationHeader}>
-                  <Text style={styles.notificationTitle}>{notification.title}</Text>
-                  {!notification.read && <View style={styles.unreadDot} />}
-                </View>
-                <Text style={styles.notificationMessage}>{notification.message}</Text>
-                <Text style={styles.notificationTime}>{notification.time}</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+            );
+          })
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -191,5 +405,109 @@ const styles = StyleSheet.create({
   notificationTime: {
     fontSize: 12,
     color: COLORS.textMuted,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  // Video Request specific styles
+  videoRequestCard: {
+    flexDirection: 'column',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  videoRequestHeader: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  videoRequestIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  videoRequestInfo: {
+    flex: 1,
+  },
+  videoRequestTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  videoRequestTopic: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    flex: 1,
+    marginRight: 8,
+  },
+  priorityBadgeContainer: {
+    marginTop: 4,
+  },
+  priorityBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  priorityBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  videoRequestMeta: {
+    marginBottom: 12,
+  },
+  videoRequestMetaText: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginBottom: 4,
+  },
+  videoRequestDescription: {
+    fontSize: 14,
+    color: COLORS.text,
+    lineHeight: 20,
+    marginTop: 4,
+  },
+  notificationPressable: {
+    flex: 1,
+  },
+  markAsReadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.primary + '10',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+  },
+  markAsReadText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginLeft: 6,
   },
 });

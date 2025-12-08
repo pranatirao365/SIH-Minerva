@@ -1,4 +1,4 @@
-import { db } from '@/config/firebase';
+import { db } from '../config/firebase';
 import { addDoc, collection, getDocs, query, Timestamp, where } from 'firebase/firestore';
 
 interface VideoAssignment {

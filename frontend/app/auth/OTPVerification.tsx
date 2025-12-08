@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getApp } from 'firebase/app';
 import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
@@ -8,7 +7,7 @@ import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShieldCheck } from '../../components/Icons';
-import { auth, db, firebaseConfig } from '../../config/firebase';
+import { auth, db } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import { translator } from '../../services/translator';
@@ -91,8 +90,6 @@ export default function OTPVerification() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
-  const recaptchaVerifier = useRef<any>(null);
-  const firebaseApp = getApp();
   const { setRole, setUser } = useRoleStore();
 
   const handleOtpChange = (value: string, index: number) => {
@@ -390,13 +387,6 @@ export default function OTPVerification() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebaseConfig}
-        attemptInvisibleVerification={false}
-        title="Security Verification"
-        cancelLabel="Cancel"
-      />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <ShieldCheck size={80} color={COLORS.primary} />

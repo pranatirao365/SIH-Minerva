@@ -1,0 +1,18 @@
+{
+  "name": "toll-free",
+  "version": "1.0.0",
+  "description": "This project provides a prototype for delivering video/explainer content to callers who dial a toll-free number, with interactive voice and keypad (DTMF) responses.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "twilio": "^5.10.7"
+  }
+}

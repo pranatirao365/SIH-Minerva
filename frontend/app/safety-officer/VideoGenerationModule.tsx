@@ -280,7 +280,7 @@ Requirements:
 Example format: "Proper PPE Usage in Underground Mining Operations"`;
         
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyA47y_mmOfzKL1jo4ce8qmK2RyY9_mk4sk`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyD3FRdf4bg8s7W5h3hkZXEbXNI4GTQO1vI`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

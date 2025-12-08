@@ -11,6 +11,7 @@ import { translator } from '../../services/translator';
 
 // 🧪 TEST MODE - Remove this in production!
 const TEST_PHONES = [
+  '+919032017652', // Custom test number - OTP: 123456
   '+911234567890', // Miner
   '+911234567891', // Engineer
   '+911234567892', // Supervisor

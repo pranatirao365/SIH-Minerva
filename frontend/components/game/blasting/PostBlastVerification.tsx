@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';
 import { POST_BLAST_DATA } from '../../../data/blastingGameData';
 
 interface PostBlastVerificationProps {
@@ -58,7 +58,12 @@ const PostBlastVerification: React.FC<PostBlastVerificationProps> = ({ language,
   };
 
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={require('../../../assets/images/phase4.png')}
+      style={styles.container}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay} />
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
@@ -165,14 +170,18 @@ const PostBlastVerification: React.FC<PostBlastVerificationProps> = ({ language,
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#92400e' },
+  container: { flex: 1 },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
   header: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     paddingVertical: 16,
     paddingHorizontal: 16,
     marginTop: 80,
@@ -182,11 +191,11 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   contentContainer: { padding: 20, gap: 20 },
   card: {
-    backgroundColor: 'rgba(31, 41, 55, 0.95)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     borderRadius: 16,
     padding: 24,
-    borderWidth: 4,
-    borderColor: '#ca8a04',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   craterVisualization: { alignItems: 'center', marginBottom: 24 },
   craterIcon: { fontSize: 80, marginBottom: 8 },

@@ -4,7 +4,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { collection, deleteDoc, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -43,10 +43,11 @@ interface User {
   healthCheckup?: any;
   certifications?: any;
   qualifications?: any;
+  specialization?: string;
 }
 
-// Form Components
-const MinerForm = ({ formData, setFormData }: { formData: any, setFormData: any }) => (
+// Form Components with React.memo to prevent unnecessary re-renders
+const MinerForm = React.memo(({ formData, setFormData }: { formData: any, setFormData: any }) => (
   <View>
     <View style={styles.inputGroup}>
       <Text style={styles.label}>Full Name *</Text>
@@ -187,9 +188,9 @@ const MinerForm = ({ formData, setFormData }: { formData: any, setFormData: any 
       </TouchableOpacity>
     </View>
   </View>
-);
+));
 
-const SupervisorForm = ({ formData, setFormData, minersList, setShowMinerModal }: { formData: any, setFormData: any, minersList: User[], setShowMinerModal: (show: boolean) => void }) => (
+const SupervisorForm = React.memo(({ formData, setFormData, minersList, setShowMinerModal }: { formData: any, setFormData: any, minersList: User[], setShowMinerModal: (show: boolean) => void }) => (
   <View>
     <View style={styles.inputGroup}>
       <Text style={styles.label}>Full Name *</Text>
@@ -287,9 +288,9 @@ const SupervisorForm = ({ formData, setFormData, minersList, setShowMinerModal }
       )}
     </View>
   </View>
-);
+));
 
-const SafetyOfficerForm = ({ formData, setFormData }: { formData: any, setFormData: any }) => (
+const SafetyOfficerForm = React.memo(({ formData, setFormData }: { formData: any, setFormData: any }) => (
   <View>
     <View style={styles.inputGroup}>
       <Text style={styles.label}>Full Name *</Text>
@@ -390,9 +391,9 @@ const SafetyOfficerForm = ({ formData, setFormData }: { formData: any, setFormDa
       </TouchableOpacity>
     </View>
   </View>
-);
+));
 
-const EngineerForm = ({ formData, setFormData }: { formData: any, setFormData: any }) => (
+const EngineerForm = React.memo(({ formData, setFormData }: { formData: any, setFormData: any }) => (
   <View>
     <View style={styles.inputGroup}>
       <Text style={styles.label}>Full Name *</Text>
@@ -511,7 +512,7 @@ const EngineerForm = ({ formData, setFormData }: { formData: any, setFormData: a
       </TouchableOpacity>
     </View>
   </View>
-);
+));
 
 export default function AdminHome() {
   const router = useRouter();
@@ -682,14 +683,18 @@ export default function AdminHome() {
     
     const updatedSupervisor = users.find(u => u.id === selectedSupervisor.id);
     if (updatedSupervisor) {
-      setSelectedSupervisor(updatedSupervisor);
+      // Only update if data has actually changed to prevent infinite loops
+      const hasChanged = JSON.stringify(updatedSupervisor) !== JSON.stringify(selectedSupervisor);
+      if (hasChanged) {
+        setSelectedSupervisor(updatedSupervisor);
+      }
     } else {
       // Supervisor was deleted, close the modal
       setShowSupervisorMinersModal(false);
       setShowMinerSupervisorModal(false);
       setSelectedSupervisor(null);
     }
-  }, [users, selectedSupervisor?.id]); // Only when users change or supervisor ID changes
+  }, [users]); // Only depend on users array, not the supervisor object
 
   // Dynamic update: Refresh selected miner data when users change
   useEffect(() => {
@@ -697,13 +702,17 @@ export default function AdminHome() {
     
     const updatedMiner = users.find(u => u.id === selectedMinerForSupervisor.id);
     if (updatedMiner) {
-      setSelectedMinerForSupervisor(updatedMiner);
+      // Only update if data has actually changed to prevent infinite loops
+      const hasChanged = JSON.stringify(updatedMiner) !== JSON.stringify(selectedMinerForSupervisor);
+      if (hasChanged) {
+        setSelectedMinerForSupervisor(updatedMiner);
+      }
     } else {
       // Miner was deleted, close the modal
       setShowMinerSupervisorModal(false);
       setSelectedMinerForSupervisor(null);
     }
-  }, [users, selectedMinerForSupervisor?.id]); // Only when users change or miner ID changes
+  }, [users]); // Only depend on users array, not the miner object
 
   // Dynamic update: Refresh selected user details when users change
   useEffect(() => {
@@ -711,9 +720,13 @@ export default function AdminHome() {
     
     const updatedUser = users.find(u => u.id === selectedUserForDetails.id);
     if (updatedUser) {
-      setSelectedUserForDetails(updatedUser);
-      if (isEditingUser) {
-        setEditedUserData(updatedUser);
+      // Only update if data has actually changed to prevent infinite loops
+      const hasChanged = JSON.stringify(updatedUser) !== JSON.stringify(selectedUserForDetails);
+      if (hasChanged) {
+        setSelectedUserForDetails(updatedUser);
+        if (isEditingUser) {
+          setEditedUserData(updatedUser);
+        }
       }
     } else {
       // User (any role) was deleted, close the modal
@@ -721,7 +734,7 @@ export default function AdminHome() {
       setSelectedUserForDetails(null);
       setIsEditingUser(false);
     }
-  }, [users, selectedUserForDetails?.id, isEditingUser]); // Specific dependencies only
+  }, [users, isEditingUser]); // Only depend on users array and isEditingUser flag
 
   const generateEmployeeId = async (role: string): Promise<string> => {
     try {
@@ -952,30 +965,50 @@ export default function AdminHome() {
     return roles.find((r) => r.value === role)?.label || role;
   };
 
-  const getSupervisorName = (minerId: string) => {
-    const supervisor = users.find(user =>
-      user.role === 'supervisor' &&
-      user.assignedMiners?.includes(minerId)
-    );
-    return supervisor?.name || null;
-  };
+  // Memoize supervisor lookup map for better performance
+  const supervisorMap = useMemo(() => {
+    const map = new Map<string, User>();
+    users.forEach(user => {
+      if (user.role === 'supervisor' && user.assignedMiners) {
+        user.assignedMiners.forEach(minerId => {
+          map.set(minerId, user);
+        });
+      }
+    });
+    return map;
+  }, [users]);
 
-  const getAssignedMinersCount = (supervisorId: string) => {
+  const getSupervisorName = useCallback((minerId: string) => {
+    return supervisorMap.get(minerId)?.name || null;
+  }, [supervisorMap]);
+
+  const getAssignedMinersCount = useCallback((supervisorId: string) => {
     const supervisor = users.find(user => user.id === supervisorId);
     // Filter out deleted miners - only count miners that actually exist
     const validMinersCount = supervisor?.assignedMiners?.filter(
       minerId => users.find(m => m.id === minerId)
     ).length || 0;
     return validMinersCount;
-  };
+  }, [users]);
 
-  const getSupervisorDetails = (minerId: string) => {
-    const supervisor = users.find(user =>
-      user.role === 'supervisor' &&
-      user.assignedMiners?.includes(minerId)
-    );
-    return supervisor || null;
-  };
+  const getSupervisorDetails = useCallback((minerId: string) => {
+    return supervisorMap.get(minerId) || null;
+  }, [supervisorMap]);
+
+  // Memoize role user counts to prevent recalculation on every render
+  const roleUserCounts = useMemo(() => {
+    const counts: { [key: string]: number } = {};
+    roles.forEach(role => {
+      counts[role.value] = users.filter(user => user.role === role.value).length;
+    });
+    return counts;
+  }, [users]);
+
+  // Memoize filtered users for role details modal
+  const filteredRoleUsers = useMemo(() => {
+    if (!selectedRoleForDetails) return [];
+    return users.filter(user => user.role === selectedRoleForDetails);
+  }, [users, selectedRoleForDetails]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1046,9 +1079,7 @@ export default function AdminHome() {
             <ActivityIndicator size="large" color="#FF6B00" style={styles.loader} />
           ) : (
             <View style={styles.roleCategories}>
-              {roles.map((role) => {
-                const roleUsers = users.filter(user => user.role === role.value);
-                return (
+              {roles.map((role) => (
                   <TouchableOpacity
                     key={role.value}
                     style={[styles.roleCategoryCard, { borderColor: role.color }]}
@@ -1062,15 +1093,15 @@ export default function AdminHome() {
                     }}
                   >
                     <View style={[styles.roleCategoryIcon, { backgroundColor: role.color }]}>
-                      <Icon name={role.icon} size={32} color="#FFFFFF" />
+                      <Icon name={role.icon as any} size={32} color="#FFFFFF" />
                     </View>
                     <View style={styles.roleCategoryInfo}>
                       <Text style={styles.roleCategoryTitle}>{role.label}</Text>
-                      <Text style={styles.roleCategoryCount}>{roleUsers.length} users</Text>
+                      <Text style={styles.roleCategoryCount}>{roleUserCounts[role.value] || 0} users</Text>
                     </View>
                   </TouchableOpacity>
-                );
-              })}
+                )
+              )}
             </View>
           )}
         </View>
@@ -1203,7 +1234,7 @@ export default function AdminHome() {
 
             {/* User List */}
             <FlatList
-              data={users.filter(user => user.role === selectedRoleForDetails)}
+              data={filteredRoleUsers}
               keyExtractor={(item) => item.id}
               style={styles.roleDetailsList}
               showsVerticalScrollIndicator={false}

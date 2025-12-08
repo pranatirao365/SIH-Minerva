@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';
 import { DEBRIEF_DATA } from '../../../data/blastingGameData';
 
 interface BlastingDebriefProps {
@@ -41,7 +41,12 @@ const BlastingDebrief: React.FC<BlastingDebriefProps> = ({ language, performance
   }, [performanceData, calculateScore, getGrade]);
 
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={require('../../../assets/images/mine-background.jpg')}
+      style={styles.container}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Trophy */}
         <Text style={styles.trophy}>🏆</Text>
@@ -139,36 +144,44 @@ const BlastingDebrief: React.FC<BlastingDebriefProps> = ({ language, performance
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1e1b4b' },
+  container: { flex: 1 },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
   scrollContent: { paddingTop: 120, paddingBottom: 40, paddingHorizontal: 20, alignItems: 'center' },
   trophy: { fontSize: 100, marginBottom: 24 },
   titleContainer: { alignItems: 'center', marginBottom: 32 },
   title: { fontSize: 36, fontWeight: '700', color: '#fff', marginBottom: 8 },
   subtitle: { fontSize: 20, color: '#fde047' },
   gradeCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
     marginBottom: 32,
     width: '100%',
     maxWidth: 600,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   gradeLabel: { fontSize: 16, color: '#d1d5db', marginBottom: 12 },
   gradeValue: { fontSize: 80, fontWeight: '700', color: '#fde047', marginBottom: 8 },
   xpValue: { fontSize: 20, fontWeight: '700', color: '#fff' },
   achievementsCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     borderRadius: 16,
     padding: 24,
     marginBottom: 24,
     width: '100%',
     maxWidth: 600,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   achievementsTitle: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 16 },
   achievementsList: { gap: 12 },
@@ -185,12 +198,14 @@ const styles = StyleSheet.create({
   achievementIcon: { fontSize: 24 },
   achievementText: { flex: 1, color: '#fff', fontSize: 16, fontWeight: '600' },
   metricsCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     borderRadius: 16,
     padding: 24,
     marginBottom: 24,
     width: '100%',
     maxWidth: 600,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   metricsTitle: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 16 },
   metricsList: { gap: 12 },
@@ -205,7 +220,7 @@ const styles = StyleSheet.create({
   metricLabel: { color: '#d1d5db', fontSize: 14 },
   metricValue: { color: '#fff', fontSize: 18, fontWeight: '700' },
   badgeCard: {
-    backgroundColor: 'rgba(234, 179, 8, 0.2)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     borderWidth: 2,
     borderColor: '#eab308',
     borderRadius: 16,
@@ -218,12 +233,14 @@ const styles = StyleSheet.create({
   badgeIcon: { fontSize: 60, marginBottom: 8 },
   badgeText: { color: '#fde047', fontSize: 18, fontWeight: '700', textAlign: 'center' },
   completeButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#22c55e',
     paddingHorizontal: 48,
     paddingVertical: 20,
     borderRadius: 12,
     width: '100%',
     maxWidth: 400,
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   completeButtonText: { color: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center' },
 });

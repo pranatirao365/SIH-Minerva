@@ -23,6 +23,23 @@ export default function SupervisorHome() {
   const { user } = useRoleStore();
   const { assignedMiners, loading, error } = useSupervisor();
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('📊 [SupervisorHome] Dashboard state:', {
+      user: { id: user?.id, phone: user?.phone, role: user?.role },
+      assignedMiners: assignedMiners.length,
+      loading,
+      error
+    });
+    if (assignedMiners.length > 0) {
+      console.log('👥 [SupervisorHome] Assigned miners:', assignedMiners.map(m => ({
+        id: m.id,
+        name: m.name,
+        phone: m.phone
+      })));
+    }
+  }, [user, assignedMiners, loading, error]);
+
   // Emergency features - highest priority
   const emergencyModules = [
     {

@@ -280,7 +280,20 @@ export default function VideoProgressDashboard() {
         });
         
         const isCompleted = minerProgress && minerProgress.status === 'completed';
-        const isOverdue = !isCompleted && assignment.deadline && assignment.deadline.toDate && assignment.deadline.toDate() < new Date();
+        
+        // Safe deadline handling - check if deadline exists and has toDate method
+        let deadlineDate: Date | null = null;
+        if (assignment.deadline) {
+          if (typeof assignment.deadline.toDate === 'function') {
+            deadlineDate = assignment.deadline.toDate();
+          } else if (typeof assignment.deadline === 'string') {
+            deadlineDate = new Date(assignment.deadline);
+          } else if (assignment.deadline instanceof Date) {
+            deadlineDate = assignment.deadline;
+          }
+        }
+        
+        const isOverdue = !isCompleted && deadlineDate && deadlineDate < new Date();
 
         if (isCompleted) {
           completedCount++;
@@ -553,7 +566,20 @@ export default function VideoProgressDashboard() {
 
   const renderAssignmentDetail = (item: { assignment: VideoAssignment; progress: AssignmentProgress | null }) => {
     const isCompleted = item.progress?.watched || false;
-    const isOverdue = !isCompleted && item.assignment.deadline.toDate() < new Date();
+    
+    // Safe deadline handling
+    let deadlineDate: Date | null = null;
+    if (item.assignment.deadline) {
+      if (typeof item.assignment.deadline.toDate === 'function') {
+        deadlineDate = item.assignment.deadline.toDate();
+      } else if (typeof item.assignment.deadline === 'string') {
+        deadlineDate = new Date(item.assignment.deadline);
+      } else if (item.assignment.deadline instanceof Date) {
+        deadlineDate = item.assignment.deadline;
+      }
+    }
+    
+    const isOverdue = !isCompleted && deadlineDate && deadlineDate < new Date();
     const progressValue = item.progress?.progress || 0;
     
     // Determine status badge with colors
@@ -583,11 +609,13 @@ export default function VideoProgressDashboard() {
 
         <View style={styles.assignmentMeta}>
           <Text style={styles.assignmentMetaText}>
-            Deadline: {item.assignment.deadline.toDate().toLocaleDateString()}
+            Deadline: {deadlineDate ? deadlineDate.toLocaleDateString() : 'No deadline set'}
           </Text>
           {isCompleted && item.progress?.completedAt && (
             <Text style={[styles.assignmentMetaText, styles.completedText]}>
-              ✓ Completed on {item.progress.completedAt.toDate().toLocaleDateString()}
+              ✓ Completed on {typeof item.progress.completedAt.toDate === 'function' 
+                ? item.progress.completedAt.toDate().toLocaleDateString() 
+                : new Date(item.progress.completedAt).toLocaleDateString()}
             </Text>
           )}
           {isOverdue && (

@@ -1,6 +1,3 @@
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
-
 /**
  * API Configuration for PPE Detection Backend
  * 

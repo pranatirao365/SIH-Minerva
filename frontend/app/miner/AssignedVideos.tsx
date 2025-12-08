@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
@@ -19,12 +18,13 @@ import {
   CheckCircle,
   Clock,
   AlertTriangle,
-  Lock,
   Video as VideoIcon,
 } from '@/components/Icons';
 import { COLORS } from '@/constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import { getVideoUrl } from '@/config/apiConfig';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db } from '@/config/firebase';
 
 interface VideoAssignment {
   id: string;
@@ -66,177 +66,298 @@ export default function AssignedVideos() {
   const [assignmentProgress, setAssignmentProgress] = useState<AssignmentProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Get current user from role store
   const { user } = useRoleStore();
-  const currentMinerId = user.id || '1'; // Fallback to '1' if no user ID
+  const currentMinerId = user?.id || '';
 
-  // Video player state
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentProgress, setCurrentProgress] = useState<AssignmentProgress | null>(null);
-  const [watchedVideos, setWatchedVideos] = useState<VideoItem[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (currentMinerId) {
+      loadData();
+    }
+  }, [currentMinerId]);
 
-  // Handle screen dimension changes for responsive video sizing
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      // Force re-render of video component when screen dimensions change
       if (selectedVideo) {
-        // This will trigger a re-render with new dimensions
         setSelectedVideo({ ...selectedVideo });
       }
     });
-
     return () => subscription?.remove();
   }, [selectedVideo]);
 
   const loadData = async () => {
+    if (!currentMinerId) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      console.log('📥 Loading assignments for miner:', currentMinerId);
-      
-      // Import Firestore functions
-      const { collection, query, where, getDocs } = await import('firebase/firestore');
-      const { db } = await import('@/config/firebase');
+      setLoading(true);
+      console.log('='.repeat(60));
+      console.log('[ASSIGNED_VIDEOS] Loading data for miner');
+      console.log('[ASSIGNED_VIDEOS] User ID:', user?.id);
+      console.log('[ASSIGNED_VIDEOS] User Phone:', user?.phone);
+      console.log('[ASSIGNED_VIDEOS] User Name:', user?.name);
+      console.log('[ASSIGNED_VIDEOS] Query minerId:', currentMinerId);
+      console.log('='.repeat(60));
 
-      // Load videos from Firestore
-      console.log('📚 Loading videos from Firestore...');
-      const videosRef = collection(db, 'videoLibrary');
-      const videosQuery = query(videosRef, where('status', '==', 'active'));
-      const videosSnapshot = await getDocs(videosQuery);
-      
-      const loadedVideos: VideoItem[] = [];
-      videosSnapshot.forEach((doc) => {
-        const data = doc.data();
-        loadedVideos.push({
-          id: doc.id,
-          topic: data.topic,
-          language: data.language,
-          languageName: data.languageName || data.language,
-          videoUrl: data.videoUrl,
-          timestamp: data.createdAt?.toMillis() || Date.now(),
-          thumbnail: data.thumbnailUrl,
-        });
-      });
-      console.log('✅ Loaded', loadedVideos.length, 'videos');
-      setVideos(loadedVideos);
-
-      // Load assignments from Firestore
-      console.log('📋 Loading assignments from Firestore...');
+      // Query assignments
       const assignmentsRef = collection(db, 'videoAssignments');
       const assignmentsQuery = query(
         assignmentsRef,
         where('assignedTo', 'array-contains', currentMinerId),
         where('status', '==', 'active')
       );
+      
       const assignmentsSnapshot = await getDocs(assignmentsQuery);
+      console.log(`[ASSIGNED_VIDEOS] Query returned ${assignmentsSnapshot.size} assignments`);
+      
+      if (assignmentsSnapshot.size > 0) {
+        console.log('[ASSIGNED_VIDEOS] Sample assignment data:');
+        assignmentsSnapshot.docs.slice(0, 2).forEach((doc, idx) => {
+          const data = doc.data();
+          console.log(`[ASSIGNED_VIDEOS]   Assignment ${idx + 1}:`, {
+            id: doc.id,
+            videoId: data.videoId,
+            assignedTo: data.assignedTo,
+            assignedBy: data.assignedBy,
+            status: data.status
+          });
+        });
+      }
       
       const loadedAssignments: VideoAssignment[] = [];
-      assignmentsSnapshot.forEach((doc) => {
-        const data = doc.data();
-        loadedAssignments.push({
-          id: doc.id,
-          videoId: data.videoId,
-          videoTopic: data.videoTopic,
-          assignedTo: data.assignedTo || [],
-          assignedBy: data.assignedBy,
-          deadline: data.deadline?.toMillis() || Date.now(),
-          isMandatory: data.isMandatory || false,
-          assignedAt: data.assignedAt?.toMillis() || Date.now(),
-          description: data.description,
-        });
-      });
-      console.log('✅ Loaded', loadedAssignments.length, 'assignments for miner');
-      setAssignments(loadedAssignments);
-
-      // Load progress from Firestore
-      console.log('📊 Loading progress from Firestore...');
-      const progressRef = collection(db, 'assignmentProgress');
-      const progressQuery = query(progressRef, where('minerId', '==', currentMinerId));
-      const progressSnapshot = await getDocs(progressQuery);
-      
+      const loadedVideos: VideoItem[] = [];
       const loadedProgress: AssignmentProgress[] = [];
-      progressSnapshot.forEach((doc) => {
-        const data = doc.data();
-        loadedProgress.push({
-          assignmentId: data.assignmentId,
-          minerId: data.minerId,
-          watched: data.watched || false,
-          watchedAt: data.completedAt?.toMillis(),
-          progress: data.progress || 0,
+
+      for (const assignmentDoc of assignmentsSnapshot.docs) {
+        const assignmentData = assignmentDoc.data();
+        console.log(`[ASSIGNED_VIDEOS]   Processing assignment: ${assignmentDoc.id}`);
+        
+        // Fetch video from videoLibrary
+        const videoDoc = await getDoc(doc(db, 'videoLibrary', assignmentData.videoId));
+        if (!videoDoc.exists()) {
+          console.log(`[ASSIGNED_VIDEOS]   ❌ Video ${assignmentData.videoId} not found in videoLibrary`);
+          continue;
+        }
+        console.log(`[ASSIGNED_VIDEOS]   ✓ Video found: ${assignmentData.videoId}`);
+
+        const videoData = videoDoc.data();
+        if (!videoData.videoUrl || !videoData.topic) {
+          console.warn(`Invalid video data for ${assignmentData.videoId}`);
+          continue;
+        }
+
+        // Fetch progress
+        const progressDoc = await getDoc(doc(db, 'assignmentProgress', `${assignmentDoc.id}_${currentMinerId}`));
+        const progressData = progressDoc.exists() ? progressDoc.data() : null;
+
+        // Add to arrays
+        loadedAssignments.push({
+          id: assignmentDoc.id,
+          videoId: assignmentData.videoId,
+          videoTopic: assignmentData.videoTopic || videoData.topic,
+          assignedTo: assignmentData.assignedTo || [],
+          assignedBy: assignmentData.assignedBy || '',
+          deadline: assignmentData.deadline?.toMillis?.() || Date.now(),
+          isMandatory: assignmentData.isMandatory || false,
+          assignedAt: assignmentData.assignedAt?.toMillis?.() || Date.now(),
+          description: assignmentData.description,
         });
-      });
-      console.log('✅ Loaded', loadedProgress.length, 'progress records');
+
+        loadedVideos.push({
+          id: videoDoc.id,
+          topic: videoData.topic || 'Untitled',
+          language: videoData.language || 'en',
+          languageName: videoData.languageName || 'English',
+          videoUrl: videoData.videoUrl,
+          timestamp: videoData.createdAt?.toMillis?.() || Date.now(),
+          thumbnail: videoData.thumbnailUrl,
+        });
+
+        if (progressData) {
+          // Check if video is truly completed using multiple conditions (same as WatchVideoModule)
+          const watchedFlag = progressData.watched === true;
+          const statusCompleted = progressData.status === 'completed';
+          const progressComplete = (progressData.progress || 0) >= 100;
+          const isReallyCompleted = watchedFlag || statusCompleted || progressComplete;
+          
+          if (isReallyCompleted) {
+            console.log(`[ASSIGNED_VIDEOS]   ✓ Assignment ${assignmentDoc.id.substring(0, 12)} marked as completed:`, {
+              watched: watchedFlag,
+              status: progressData.status,
+              progress: progressData.progress
+            });
+          }
+          
+          loadedProgress.push({
+            assignmentId: assignmentDoc.id,
+            minerId: currentMinerId,
+            watched: isReallyCompleted, // Set watched to true if ANY completion condition is met
+            watchedAt: progressData.completedAt?.toMillis?.(),
+            progress: progressData.progress || 0,
+          });
+        }
+      }
+
+      setAssignments(loadedAssignments);
+      setVideos(loadedVideos);
       setAssignmentProgress(loadedProgress);
 
-      // Also keep AsyncStorage as fallback/cache
-      const storedWatchedVideos = await AsyncStorage.getItem(`watchedVideos_${currentMinerId}`);
-      if (storedWatchedVideos) {
-        setWatchedVideos(JSON.parse(storedWatchedVideos));
+      console.log('='.repeat(60));
+      console.log(`[ASSIGNED_VIDEOS] ✅ FINAL RESULT: ${loadedAssignments.length} total assignments loaded`);
+      console.log(`[ASSIGNED_VIDEOS] ${loadedVideos.length} videos loaded`);
+      console.log(`[ASSIGNED_VIDEOS] ${loadedProgress.length} progress records loaded`);
+      
+      // Log completion status breakdown
+      const completedCount = loadedProgress.filter(p => p.watched).length;
+      const incompleteCount = loadedAssignments.length - completedCount;
+      console.log(`[ASSIGNED_VIDEOS] Breakdown: ${completedCount} completed, ${incompleteCount} incomplete`);
+      console.log(`[ASSIGNED_VIDEOS] Completion checked via: watched=true OR status='completed' OR progress>=100`);
+      console.log(`[ASSIGNED_VIDEOS] Note: Only incomplete assignments will be displayed`);
+      if (loadedAssignments.length === 0 && assignmentsSnapshot.size > 0) {
+        console.log('[ASSIGNED_VIDEOS] ⚠️ WARNING: Assignments were found but all filtered out');
+        console.log('[ASSIGNED_VIDEOS] Likely cause: Videos missing from videoLibrary collection');
       }
+      console.log('='.repeat(60));
     } catch (error) {
-      console.error('❌ Error loading data:', error);
-      Alert.alert('Error', 'Failed to load your assignments. Please try again.');
+      console.error('❌ Error loading assignments:', error);
+      Alert.alert('Error', 'Failed to load assignments. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const myAssignments = useMemo(() => {
-    return assignments.filter(assignment =>
-      assignment.assignedTo.includes(currentMinerId)
-    );
-  }, [assignments, currentMinerId]);
+    // Filter to show only incomplete/unwatched assignments
+    const filtered = assignments.filter(assignment => {
+      if (!assignment || !assignment.assignedTo || !assignment.assignedTo.includes(currentMinerId)) {
+        return false;
+      }
+      
+      // Check if the video has been completed
+      const progress = assignmentProgress.find(p =>
+        p.assignmentId === assignment.id && p.minerId === currentMinerId
+      );
+      
+      // Only show if NOT watched (exclude completed videos)
+      // Note: progress.watched is now true if ANY completion condition was met
+      return !progress?.watched;
+    });
+    
+    console.log(`[ASSIGNED_VIDEOS] Filtered: ${filtered.length} incomplete assignments to display`);
+    return filtered;
+  }, [assignments, currentMinerId, assignmentProgress]);
 
   const getAssignmentProgress = (assignmentId: string) => {
+    if (!assignmentId || !currentMinerId) return undefined;
     return assignmentProgress.find(p =>
       p.assignmentId === assignmentId && p.minerId === currentMinerId
     );
   };
 
   const getVideoForAssignment = (assignment: VideoAssignment) => {
-    return videos.find(v => v.id === assignment.videoId);
+    if (!assignment || !assignment.videoId) return undefined;
+    return videos.find(v => v && v.id === assignment.videoId);
   };
 
   // Normalize video URL to ensure it's accessible from mobile app
   const normalizeVideoUrl = (videoUrl: string): string => {
-    if (!videoUrl) return '';
+    if (!videoUrl) {
+      console.warn('[VIDEO_URL] Empty video URL provided');
+      return '';
+    }
 
-    // If it's already a full HTTP URL, return as is
+    console.log('[VIDEO_URL] Original URL:', videoUrl);
+
+    // If it's already a full HTTP URL, check if IP needs updating
     if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
-      return videoUrl;
+      // Update old IP addresses to current one from .env
+      const currentIP = process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.121';
+      const oldIPPatterns = [
+        '192.168.137.122',
+        '192.168.1.',
+        '10.0.0.',
+        '172.16.'
+      ];
+      
+      let updatedUrl = videoUrl;
+      for (const oldPattern of oldIPPatterns) {
+        if (videoUrl.includes(oldPattern)) {
+          // Extract the old IP and replace with current
+          const urlMatch = videoUrl.match(/http:\/\/([0-9.]+):([0-9]+)/);
+          if (urlMatch) {
+            const oldIP = urlMatch[1];
+            const port = urlMatch[2];
+            updatedUrl = videoUrl.replace(`http://${oldIP}:${port}`, `http://${currentIP}:${port}`);
+            console.log('[VIDEO_URL] Updated old IP:', oldIP, '->', currentIP);
+            break;
+          }
+        }
+      }
+      
+      console.log('[VIDEO_URL] Final URL:', updatedUrl);
+      return updatedUrl;
     }
 
     // If it's a relative path starting with /videos/, convert to full URL
     if (videoUrl.startsWith('/videos/')) {
-      return getVideoUrl(videoUrl);
+      const fullUrl = getVideoUrl(videoUrl);
+      console.log('[VIDEO_URL] Converted relative path:', fullUrl);
+      return fullUrl;
     }
 
     // For local file paths, try to convert to backend URL
-    // This assumes the video is in the output directory
     if (videoUrl.includes('output/') || videoUrl.includes('.mp4')) {
       const filename = videoUrl.split('/').pop() || videoUrl.split('\\').pop() || '';
-      return getVideoUrl(`videos/${filename}`);
+      const fullUrl = getVideoUrl(`videos/${filename}`);
+      console.log('[VIDEO_URL] Converted local path:', fullUrl);
+      return fullUrl;
     }
 
     // Fallback: try to use as-is
+    console.warn('[VIDEO_URL] Using URL as-is (might fail):', videoUrl);
     return videoUrl;
   };
 
   const startWatching = (assignment: VideoAssignment) => {
-    const video = getVideoForAssignment(assignment);
-    if (!video) {
-      Alert.alert('Error', 'Video not found');
+    // Safety: Validate assignment
+    if (!assignment || !assignment.id) {
+      Alert.alert('Error', 'Invalid assignment');
       return;
     }
 
+    const video = getVideoForAssignment(assignment);
+    if (!video) {
+      Alert.alert(
+        'Video Unavailable', 
+        'This video has been removed or is no longer available. Please contact your supervisor.'
+      );
+      return;
+    }
+
+    // Validate video URL
+    if (!video.videoUrl) {
+      Alert.alert('Error', 'Video URL is missing. Please contact your supervisor.');
+      return;
+    }
+
+    const normalizedUrl = normalizeVideoUrl(video.videoUrl);
+    console.log('[START_WATCHING] Assignment:', assignment.id);
+    console.log('[START_WATCHING] Video URL:', normalizedUrl);
+    console.log('[START_WATCHING] Current .env IP:', process.env.EXPO_PUBLIC_IP_ADDRESS);
+
     // Check if video URL is accessible
     if (!video.videoUrl || video.videoUrl.trim() === '') {
-      Alert.alert('Error', 'Video URL is not available');
+      Alert.alert(
+        'Video Error', 
+        'Video URL is missing. Please contact your supervisor to reassign this video.'
+      );
       return;
     }
 
@@ -251,7 +372,10 @@ export default function AssignedVideos() {
   };
 
   const markAsWatched = async () => {
-    if (!currentProgress) return;
+    if (!currentProgress || !currentProgress.assignmentId) {
+      console.warn('Cannot mark as watched: no current progress');
+      return;
+    }
 
     const updatedProgress = {
       ...currentProgress,
@@ -260,66 +384,32 @@ export default function AssignedVideos() {
       progress: 100,
     };
 
-    const updatedProgressList = assignmentProgress.filter(p =>
-      !(p.assignmentId === currentProgress.assignmentId && p.minerId === currentMinerId)
-    );
-    updatedProgressList.push(updatedProgress);
-
     try {
-      // Import Firestore functions
-      const { doc, getDoc, updateDoc, Timestamp, runTransaction } = await import('firebase/firestore');
-      const { db } = await import('@/config/firebase');
-      
       console.log('📝 Marking video as watched for miner:', currentMinerId);
       console.log('📋 Assignment ID:', currentProgress.assignmentId);
 
-      // Use transaction to safely update progress map in assignment document
-      const assignmentRef = doc(db, 'videoAssignments', currentProgress.assignmentId);
-      
-      await runTransaction(db, async (transaction) => {
-        const assignmentDoc = await transaction.get(assignmentRef);
-        
-        if (!assignmentDoc.exists()) {
-          throw new Error('Assignment document not found');
-        }
+      // Use the robust service to update progress
+      const { updateVideoProgress } = await import('@/services/validatedAssignmentsService');
+      await updateVideoProgress(currentProgress.assignmentId, currentMinerId, 100, true);
 
-        const assignmentData = assignmentDoc.data();
-        const progressMap = assignmentData.progress || {};
-        
-        // Update progress for this specific miner using dot notation to avoid overwriting other miners
-        const progressPath = `progress.${currentMinerId}`;
-        transaction.update(assignmentRef, {
-          [progressPath]: {
-            status: 'completed',
-            watchedDuration: 100, // percentage
-            totalDuration: 100,
-            completedAt: Timestamp.now(),
-          }
-        });
-
-        console.log(`✅ Updated progress map for miner ${currentMinerId} in assignment ${currentProgress.assignmentId}`);
-      });
-
-      // Verify the update by reading the document
-      const verifyDoc = await getDoc(assignmentRef);
-      if (verifyDoc.exists()) {
-        const verifyData = verifyDoc.data();
-        console.log('🔍 Verified progress map after update:', verifyData.progress);
-        console.log(`🔍 Miner ${currentMinerId} status:`, verifyData.progress?.[currentMinerId]);
-      }
-      
-      // Also save to AsyncStorage for offline access
-      await AsyncStorage.setItem(`assignmentProgress_${currentMinerId}`, JSON.stringify(updatedProgressList));
+      // Update local state
+      const updatedProgressList = assignmentProgress.filter(p =>
+        !(p.assignmentId === currentProgress.assignmentId && p.minerId === currentMinerId)
+      );
+      updatedProgressList.push(updatedProgress);
       setAssignmentProgress(updatedProgressList);
 
-      // Save to watched videos
-      await saveToWatchedVideos(selectedVideo!, updatedProgress);
+      // Update local state
+      setAssignmentProgress(updatedProgressList);
 
       // Check if all mandatory videos are completed
       const allMandatoryCompleted = checkAllMandatoryCompleted(updatedProgressList);
 
       setSelectedVideo(null);
       setCurrentProgress(null);
+
+      // Reload data to refresh progress
+      await loadData();
 
       // Show success message
       Alert.alert(
@@ -371,68 +461,45 @@ export default function AssignedVideos() {
     return unwatchedMandatory.length === 0;
   };
 
-  const saveToWatchedVideos = async (video: VideoItem, progress: AssignmentProgress) => {
-    try {
-      const watchedVideos = await AsyncStorage.getItem(`watchedVideos_${currentMinerId}`);
-      const watchedList = watchedVideos ? JSON.parse(watchedVideos) : [];
-
-      const watchedVideo = {
-        ...video,
-        watchedAt: progress.watchedAt,
-        assignmentId: progress.assignmentId,
-      };
-
-      // Remove if already exists (to avoid duplicates)
-      const filteredList = watchedList.filter((v: any) => v.id !== video.id);
-      filteredList.unshift(watchedVideo); // Add to beginning
-
-      await AsyncStorage.setItem(`watchedVideos_${currentMinerId}`, JSON.stringify(filteredList));
-    } catch (error) {
-      console.error('Error saving to watched videos:', error);
-    }
-  };
-
-  const renderWatchedVideoItem = (video: VideoItem & { watchedAt?: number }) => (
-    <View key={video.id} style={styles.watchedVideoCard}>
-      <View style={styles.watchedVideoHeader}>
-        <VideoIcon size={20} color={COLORS.accent} />
-        <View style={styles.watchedVideoInfo}>
-          <Text style={styles.watchedVideoTitle} numberOfLines={2}>
-            {video.topic}
-          </Text>
-          <Text style={styles.watchedVideoMeta}>
-            {video.languageName} • Watched {video.watchedAt ? new Date(video.watchedAt).toLocaleDateString() : 'Recently'}
-          </Text>
-        </View>
-        <CheckCircle size={20} color={COLORS.accent} />
-      </View>
-
-      <TouchableOpacity
-        style={styles.rewatchButton}
-        onPress={() => {
-          setSelectedVideo(video);
-          setCurrentProgress(null);
-        }}
-      >
-        <Play size={16} color="#FFFFFF" />
-        <Text style={styles.rewatchButtonText}>Watch Again</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
   const renderAssignmentItem = (assignment: VideoAssignment) => {
+    // Safety: Validate assignment object
+    if (!assignment || !assignment.id) {
+      console.warn('Invalid assignment object, skipping render');
+      return null;
+    }
+
     const progress = getAssignmentProgress(assignment.id);
     const video = getVideoForAssignment(assignment);
-    const isOverdue = assignment.deadline < Date.now() && !progress?.watched;
+    
+    // Safety: Check deadline is a valid number
+    const deadlineValue = typeof assignment.deadline === 'number' ? assignment.deadline : Date.now();
+    const isOverdue = deadlineValue < Date.now() && !progress?.watched;
     const isCompleted = progress?.watched;
+
+    // Safety: Show warning if video not found
+    if (!video) {
+      console.warn(`Video not found for assignment ${assignment.id}, videoId: ${assignment.videoId}`);
+      return (
+        <View key={assignment.id} style={[styles.assignmentCard, { opacity: 0.6 }]}>
+          <View style={styles.assignmentHeader}>
+            <View style={styles.assignmentInfo}>
+              <Text style={styles.assignmentTitle}>{assignment.videoTopic || 'Video Assignment'}</Text>
+              <Text style={[styles.assignmentMeta, { color: '#FF6B6B' }]}>
+                ⚠️ Video unavailable or removed
+              </Text>
+            </View>
+          </View>
+        </View>
+      );
+    }
 
     return (
       <View key={assignment.id} style={styles.assignmentCard}>
         <View style={styles.assignmentHeader}>
           <View style={styles.assignmentInfo}>
-            <Text style={styles.assignmentTitle}>{assignment.videoTopic}</Text>
+            <Text style={styles.assignmentTitle}>{assignment.videoTopic || 'Video Assignment'}</Text>
             <Text style={styles.assignmentMeta}>
-              {assignment.isMandatory ? '⚠️ Mandatory' : '📌 Optional'} • ⏰ Due: {new Date(assignment.deadline).toLocaleDateString()}
+              {assignment.isMandatory ? '⚠️ Mandatory' : '📌 Optional'} • ⏰ Due: {new Date(deadlineValue).toLocaleDateString()}
             </Text>
             {assignment.description && (
               <Text style={styles.assignmentDescription}>{assignment.description}</Text>
@@ -455,31 +522,29 @@ export default function AssignedVideos() {
           </View>
         </View>
 
-        {video && (
-          <TouchableOpacity
-            style={styles.watchButton}
-            onPress={() => startWatching(assignment)}
-            disabled={isCompleted}
-          >
-            <Text style={[
-              styles.watchButtonText,
-              isCompleted && styles.watchButtonTextDisabled
-            ]}>
-              {isCompleted ? '✓ Already Watched' : '▶️ Watch Video'}
-            </Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.watchButton}
+          onPress={() => startWatching(assignment)}
+          disabled={isCompleted}
+        >
+          <Text style={[
+            styles.watchButtonText,
+            isCompleted && styles.watchButtonTextDisabled
+          ]}>
+            {isCompleted ? '✓ Already Watched' : '▶️ Watch Video'}
+          </Text>
+        </TouchableOpacity>
 
-        {progress && (
+        {progress && progress.progress > 0 && (
           <View style={styles.progressSection}>
             <Text style={styles.progressText}>
-              Progress: {progress.progress}%
+              Progress: {Math.round(progress.progress || 0)}%
             </Text>
             <View style={styles.progressBar}>
               <View
                 style={[
                   styles.progressFill,
-                  { width: `${progress.progress}%` },
+                  { width: `${Math.min(progress.progress || 0, 100)}%` },
                   progress.watched ? styles.progressComplete : null,
                 ]}
               />
@@ -502,21 +567,20 @@ export default function AssignedVideos() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Assigned Videos</Text>
+        <Text style={styles.headerTitle}>Assigned Videos</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView style={styles.content}>
-        {/* Assignments List */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Video Assignments</Text>
+          <Text style={styles.sectionTitle}>Your Assignments</Text>
           <Text style={styles.sectionSubtitle}>
-            {myAssignments.length} assignment{myAssignments.length !== 1 ? 's' : ''} •
-            {myAssignments.filter(a => getAssignmentProgress(a.id)?.watched).length} completed
+            {myAssignments.length} assignment{myAssignments.length !== 1 ? 's' : ''}
           </Text>
 
           {myAssignments.length === 0 ? (
@@ -531,18 +595,6 @@ export default function AssignedVideos() {
             myAssignments.map(assignment => renderAssignmentItem(assignment))
           )}
         </View>
-
-        {/* Watched Videos Section */}
-        {watchedVideos.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Watched Videos</Text>
-            <Text style={styles.sectionSubtitle}>
-              {watchedVideos.length} video{watchedVideos.length !== 1 ? 's' : ''} completed
-            </Text>
-
-            {watchedVideos.map(video => renderWatchedVideoItem(video))}
-          </View>
-        )}
       </ScrollView>
 
       {/* Video Player Modal */}
@@ -597,18 +649,28 @@ export default function AssignedVideos() {
                 setIsVideoLoading(false);
               }}
               onError={(error) => {
+                const videoUrl = normalizeVideoUrl(selectedVideo.videoUrl);
                 console.error('Video load error:', error);
+                console.error('Failed URL:', videoUrl);
+                console.error('Current IP from .env:', process.env.EXPO_PUBLIC_IP_ADDRESS);
+                
+                const errorCode = error?.error || 'Unknown';
+                const isDomain = errorCode.includes('NSURLErrorDomain') || errorCode.includes('-1008');
+                
                 Alert.alert(
                   'Video Error',
-                  'Failed to load video. Please check your internet connection and try again.',
+                  isDomain 
+                    ? `Cannot reach video server.\n\nURL: ${videoUrl}\n\nTroubleshooting:\n1. Ensure video backend is running (port 4000)\n2. Check IP address in .env: ${process.env.EXPO_PUBLIC_IP_ADDRESS}\n3. Device and server must be on same network\n4. Try: ipconfig (Windows) to verify server IP`
+                    : `Failed to load video.\n\nError: ${errorCode}\n\nPlease check your connection and try again.`,
                   [
                     { text: 'Retry', onPress: () => {
-                      // Reset video state to allow retry
                       setIsPlaying(false);
                       if (videoRef.current) {
                         videoRef.current.unloadAsync();
                         setTimeout(() => {
-                          videoRef.current?.loadAsync({ uri: normalizeVideoUrl(selectedVideo.videoUrl) });
+                          const retryUrl = normalizeVideoUrl(selectedVideo.videoUrl);
+                          console.log('[RETRY] Attempting to load:', retryUrl);
+                          videoRef.current?.loadAsync({ uri: retryUrl });
                         }, 1000);
                       }
                     }},
@@ -1045,48 +1107,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  watchedVideoCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.accent + '30',
-  },
-  watchedVideoHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  watchedVideoInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  watchedVideoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  watchedVideoMeta: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-  },
-  rewatchButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.accent,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    gap: 8,
-  },
-  rewatchButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
+
   videoLoadingOverlay: {
     position: 'absolute',
     top: 0,

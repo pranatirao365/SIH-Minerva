@@ -15,11 +15,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from '../../components/Icons';
+import { saveHazardScan } from '../../services/hazardScanService';
+import { useRoleStore } from '../../hooks/useRoleStore';
 
 // Backend API URL - automatically uses correct address for web/mobile
 const API_URL = Platform.OS === 'web' 
   ? 'http://localhost:8080'
-  : `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.121'}:8080`; // Your PC's IP from .env
+  : `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '192.168.137.122'}:8080`; // Your PC's IP from .env
 
 type HazardType = 'crack' | 'leakage' | 'fire' | 'obstruction';
 
@@ -43,6 +45,7 @@ interface ScanResult {
 
 export default function HazardScan() {
   const router = useRouter();
+  const { user } = useRoleStore();
   const [selectedHazard, setSelectedHazard] = useState<HazardType>('crack');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -277,6 +280,29 @@ export default function HazardScan() {
 
       console.log('✓ Setting result:', JSON.stringify(newResult, null, 2));
       setResult(newResult);
+
+      // Save to Firebase with actual ML predictions
+      if (user?.id && imageUri) {
+        try {
+          // Convert image URI to blob
+          const response = await fetch(imageUri);
+          const blob = await response.blob();
+          const imageFile = new File([blob], `hazard_${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+          // Save with real ML prediction data
+          const scanId = await saveHazardScan(
+            imageFile,
+            newResult.hazardType,
+            newResult.severityPercent,
+            `${newResult.severity} severity detected`,
+            user.id
+          );
+          console.log('✓ Saved hazard scan to Firebase:', scanId);
+        } catch (firebaseError) {
+          console.error('Firebase save error:', firebaseError);
+          // Don't block the UI if Firebase save fails
+        }
+      }
 
     } catch (error: any) {
       console.error('Scan error:', error);

@@ -44,7 +44,7 @@ export const SupervisorProvider: React.FC<SupervisorProviderProps> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   const fetchAssignedMiners = async () => {
-    if (!user?.phone || user.role !== 'supervisor') {
+    if (!user || user.role !== 'supervisor') {
       setAssignedMiners([]);
       setLoading(false);
       return;
@@ -53,31 +53,64 @@ export const SupervisorProvider: React.FC<SupervisorProviderProps> = ({ children
     try {
       setLoading(true);
       setError(null);
-      console.log('🔍 Fetching supervisor data for phone:', user.phone);
+      console.log('🔍 [SupervisorContext] Fetching miners for supervisor:', {
+        id: user.id,
+        phone: user.phone,
+        role: user.role
+      });
 
-      // Query users collection for supervisor document
-      const usersRef = collection(db, 'users');
-      const supervisorQuery = query(
-        usersRef,
-        where('phoneNumber', '==', user.phone),
-        where('role', '==', 'supervisor')
-      );
+      // Strategy 1: Try to get supervisor by document ID first (most reliable)
+      let supervisorDoc = null;
+      let supervisorData = null;
       
-      const supervisorSnapshot = await getDocs(supervisorQuery);
+      if (user.id) {
+        console.log(`📋 [SupervisorContext] Strategy 1: Fetching supervisor by ID: ${user.id}`);
+        const supervisorRef = doc(db, 'users', user.id);
+        const docSnap = await getDoc(supervisorRef);
+        
+        if (docSnap.exists() && docSnap.data().role === 'supervisor') {
+          supervisorDoc = docSnap;
+          supervisorData = docSnap.data();
+          console.log('✅ [SupervisorContext] Supervisor found by ID');
+        }
+      }
 
-      if (supervisorSnapshot.empty) {
-        console.warn('⚠️ No supervisor document found for phone:', user.phone);
+      // Strategy 2: If not found by ID, query by phone number
+      if (!supervisorDoc && user.phone) {
+        console.log(`📋 [SupervisorContext] Strategy 2: Querying supervisor by phone: ${user.phone}`);
+        const usersRef = collection(db, 'users');
+        const supervisorQuery = query(
+          usersRef,
+          where('phoneNumber', '==', user.phone),
+          where('role', '==', 'supervisor')
+        );
+        
+        const supervisorSnapshot = await getDocs(supervisorQuery);
+        
+        if (!supervisorSnapshot.empty) {
+          supervisorDoc = supervisorSnapshot.docs[0];
+          supervisorData = supervisorDoc.data();
+          console.log('✅ [SupervisorContext] Supervisor found by phone');
+        }
+      }
+
+      // Check if supervisor was found
+      if (!supervisorDoc || !supervisorData) {
+        console.warn('⚠️ [SupervisorContext] No supervisor document found');
         setError('Supervisor profile not found');
         setAssignedMiners([]);
         setLoading(false);
         return;
       }
 
-      const supervisorDoc = supervisorSnapshot.docs[0];
-      const supervisorData = supervisorDoc.data();
+      const supervisorId = supervisorDoc.id;
       const assignedMinerIds = supervisorData.assignedMiners || [];
 
-      console.log('✅ Supervisor found. Assigned miner IDs:', assignedMinerIds);
+      console.log('✅ [SupervisorContext] Supervisor found:', {
+        id: supervisorId,
+        empId: supervisorData.empId,
+        assignedMiners: assignedMinerIds
+      });
 
       if (assignedMinerIds.length === 0) {
         console.log('ℹ️ No miners assigned to this supervisor');
@@ -131,36 +164,67 @@ export const SupervisorProvider: React.FC<SupervisorProviderProps> = ({ children
   };
 
   useEffect(() => {
-    if (user?.phone && user.role === 'supervisor') {
+    if (user && user.role === 'supervisor') {
       fetchAssignedMiners();
 
       // Set up real-time listener for supervisor document
-      const usersRef = collection(db, 'users');
-      const supervisorQuery = query(
-        usersRef,
-        where('phoneNumber', '==', user.phone),
-        where('role', '==', 'supervisor')
-      );
+      let unsubscribe: Unsubscribe | null = null;
 
-      const unsubscribe = onSnapshot(
-        supervisorQuery,
-        (snapshot) => {
-          if (!snapshot.empty) {
-            console.log('🔔 Supervisor data updated, refreshing miners...');
-            fetchAssignedMiners();
-          }
-        },
-        (error) => {
-          console.error('❌ Error in supervisor listener:', error);
+      const setupListener = async () => {
+        // Prefer listening to specific document if we have the ID
+        if (user.id) {
+          console.log('🔔 [SupervisorContext] Setting up listener for supervisor ID:', user.id);
+          const supervisorRef = doc(db, 'users', user.id);
+          
+          unsubscribe = onSnapshot(
+            supervisorRef,
+            (snapshot) => {
+              if (snapshot.exists() && snapshot.data().role === 'supervisor') {
+                console.log('🔔 [SupervisorContext] Supervisor document updated, refreshing miners...');
+                fetchAssignedMiners();
+              }
+            },
+            (error) => {
+              console.error('❌ [SupervisorContext] Error in supervisor listener:', error);
+            }
+          );
+        } else if (user.phone) {
+          // Fallback to query listener if no ID
+          console.log('🔔 [SupervisorContext] Setting up listener for supervisor phone:', user.phone);
+          const usersRef = collection(db, 'users');
+          const supervisorQuery = query(
+            usersRef,
+            where('phoneNumber', '==', user.phone),
+            where('role', '==', 'supervisor')
+          );
+
+          unsubscribe = onSnapshot(
+            supervisorQuery,
+            (snapshot) => {
+              if (!snapshot.empty) {
+                console.log('🔔 [SupervisorContext] Supervisor data updated, refreshing miners...');
+                fetchAssignedMiners();
+              }
+            },
+            (error) => {
+              console.error('❌ [SupervisorContext] Error in supervisor listener:', error);
+            }
+          );
         }
-      );
+      };
 
-      return () => unsubscribe();
+      setupListener();
+
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
     } else {
       setAssignedMiners([]);
       setLoading(false);
     }
-  }, [user?.phone, user?.role]);
+  }, [user?.id, user?.phone, user?.role]);
 
   const refreshMiners = async () => {
     await fetchAssignedMiners();

@@ -1,6 +1,3 @@
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
-
 /**
  * API Configuration for PPE Detection Backend
  * 
@@ -15,11 +12,7 @@ import { Platform } from 'react-native';
 // - Windows: Run `ipconfig` in terminal, look for "IPv4 Address" under your network adapter
 // - macOS/Linux: Run `ifconfig | grep "inet 192"` for your local network IP (usually 192.168.x.x)
 // Then update .env file: EXPO_PUBLIC_IP_ADDRESS=your.ip.address.here
-<<<<<<< HEAD
-const LAN_IP = process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.85.150'; // 👈 Fallback IP if env var not set
-=======
-const LAN_IP = process.env.EXPO_PUBLIC_IP_ADDRESS || '172.20.10.2'; // 👈 Fallback IP if env var not set
->>>>>>> 528492da79a4bb2061d86a78444e23a31b5563c5
+const LAN_IP = process.env.EXPO_PUBLIC_IP_ADDRESS || '192.168.137.122'; // 👈 Fallback IP if env var not set
 
 const PPE_API_PORT = 8888; // Updated to match backend_ppe/.env PORT value
 const VIDEO_API_PORT = 4000;

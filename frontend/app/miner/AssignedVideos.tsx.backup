@@ -23,7 +23,7 @@ import {
 import { COLORS } from '@/constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import { getVideoUrl } from '@/config/apiConfig';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
 interface VideoAssignment {
@@ -76,9 +76,128 @@ export default function AssignedVideos() {
   const [isVideoLoading, setIsVideoLoading] = useState(false);
 
   useEffect(() => {
-    if (currentMinerId) {
-      loadData();
+    if (!currentMinerId) {
+      setLoading(false);
+      return;
     }
+
+    console.log('\ud83d\udd04 [REALTIME] Setting up onSnapshot listener for miner:', currentMinerId);
+    
+    // Normalize minerId
+    const normalizedMinerId = currentMinerId.replace(/^\\+?91/, '');
+    
+    // Query assignments with real-time listener
+    const assignmentsRef = collection(db, 'videoAssignments');
+    const assignmentsQuery = query(
+      assignmentsRef,
+      where('assignedTo', 'array-contains', currentMinerId),
+      where('status', '==', 'active')
+    );
+    
+    // Setup real-time listener
+    const unsubscribe = onSnapshot(
+      assignmentsQuery,
+      async (snapshot) => {
+        console.log('\ud83d\udd04 [REALTIME] Assignment update received, count:', snapshot.size);
+        setLoading(true);
+        
+        try {
+          // Get supervisor info
+          const minerDoc = await getDoc(doc(db, 'users', currentMinerId));
+          const minerData = minerDoc.exists() ? minerDoc.data() : null;
+          const supervisorId = minerData?.supervisorId || minerData?.assignedSupervisor;
+          
+          const loadedAssignments: VideoAssignment[] = [];
+          const loadedVideos: VideoItem[] = [];
+          const loadedProgress: AssignmentProgress[] = [];
+
+          for (const assignmentDoc of snapshot.docs) {
+            const assignmentData = assignmentDoc.data();
+            
+            console.log(`\ud83d\udd0d [REALTIME] Processing assignment ${assignmentDoc.id}`);
+            console.log(`  - assignedBy: ${assignmentData.assignedBy}, supervisorId: ${supervisorId}`);
+            
+            // Filter by supervisor if available
+            if (supervisorId && assignmentData.assignedBy !== supervisorId) {
+              console.log(`  \u26a0\ufe0f Skipping - supervisor mismatch`);
+              continue;
+            }
+
+            // Fetch video
+            const videoDoc = await getDoc(doc(db, 'videoLibrary', assignmentData.videoId));
+            if (!videoDoc.exists()) {
+              console.warn(`  \u26a0\ufe0f Video ${assignmentData.videoId} not found`);
+              continue;
+            }
+
+            const videoData = videoDoc.data();
+            
+            // Check progress in assignment's progress map
+            const progressFromMap = assignmentData.progress?.[normalizedMinerId] || assignmentData.progress?.[currentMinerId];
+            
+            console.log(`  - Progress map keys:`, Object.keys(assignmentData.progress || {}));
+            console.log(`  - Progress for ${normalizedMinerId}:`, progressFromMap);
+
+            // Add to arrays
+            loadedAssignments.push({
+              id: assignmentDoc.id,
+              videoId: assignmentData.videoId,
+              videoTopic: assignmentData.videoTopic || videoData.topic,
+              assignedTo: assignmentData.assignedTo || [],
+              assignedBy: assignmentData.assignedBy || '',
+              deadline: assignmentData.deadline?.toMillis?.() || Date.now(),
+              isMandatory: assignmentData.isMandatory || false,
+              assignedAt: assignmentData.assignedAt?.toMillis?.() || Date.now(),
+              description: assignmentData.description,
+            });
+
+            loadedVideos.push({
+              id: videoDoc.id,
+              topic: videoData.topic || 'Untitled',
+              language: videoData.language || 'en',
+              languageName: videoData.languageName || 'English',
+              videoUrl: videoData.videoUrl,
+              timestamp: videoData.createdAt?.toMillis?.() || Date.now(),
+              thumbnail: videoData.thumbnailUrl,
+            });
+
+            if (progressFromMap) {
+              loadedProgress.push({
+                assignmentId: assignmentDoc.id,
+                minerId: normalizedMinerId,
+                watched: progressFromMap.watched || false,
+                watchedAt: progressFromMap.completedAt?.toMillis?.() || progressFromMap.completedAt,
+                progress: progressFromMap.progress || progressFromMap.watchedDuration || 0,
+              });
+              console.log(`  \u2705 Progress loaded from map`);
+            } else {
+              console.log(`  \u26a0\ufe0f No progress found in map for ${normalizedMinerId}`);
+            }
+          }
+
+          setAssignments(loadedAssignments);
+          setVideos(loadedVideos);
+          setAssignmentProgress(loadedProgress);
+          
+          console.log(`\u2705 [REALTIME] Loaded ${loadedAssignments.length} assignments with real-time sync`);
+        } catch (error) {
+          console.error('\u274c [REALTIME] Error processing snapshot:', error);
+        } finally {
+          setLoading(false);
+        }
+      },
+      (error) => {
+        console.error('\u274c [REALTIME] Snapshot error:', error);
+        Alert.alert('Error', 'Failed to sync assignments. Please check your connection.');
+        setLoading(false);
+      }
+    );
+    
+    // Cleanup listener on unmount
+    return () => {
+      console.log('\ud83d\uddd1\ufe0f [REALTIME] Cleaning up onSnapshot listener');
+      unsubscribe();
+    };
   }, [currentMinerId]);
 
   useEffect(() => {
@@ -90,169 +209,11 @@ export default function AssignedVideos() {
     return () => subscription?.remove();
   }, [selectedVideo]);
 
-  const loadData = async () => {
-    if (!currentMinerId) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      console.log('='.repeat(60));
-      console.log('[ASSIGNED_VIDEOS] Loading data for miner');
-      console.log('[ASSIGNED_VIDEOS] User ID:', user?.id);
-      console.log('[ASSIGNED_VIDEOS] User Phone:', user?.phone);
-      console.log('[ASSIGNED_VIDEOS] User Name:', user?.name);
-      console.log('[ASSIGNED_VIDEOS] Query minerId:', currentMinerId);
-      console.log('='.repeat(60));
-
-      // Query assignments
-      const assignmentsRef = collection(db, 'videoAssignments');
-      const assignmentsQuery = query(
-        assignmentsRef,
-        where('assignedTo', 'array-contains', currentMinerId),
-        where('status', '==', 'active')
-      );
-      
-      const assignmentsSnapshot = await getDocs(assignmentsQuery);
-      console.log(`[ASSIGNED_VIDEOS] Query returned ${assignmentsSnapshot.size} assignments`);
-      
-      if (assignmentsSnapshot.size > 0) {
-        console.log('[ASSIGNED_VIDEOS] Sample assignment data:');
-        assignmentsSnapshot.docs.slice(0, 2).forEach((doc, idx) => {
-          const data = doc.data();
-          console.log(`[ASSIGNED_VIDEOS]   Assignment ${idx + 1}:`, {
-            id: doc.id,
-            videoId: data.videoId,
-            assignedTo: data.assignedTo,
-            assignedBy: data.assignedBy,
-            status: data.status
-          });
-        });
-      }
-      
-      const loadedAssignments: VideoAssignment[] = [];
-      const loadedVideos: VideoItem[] = [];
-      const loadedProgress: AssignmentProgress[] = [];
-
-      for (const assignmentDoc of assignmentsSnapshot.docs) {
-        const assignmentData = assignmentDoc.data();
-        console.log(`[ASSIGNED_VIDEOS]   Processing assignment: ${assignmentDoc.id}`);
-        
-        // Fetch video from videoLibrary
-        const videoDoc = await getDoc(doc(db, 'videoLibrary', assignmentData.videoId));
-        if (!videoDoc.exists()) {
-          console.log(`[ASSIGNED_VIDEOS]   ❌ Video ${assignmentData.videoId} not found in videoLibrary`);
-          continue;
-        }
-        console.log(`[ASSIGNED_VIDEOS]   ✓ Video found: ${assignmentData.videoId}`);
-
-        const videoData = videoDoc.data();
-        if (!videoData.videoUrl || !videoData.topic) {
-          console.warn(`Invalid video data for ${assignmentData.videoId}`);
-          continue;
-        }
-
-        // Fetch progress
-        const progressDoc = await getDoc(doc(db, 'assignmentProgress', `${assignmentDoc.id}_${currentMinerId}`));
-        const progressData = progressDoc.exists() ? progressDoc.data() : null;
-
-        // Add to arrays
-        loadedAssignments.push({
-          id: assignmentDoc.id,
-          videoId: assignmentData.videoId,
-          videoTopic: assignmentData.videoTopic || videoData.topic,
-          assignedTo: assignmentData.assignedTo || [],
-          assignedBy: assignmentData.assignedBy || '',
-          deadline: assignmentData.deadline?.toMillis?.() || Date.now(),
-          isMandatory: assignmentData.isMandatory || false,
-          assignedAt: assignmentData.assignedAt?.toMillis?.() || Date.now(),
-          description: assignmentData.description,
-        });
-
-        loadedVideos.push({
-          id: videoDoc.id,
-          topic: videoData.topic || 'Untitled',
-          language: videoData.language || 'en',
-          languageName: videoData.languageName || 'English',
-          videoUrl: videoData.videoUrl,
-          timestamp: videoData.createdAt?.toMillis?.() || Date.now(),
-          thumbnail: videoData.thumbnailUrl,
-        });
-
-        if (progressData) {
-          // Check if video is truly completed using multiple conditions (same as WatchVideoModule)
-          const watchedFlag = progressData.watched === true;
-          const statusCompleted = progressData.status === 'completed';
-          const progressComplete = (progressData.progress || 0) >= 100;
-          const isReallyCompleted = watchedFlag || statusCompleted || progressComplete;
-          
-          if (isReallyCompleted) {
-            console.log(`[ASSIGNED_VIDEOS]   ✓ Assignment ${assignmentDoc.id.substring(0, 12)} marked as completed:`, {
-              watched: watchedFlag,
-              status: progressData.status,
-              progress: progressData.progress
-            });
-          }
-          
-          loadedProgress.push({
-            assignmentId: assignmentDoc.id,
-            minerId: currentMinerId,
-            watched: isReallyCompleted, // Set watched to true if ANY completion condition is met
-            watchedAt: progressData.completedAt?.toMillis?.(),
-            progress: progressData.progress || 0,
-          });
-        }
-      }
-
-      setAssignments(loadedAssignments);
-      setVideos(loadedVideos);
-      setAssignmentProgress(loadedProgress);
-
-      console.log('='.repeat(60));
-      console.log(`[ASSIGNED_VIDEOS] ✅ FINAL RESULT: ${loadedAssignments.length} total assignments loaded`);
-      console.log(`[ASSIGNED_VIDEOS] ${loadedVideos.length} videos loaded`);
-      console.log(`[ASSIGNED_VIDEOS] ${loadedProgress.length} progress records loaded`);
-      
-      // Log completion status breakdown
-      const completedCount = loadedProgress.filter(p => p.watched).length;
-      const incompleteCount = loadedAssignments.length - completedCount;
-      console.log(`[ASSIGNED_VIDEOS] Breakdown: ${completedCount} completed, ${incompleteCount} incomplete`);
-      console.log(`[ASSIGNED_VIDEOS] Completion checked via: watched=true OR status='completed' OR progress>=100`);
-      console.log(`[ASSIGNED_VIDEOS] Note: Only incomplete assignments will be displayed`);
-      if (loadedAssignments.length === 0 && assignmentsSnapshot.size > 0) {
-        console.log('[ASSIGNED_VIDEOS] ⚠️ WARNING: Assignments were found but all filtered out');
-        console.log('[ASSIGNED_VIDEOS] Likely cause: Videos missing from videoLibrary collection');
-      }
-      console.log('='.repeat(60));
-    } catch (error) {
-      console.error('❌ Error loading assignments:', error);
-      Alert.alert('Error', 'Failed to load assignments. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const myAssignments = useMemo(() => {
-    // Filter to show only incomplete/unwatched assignments
-    const filtered = assignments.filter(assignment => {
-      if (!assignment || !assignment.assignedTo || !assignment.assignedTo.includes(currentMinerId)) {
-        return false;
-      }
-      
-      // Check if the video has been completed
-      const progress = assignmentProgress.find(p =>
-        p.assignmentId === assignment.id && p.minerId === currentMinerId
-      );
-      
-      // Only show if NOT watched (exclude completed videos)
-      // Note: progress.watched is now true if ANY completion condition was met
-      return !progress?.watched;
-    });
-    
-    console.log(`[ASSIGNED_VIDEOS] Filtered: ${filtered.length} incomplete assignments to display`);
-    return filtered;
-  }, [assignments, currentMinerId, assignmentProgress]);
+    return assignments.filter(assignment => 
+      assignment && assignment.assignedTo && assignment.assignedTo.includes(currentMinerId)
+    );
+  }, [assignments, currentMinerId]);
 
   const getAssignmentProgress = (assignmentId: string) => {
     if (!assignmentId || !currentMinerId) return undefined;

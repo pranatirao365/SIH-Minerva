@@ -163,11 +163,7 @@ export class VideoLibraryService {
       console.log('📹 Video URL:', videoUrl);
       
       // Extract the video path from URL
-<<<<<<< HEAD
-      // URL format: http://172.16.85.150:4000/videos/filename.mp4
-=======
-      // URL format: http://172.20.10.2:4000/videos/filename.mp4
->>>>>>> 528492da79a4bb2061d86a78444e23a31b5563c5
+      // URL format: http://192.168.137.122:4000/videos/filename.mp4
       const urlParts = videoUrl.split('/videos/');
       if (urlParts.length < 2) {
         console.warn('⚠️ Invalid video URL format, skipping deletion');
@@ -175,11 +171,7 @@ export class VideoLibraryService {
       }
       
       const filename = urlParts[1];
-<<<<<<< HEAD
-      const deleteUrl = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.85.150'}:4000/api/video/delete/${filename}`;
-=======
-      const deleteUrl = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.20.10.2'}:4000/api/video/delete/${filename}`;
->>>>>>> 528492da79a4bb2061d86a78444e23a31b5563c5
+      const deleteUrl = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '192.168.137.122'}:4000/api/video/delete/${filename}`;
       
       console.log('🔗 Delete endpoint:', deleteUrl);
       
@@ -215,7 +207,7 @@ export class VideoLibraryService {
       } else if (value === null) {
         // Keep null values
         cleaned[key] = null;
-      } else if (typeof value === 'object' && !Array.isArray(value) && !(value instanceof Timestamp)) {
+      } else if (typeof value === 'object' && !Array.isArray(value) && value.constructor?.name !== 'Timestamp') {
         // Recursively clean nested objects (but not arrays or Timestamps)
         const cleanedNested = this.removeUndefined(value);
         if (Object.keys(cleanedNested).length > 0) {
@@ -917,7 +909,7 @@ export class VideoLibraryService {
     description: string,
     threshold: number = 80,
     language?: string
-  ): Promise<Array<VideoDocument & { similarityScore: number }>> {
+  ): Promise<(VideoDocument & { similarityScore: number })[]> {
     try {
       console.log('🔍 Searching videos by similarity...');
       console.log('📝 Description:', description);
@@ -932,7 +924,7 @@ export class VideoLibraryService {
       }
 
       const querySnapshot = await getDocs(q);
-      const matches: Array<VideoDocument & { similarityScore: number }> = [];
+      const matches: (VideoDocument & { similarityScore: number })[] = [];
 
       querySnapshot.forEach((docSnap) => {
         const video = docSnap.data() as VideoDocument;

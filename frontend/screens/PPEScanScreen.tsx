@@ -28,9 +28,9 @@ interface PPEResults {
 }
 
 <<<<<<< HEAD
-const API_URL = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.85.150'}:8888/ppe-scan`;
+const API_URL = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '192.168.137.122'}:8888/ppe-scan`;
 =======
-const API_URL = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.20.10.2'}:8888/ppe-scan`;
+const API_URL = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '192.168.137.122'}:8888/ppe-scan`;
 >>>>>>> 528492da79a4bb2061d86a78444e23a31b5563c5
 
 export default function PPEScanScreen() {

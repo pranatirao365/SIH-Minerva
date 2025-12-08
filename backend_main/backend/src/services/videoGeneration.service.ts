@@ -26,8 +26,8 @@ export class VideoGenerationService {
     // Get the root directory (go up from backend/src/services to project root)
     const rootDir = path.resolve(__dirname, '../../../..');
     
-    // Python path - try python3 first, fallback to python
-    this.pythonPath = process.env.PYTHON_PATH || 'python3';
+    // Python path - use 'python' for Windows, 'python3' for Linux/Mac
+    this.pythonPath = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
     
     // main.py is in the frontend directory
     this.mainPyPath = path.join(rootDir, 'frontend', 'main.py');

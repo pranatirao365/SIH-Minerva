@@ -1,6 +1,5 @@
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { useRouter } from 'expo-router';
-import { getApp } from 'firebase/app';
 import { PhoneAuthProvider } from 'firebase/auth';
 import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -10,32 +9,30 @@ import { auth, firebaseConfig } from '../../config/firebase';
 import { COLORS } from '../../constants/styles';
 import { translator } from '../../services/translator';
 
-// 🧪 TEST MODE - Remove this in production!
+// Test phone numbers that bypass real OTP (use test OTP: 123456)
 const TEST_PHONES = [
   '+911234567890', // Miner
   '+911234567891', // Engineer
   '+911234567892', // Supervisor
   '+911234567893', // Safety Officer
   '+911234567894', // Admin
-  '+919000000001',  // Ravi (Supervisor)
-  '+919000000002',  // Suresh (Supervisor)
-  '+918000000001',  // Arun (Miner)
-  '+918000000002',  // Rakesh (Miner)
-  '+918000000003',  // Mahesh (Miner)
-  '+918000000004',  // Deepak (Miner)
-  '+918000000005',  // Imran (Miner)
-  '+918000000006',  // Harish (Miner)
-  '+918000000007',  // Vijay (Miner)
-  '+918000000008',  // Santosh (Miner)
-  '+918000000009',  // Sunil (Miner)
-  '+918000000010',  // Gopal (Miner)
-  '+917000000001',  // Anita (Safety Officer)
-  '+919876543210',  // miner-1 (Blasting Department) - Test OTP: 123456
-  '+919876543211',  // miner-2 (Equipment Maintenance) - Test OTP: 123456
-  '+919032017652'   // Supervisor testing account - Test OTP: 123456
-
+  '+919000000001', // Ravi (Supervisor)
+  '+919000000002', // Suresh (Supervisor)
+  '+918000000001', // Arun (Miner)
+  '+918000000002', // Rakesh (Miner)
+  '+918000000003', // Mahesh (Miner)
+  '+918000000004', // Deepak (Miner)
+  '+918000000005', // Imran (Miner)
+  '+918000000006', // Harish (Miner)
+  '+918000000007', // Vijay (Miner)
+  '+918000000008', // Santosh (Miner)
+  '+918000000009', // Sunil (Miner)
+  '+918000000010', // Gopal (Miner)
+  '+917000000001', // Anita (Safety Officer)
+  '+919876543210', // miner-1 (Blasting Department) - Test OTP: 123456
+  '+919876543211', // miner-2 (Equipment Maintenance) - Test OTP: 123456
+  '+919032017652'  // Supervisor testing account - Test OTP: 123456
 ];
-const IS_TEST_MODE = true; // Set to false in production
 
 export default function PhoneLogin() {
   const router = useRouter();
@@ -43,8 +40,6 @@ export default function PhoneLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const recaptchaVerifier = useRef<any>(null);
-  const [verificationId, setVerificationId] = useState<string | null>(null);
-  const firebaseApp = getApp();
 
   // Validate phone number in E.164 format (+91XXXXXXXXXX)
   const validatePhone = (number: string) => {
@@ -74,23 +69,15 @@ export default function PhoneLogin() {
     setLoading(true);
 
     try {
-      // 🧪 TEST MODE: Skip real OTP for test numbers (but still apply rate limiting)
-      if (IS_TEST_MODE && TEST_PHONES.includes(phone)) {
-        console.log('🧪 TEST MODE: Using test phone number');
+      // Check if it's a test phone number
+      if (TEST_PHONES.includes(phone)) {
+        console.log('🧪 Test phone number detected - using test OTP');
         
         const testVerificationId = 'TEST_VERIFICATION_ID';
         
-        // Determine role based on phone number
-        let roleInfo = '';
-        if (phone === '+911234567890') roleInfo = 'Role: Miner';
-        else if (phone === '+911234567891') roleInfo = 'Role: Engineer';
-        else if (phone === '+911234567892') roleInfo = 'Role: Supervisor';
-        else if (phone === '+911234567893') roleInfo = 'Role: Safety Officer';
-        else if (phone === '+911234567894') roleInfo = 'Role: Admin';
-        
         Alert.alert(
           '🧪 Test Mode',
-          `Test phone detected!\n\nPhone: ${phone}\n${roleInfo}\nTest OTP: 123456\n\nEnter 123456 in the next screen.\n\n⏰ Next test OTP available in 30 seconds.`,
+          `Test phone number detected!\n\nPhone: ${phone}\nTest OTP: 123456\n\nEnter 123456 on the next screen.`,
           [
             { 
               text: 'OK', 
@@ -111,28 +98,25 @@ export default function PhoneLogin() {
         return;
       }
       
-      console.log('📱 Sending OTP to:', phone);
+      console.log('📱 Sending real OTP to:', phone);
       
-      // Ensure recaptcha verifier is initialized
+      // Ensure recaptcha verifier is initialized (invisible reCAPTCHA)
       if (!recaptchaVerifier.current) {
-        throw new Error('reCAPTCHA verifier not initialized');
+        throw new Error('Security verification not ready. Please try again.');
       }
       
-      // Use PhoneAuthProvider.verifyPhoneNumber (matching your working flow)
+      // Send real OTP via Firebase
       const phoneProvider = new PhoneAuthProvider(auth);
-      const verificationIdResult = await phoneProvider.verifyPhoneNumber(
+      const verificationId = await phoneProvider.verifyPhoneNumber(
         phone,
         recaptchaVerifier.current
       );
       
-      setVerificationId(verificationIdResult);
-      
-      console.log('✅ OTP sent successfully!');
-      console.log('📧 Check your phone for the verification code');
+      console.log('✅ Real OTP sent successfully!');
       
       Alert.alert(
         'OTP Sent',
-        `A verification code has been sent to ${phone}.\n\nPlease check your SMS messages.`,
+        `A verification code has been sent to ${phone} via SMS.\n\nPlease check your messages.`,
         [
           { 
             text: 'OK', 
@@ -141,7 +125,7 @@ export default function PhoneLogin() {
                 pathname: '/auth/OTPVerification',
                 params: { 
                   phoneNumber: phone,
-                  verificationId: verificationIdResult
+                  verificationId: verificationId
                 }
               });
             }
@@ -156,19 +140,16 @@ export default function PhoneLogin() {
       if (err.code === 'auth/invalid-phone-number') {
         errorMessage = 'Invalid phone number format.';
       } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many OTP requests. Please try again later.';
+        errorMessage = 'Too many requests. Please try again later.';
       } else if (err.code === 'auth/quota-exceeded') {
         errorMessage = 'SMS quota exceeded. Please contact support.';
-      } else if (err.code === 'auth/captcha-check-failed') {
-        errorMessage = 'Security verification failed. Please try again.';
-      } else if (err.code === 'auth/network-request-failed') {
-        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (err.code === 'auth/invalid-app-credential') {
+        errorMessage = 'App not properly configured in Firebase Console.\n\nPlease add your app SHA-256 fingerprint in Firebase settings.';
       } else if (err.message) {
         errorMessage = err.message;
       }
       
       setError(errorMessage);
-      
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
@@ -177,11 +158,15 @@ export default function PhoneLogin() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Invisible reCAPTCHA - users won't see it */}
       <FirebaseRecaptchaVerifierModal
         ref={recaptchaVerifier}
         firebaseConfig={firebaseConfig}
         attemptInvisibleVerification={true}
+        title="Security Verification"
+        cancelLabel="Cancel"
       />
+      
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Phone size={80} color={COLORS.primary} />
@@ -189,7 +174,7 @@ export default function PhoneLogin() {
             {translator.translate('phoneLogin')}
           </Text>
           <Text style={styles.subtitle}>
-            Enter your phone number to continue
+            Enter your phone number to receive OTP via SMS
           </Text>
         </View>
 
@@ -265,6 +250,17 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     textAlign: 'center',
     marginTop: 8,
+  },
+  devModeLabel: {
+    fontSize: 14,
+    color: COLORS.primary,
+    textAlign: 'center',
+    marginTop: 12,
+    fontWeight: '600',
+    backgroundColor: COLORS.primary + '15',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   form: {
     marginTop: 32,

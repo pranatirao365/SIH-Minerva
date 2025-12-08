@@ -17,6 +17,7 @@ import {
 import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import { getTestimonialStats } from '../../services/testimonialService';
+import AppHeader from '../../components/AppHeader';
 
 export default function SafetyOfficerHome() {
   const router = useRouter();
@@ -123,18 +124,14 @@ export default function SafetyOfficerHome() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <AppHeader 
+        userName={user.name || 'Safety Officer'}
+        showBack={false}
+        showNotifications={true}
+        showProfile={true}
+      />
+      
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>{user.name || 'Safety Officer'}</Text>
-          </View>
-          <TouchableOpacity style={styles.settingsButton}>
-            <Settings size={24} color={COLORS.text} />
-          </TouchableOpacity>
-        </View>
-
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
@@ -208,30 +205,11 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  welcomeText: {
-    fontSize: 16,
-    color: COLORS.textMuted,
-  },
-  userName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginTop: 4,
-  },
-  settingsButton: {
-    padding: 8,
-  },
   statsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     gap: 12,
+    marginTop: 20,
     marginBottom: 24,
   },
   statCard: {

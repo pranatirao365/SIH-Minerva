@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { User, Phone, Globe, Shield, LogOut, ArrowLeft } from '../../components/Icons';
+import { User, Phone, Globe, Shield, LogOut, ArrowLeft, AlertTriangle } from '../../components/Icons';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import { translator } from '../../services/translator';
 import { ROLE_LABELS } from '../../constants/roles';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -69,6 +70,60 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* Emergency SOS Button */}
+        {user.role === 'miner' && (
+          <TouchableOpacity
+            onPress={() => router.push('/miner/EmergencySOS' as any)}
+            activeOpacity={0.8}
+            style={styles.sosButton}
+          >
+            <LinearGradient
+              colors={['#DC2626', '#B91C1C', '#7F1D1D']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sosGradient}
+            >
+              <View style={styles.sosContent}>
+                <View style={styles.sosIconContainer}>
+                  <AlertTriangle size={32} color="#FFFFFF" />
+                </View>
+                <View style={styles.sosTextContainer}>
+                  <Text style={styles.sosTitle}>EMERGENCY SOS</Text>
+                  <Text style={styles.sosSubtitle}>Tap for immediate assistance</Text>
+                </View>
+                <View style={styles.sosPulse} />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {/* Emergency SOS Button */}
+        {user.role === 'miner' && (
+          <TouchableOpacity
+            onPress={() => router.push('/miner/EmergencySOS' as any)}
+            activeOpacity={0.8}
+            style={styles.sosButton}
+          >
+            <LinearGradient
+              colors={['#DC2626', '#B91C1C', '#7F1D1D']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sosGradient}
+            >
+              <View style={styles.sosContent}>
+                <View style={styles.sosIconContainer}>
+                  <AlertTriangle size={32} color="#FFFFFF" />
+                </View>
+                <View style={styles.sosTextContainer}>
+                  <Text style={styles.sosTitle}>EMERGENCY SOS</Text>
+                  <Text style={styles.sosSubtitle}>Tap for immediate assistance</Text>
+                </View>
+                <View style={styles.sosPulse} />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
         {/* Profile Details */}
         <View className="space-y-4 mb-6">
           <View className="bg-neutral-900 rounded-lg border border-border p-4 flex-row items-center">
@@ -104,3 +159,67 @@ export default function ProfileScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  sosButton: {
+    marginBottom: 24,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 12,
+    borderWidth: 2,
+    borderColor: '#FECACA',
+  },
+  sosGradient: {
+    padding: 20,
+    position: 'relative',
+  },
+  sosContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  sosIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  sosTextContainer: {
+    flex: 1,
+  },
+  sosTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 1.5,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  sosSubtitle: {
+    fontSize: 13,
+    color: '#FECACA',
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  sosPulse: {
+    position: 'absolute',
+    right: 20,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+  },
+});

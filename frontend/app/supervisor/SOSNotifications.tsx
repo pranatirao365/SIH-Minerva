@@ -1,84 +1,107 @@
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
-import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AlertTriangle, ArrowLeft, CheckCircle, Clock, MapPin, Phone, User } from '../../components/Icons';
+import { AlertTriangle, ArrowLeft, CheckCircle, Clock, MapPin, Phone, User, Shield } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
-import { useSupervisor } from '@/contexts/SupervisorContext';
+import { useRoleStore } from '@/hooks/useRoleStore';
+import { 
+  getActiveSOSAlerts, 
+  acknowledgeSOSAlert, 
+  resolveSOSAlert,
+  SOSAlert as FirebaseSOSAlert
+} from '../../services/sosService';
 
 interface SOSAlert {
   id: string;
   minerName: string;
   minerId: string;
-  helmetId: string;
   timestamp: Date;
   location: string;
-  status: 'active' | 'responded' | 'resolved';
+  status: 'active' | 'acknowledged' | 'resolved';
   heartRate?: number;
   spO2?: number;
   temperature?: number;
+  minerPhone?: string;
 }
 
 export default function SOSNotifications() {
   const router = useRouter();
-  const { assignedMiners, loading: minersLoading } = useSupervisor();
+  const { user } = useRoleStore();
   const [refreshing, setRefreshing] = useState(false);
   const [sosAlerts, setSosAlerts] = useState<SOSAlert[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (assignedMiners.length > 0) {
-      generateSOSAlerts();
-    }
-  }, [assignedMiners]);
+    loadAlerts();
+    
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(loadAlerts, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const generateSOSAlerts = () => {
-    console.log('🚨 Generating SOS alerts for', assignedMiners.length, 'miners');
-    
-    // Generate sample SOS alerts from assigned miners
-    const alerts: SOSAlert[] = assignedMiners.slice(0, 3).map((miner, index) => {
-      const statuses: ('active' | 'responded' | 'resolved')[] = ['active', 'responded', 'resolved'];
-      const timeAgo = [5, 15, 45][index] || 10;
+  const loadAlerts = async () => {
+    try {
+      const firebaseAlerts = await getActiveSOSAlerts();
       
-      return {
-        id: miner.id,
-        minerName: miner.name,
-        minerId: miner.id,
-        helmetId: `ESP32-${miner.id.substring(0, 3)}`,
-        timestamp: new Date(Date.now() - timeAgo * 60000),
-        location: miner.location || 'Tunnel A - Section 12',
-        status: statuses[index % 3],
-        heartRate: 70 + Math.floor(Math.random() * 50),
-        spO2: 88 + Math.floor(Math.random() * 10),
-        temperature: 28 + Math.random() * 5,
-      };
-    });
-    
-    setSosAlerts(alerts);
-    console.log('✅ Generated', alerts.length, 'SOS alerts');
+      // Convert Firebase alerts to component format
+      const formattedAlerts: SOSAlert[] = firebaseAlerts.map((alert: FirebaseSOSAlert) => ({
+        id: alert.id || '',
+        minerName: alert.minerName,
+        minerId: alert.minerId,
+        timestamp: alert.timestamp.toDate(),
+        location: alert.location?.description || 'Unknown location',
+        status: alert.status as 'active' | 'acknowledged' | 'resolved',
+        heartRate: alert.helmetData?.heartRate,
+        spO2: alert.helmetData?.spo2,
+        temperature: alert.helmetData?.temperature,
+        minerPhone: alert.minerPhone,
+      }));
+
+      setSosAlerts(formattedAlerts);
+      setLoading(false);
+      setRefreshing(false);
+    } catch (error) {
+      console.error('Error loading SOS alerts:', error);
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   const onRefresh = () => {
     setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setRefreshing(false);
-      console.log('Refreshed SOS alerts');
-    }, 1500);
+    loadAlerts();
   };
 
-  const handleRespond = (alertId: string) => {
-    setSosAlerts(prev =>
-      prev.map(alert =>
-        alert.id === alertId ? { ...alert, status: 'responded' as const } : alert
-      )
-    );
+  const handleRespond = async (alertId: string) => {
+    try {
+      await acknowledgeSOSAlert(alertId, user.id || 'unknown');
+      Alert.alert('Success', 'SOS alert acknowledged');
+      loadAlerts();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to acknowledge alert');
+    }
   };
 
-  const handleResolve = (alertId: string) => {
-    setSosAlerts(prev =>
-      prev.map(alert =>
-        alert.id === alertId ? { ...alert, status: 'resolved' as const } : alert
-      )
+  const handleResolve = async (alertId: string) => {
+    Alert.alert(
+      'Resolve SOS Alert',
+      'Mark this emergency as resolved?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Resolve',
+          onPress: async () => {
+            try {
+              await resolveSOSAlert(alertId, user.id || 'unknown', 'Emergency resolved');
+              Alert.alert('Success', 'SOS alert marked as resolved');
+              loadAlerts();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to resolve alert');
+            }
+          },
+        },
+      ]
     );
   };
 
@@ -119,8 +142,18 @@ export default function SOSNotifications() {
   };
 
   const activeAlerts = sosAlerts.filter(a => a.status === 'active');
-  const respondedAlerts = sosAlerts.filter(a => a.status === 'responded');
+  const acknowledgedAlerts = sosAlerts.filter(a => a.status === 'acknowledged');
   const resolvedAlerts = sosAlerts.filter(a => a.status === 'resolved');
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: COLORS.textMuted }}>Loading alerts...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
@@ -195,7 +228,7 @@ export default function SOSNotifications() {
                         {alert.minerName}
                       </Text>
                       <Text style={{ fontSize: 12, color: COLORS.textMuted }}>
-                        ID: {alert.minerId} • {alert.helmetId}
+                        ID: {alert.minerId}
                       </Text>
                     </View>
                     <View style={{
@@ -303,8 +336,8 @@ export default function SOSNotifications() {
             </View>
           )}
 
-          {/* Responded Alerts */}
-          {respondedAlerts.length > 0 && (
+          {/* Acknowledged Alerts */}
+          {acknowledgedAlerts.length > 0 && (
             <View style={{ padding: 16, paddingTop: 0 }}>
               <Text style={{
                 fontSize: 16,
@@ -312,9 +345,9 @@ export default function SOSNotifications() {
                 color: COLORS.text,
                 marginBottom: 12,
               }}>
-                ⏳ In Progress
+                ⏳ Acknowledged
               </Text>
-              {respondedAlerts.map(alert => (
+              {acknowledgedAlerts.map(alert => (
                 <View
                   key={alert.id}
                   style={{

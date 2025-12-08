@@ -558,6 +558,7 @@ Example format: "Proper PPE Usage in Underground Mining Operations"`;
       console.log('📝 Topic:', topic.trim());
       console.log('🌐 Language:', selectedLanguage);
       console.log('🌐 API URL:', apiUrl);
+      console.log('🌐 Environment IP:', process.env.EXPO_PUBLIC_IP_ADDRESS);
       
       // Create AbortController for timeout (5 minutes for initial request)
       const controller = new AbortController();
@@ -608,7 +609,7 @@ Example format: "Proper PPE Usage in Underground Mining Operations"`;
       
       Alert.alert(
         'Connection Error', 
-        `Failed to start video generation:\n${errorMessage}\n\nTroubleshooting:\n• Backend server: ${currentApiUrl}\n• Check server is running (port 4000)\n• Ensure same Wi-Fi network\n• Check firewall settings\n• Current IP: ${process.env.EXPO_PUBLIC_IP_ADDRESS || '192.168.137.168'}`,
+        `Failed to start video generation:\n${errorMessage}\n\nTroubleshooting:\n• Backend server: ${currentApiUrl}\n• Check server is running (port 4000)\n• Ensure same Wi-Fi network\n• Check firewall settings\n• Current IP: ${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.121'}`,
         [
           { text: 'OK' },
           { 

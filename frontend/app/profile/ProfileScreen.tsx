@@ -23,7 +23,7 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: () => {
             logout();
-            router.replace('/auth/LanguageSelect' as any);
+            router.replace('/auth/PhoneLogin' as any);
           }
         }
       ]

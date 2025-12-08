@@ -36,12 +36,10 @@ export default function VideoRequestManager() {
   
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [languageFilter, setLanguageFilter] = useState<string>('all');
   const [showRequestModal, setShowRequestModal] = useState(false);
   
   // Request form
   const [requestTopic, setRequestTopic] = useState('');
-  const [requestLanguage, setRequestLanguage] = useState('en');
   const [requestDescription, setRequestDescription] = useState('');
   const [requestPriority, setRequestPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
 
@@ -73,14 +71,9 @@ export default function VideoRequestManager() {
         return false;
       }
       
-      // Language filter
-      if (languageFilter !== 'all' && video.language !== languageFilter) {
-        return false;
-      }
-      
       return true;
     });
-  }, [videos, searchQuery, languageFilter]);
+  }, [videos, searchQuery]);
 
   const submitRequest = async () => {
     if (!requestTopic.trim()) {
@@ -95,30 +88,30 @@ export default function VideoRequestManager() {
 
     try {
       // Check if video already exists
-      const existingVideo = await VideoLibraryService.checkDuplicateVideo(requestTopic.trim(), requestLanguage);
+      const existingVideo = await VideoLibraryService.checkDuplicateVideo(requestTopic.trim(), 'en');
       
       if (existingVideo) {
         Alert.alert(
           'Video Already Exists',
-          `A video titled "${existingVideo.topic}" already exists in ${existingVideo.languageName}. No need to request generation.`,
+          `A video titled "${existingVideo.topic}" already exists. No need to request generation.`,
           [{ text: 'OK' }]
         );
         return;
       }
 
-      // Check for existing pending/in-progress request with same topic and language
+      // Check for existing pending/in-progress request with same topic
       const allRequests = await VideoLibraryService.getAllVideoRequests();
       const duplicateRequest = allRequests.find(
         (req) =>
           req.topic.toLowerCase().trim() === requestTopic.toLowerCase().trim() &&
-          req.language === requestLanguage &&
+          req.language === 'en' &&
           (req.status === 'pending' || req.status === 'in-progress')
       );
 
       if (duplicateRequest) {
         Alert.alert(
           'Request Already Exists',
-          `A video request for "${duplicateRequest.topic}" in this language is already ${duplicateRequest.status}. Please wait for it to be completed.`,
+          `A video request for "${duplicateRequest.topic}" is already ${duplicateRequest.status}. Please wait for it to be completed.`,
           [{ text: 'OK' }]
         );
         return;
@@ -135,7 +128,7 @@ export default function VideoRequestManager() {
     try {
       const requestId = await VideoLibraryService.createVideoRequest({
         topic: requestTopic.trim(),
-        language: requestLanguage,
+        language: 'en',
         description: requestDescription.trim(),
         requestedBy: user.id || user.phone || 'supervisor',
         requestedByName: user.name || 'Supervisor',
@@ -146,7 +139,6 @@ export default function VideoRequestManager() {
       
       // Reset form
       setRequestTopic('');
-      setRequestLanguage('en');
       setRequestDescription('');
       setRequestPriority('medium');
       setShowRequestModal(false);
@@ -318,27 +310,6 @@ export default function VideoRequestManager() {
               />
             </View>
 
-            <View style={styles.languageFilters}>
-              {['all', 'en', 'hi', 'te'].map(lang => (
-                <TouchableOpacity
-                  key={lang}
-                  style={[
-                    styles.languageFilter,
-                    languageFilter === lang && styles.languageFilterActive,
-                  ]}
-                  onPress={() => setLanguageFilter(lang)}
-                >
-                  <Text
-                    style={[
-                      styles.languageFilterText,
-                      languageFilter === lang && styles.languageFilterTextActive,
-                    ]}
-                  >
-                    {lang === 'all' ? 'All' : getLanguageName(lang)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
           </View>
 
           {filteredVideos.length === 0 ? (
@@ -346,8 +317,8 @@ export default function VideoRequestManager() {
               <VideoIcon size={48} color={COLORS.textMuted} />
               <Text style={styles.emptyTitle}>No videos found</Text>
               <Text style={styles.emptyText}>
-                {searchQuery || languageFilter !== 'all'
-                  ? 'Try adjusting your filters'
+                {searchQuery
+                  ? 'Try adjusting your search'
                   : 'Request a video to get started'}
               </Text>
             </View>
@@ -387,33 +358,6 @@ export default function VideoRequestManager() {
                 value={requestTopic}
                 onChangeText={setRequestTopic}
               />
-
-              <Text style={styles.inputLabel}>Language *</Text>
-              <View style={styles.languageButtons}>
-                {[
-                  { code: 'en', name: '🇬🇧 English' },
-                  { code: 'hi', name: '🇮🇳 Hindi' },
-                  { code: 'te', name: '🇮🇳 Telugu' },
-                ].map(lang => (
-                  <TouchableOpacity
-                    key={lang.code}
-                    style={[
-                      styles.languageButton,
-                      requestLanguage === lang.code && styles.languageButtonActive,
-                    ]}
-                    onPress={() => setRequestLanguage(lang.code)}
-                  >
-                    <Text
-                      style={[
-                        styles.languageButtonText,
-                        requestLanguage === lang.code && styles.languageButtonTextActive,
-                      ]}
-                    >
-                      {lang.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
 
               <Text style={styles.inputLabel}>Description *</Text>
               <TextInput
@@ -538,30 +482,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     fontSize: 16,
     color: COLORS.text,
-  },
-  languageFilters: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  languageFilter: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: COLORS.card,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  languageFilterActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  languageFilterText: {
-    fontSize: 14,
-    color: COLORS.text,
-  },
-  languageFilterTextActive: {
-    color: '#FFFFFF',
   },
   videoCard: {
     backgroundColor: COLORS.card,

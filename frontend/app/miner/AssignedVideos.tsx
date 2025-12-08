@@ -280,7 +280,7 @@ export default function AssignedVideos() {
       // Update old IP addresses to current one from .env
       const currentIP = process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.121';
       const oldIPPatterns = [
-        '192.168.137.122',
+        '172.16.58.121',
         '192.168.1.',
         '10.0.0.',
         '172.16.'

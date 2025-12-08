@@ -31,8 +31,8 @@ const testData = {
       empId: "SUP-TEST",
       department: "Test Department",
       shift: "Morning",
-      teamSize: 3,
-      assignedMiners: [],
+      teamSize: 1,
+      assignedMiners: ["MIN-TEST"],
       role: "supervisor"
     }
   ],

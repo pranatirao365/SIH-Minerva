@@ -11,7 +11,6 @@ export default function RootLayout() {
       <ThemeProvider value={DarkTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="auth/LanguageSelect" />
           <Stack.Screen name="auth/PhoneLogin" />
           <Stack.Screen name="auth/OTPVerification" />
           <Stack.Screen name="auth/RoleSelection" />

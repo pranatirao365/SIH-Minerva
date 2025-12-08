@@ -3,7 +3,7 @@
  * Handles daily quiz generation for mining safety training
  */
 
-const GEMINI_API_KEY = 'AIzaSyA47y_mmOfzKL1jo4ce8qmK2RyY9_mk4sk';
+const GEMINI_API_KEY = 'AIzaSyD3FRdf4bg8s7W5h3hkZXEbXNI4GTQO1vI';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 export interface QuizQuestion {

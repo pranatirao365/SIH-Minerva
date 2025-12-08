@@ -255,7 +255,9 @@ export default function VideoRequestHandler() {
               Requested by: {item.requestedByName}
             </Text>
             <Text style={styles.requestMeta}>
-              {getLanguageName(item.language)} • {item.requestedAt.toDate().toLocaleDateString()}
+              {getLanguageName(item.language)} • {item.requestedAt && typeof item.requestedAt.toDate === 'function' ? item.requestedAt.toDate().toLocaleDateString() : 
+               item.requestedAt && typeof item.requestedAt === 'object' && item.requestedAt.seconds ? new Date(item.requestedAt.seconds * 1000).toLocaleDateString() :
+               'Date not available'}
             </Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
@@ -451,8 +453,8 @@ export default function VideoRequestHandler() {
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Requested on:</Text>
                   <Text style={styles.detailValue}>
-                    {selectedRequest.requestedAt.toDate().toLocaleDateString()} at{' '}
-                    {selectedRequest.requestedAt.toDate().toLocaleTimeString()}
+                    {selectedRequest.requestedAt && typeof selectedRequest.requestedAt.toDate === 'function' ? selectedRequest.requestedAt.toDate().toLocaleDateString() : 'Date not available'} at{' '}
+                    {selectedRequest.requestedAt && typeof selectedRequest.requestedAt.toDate === 'function' ? selectedRequest.requestedAt.toDate().toLocaleTimeString() : 'Time not available'}
                   </Text>
                 </View>
 

@@ -230,10 +230,21 @@ export default function VideoProgressDashboard() {
   const minerProgressSummaries = useMemo(() => {
     const summaries: MinerProgressSummary[] = [];
 
+    // Safety check: ensure miners and assignments are arrays
+    if (!Array.isArray(miners) || !Array.isArray(assignments)) {
+      return summaries;
+    }
+
     miners.forEach((miner) => {
+      // Safety check for miner object
+      if (!miner || !miner.id || !miner.name) {
+        console.warn('Skipping invalid miner object:', miner);
+        return;
+      }
+
       // Find all assignments for this miner
       const minerAssignments = assignments.filter((assignment) =>
-        assignment.assignedTo.includes(miner.id)
+        assignment.assignedTo && Array.isArray(assignment.assignedTo) && assignment.assignedTo.includes(miner.id)
       );
 
       let completedCount = 0;
@@ -244,7 +255,18 @@ export default function VideoProgressDashboard() {
         progress: AssignmentProgress | null;
       }> = [];
 
+      // Safety check for minerAssignments
+      if (!Array.isArray(minerAssignments)) {
+        return;
+      }
+
       minerAssignments.forEach((assignment) => {
+        // Safety check for assignment object
+        if (!assignment || !assignment.id || !assignment.videoTopic) {
+          console.warn('Skipping invalid assignment object:', assignment);
+          return;
+        }
+
         // Read progress from the progress map in the assignment document
         const progressMap = (assignment as any).progress || {};
         const minerKey = miner.id; // Always use miner.id as key
@@ -258,7 +280,7 @@ export default function VideoProgressDashboard() {
         });
         
         const isCompleted = minerProgress && minerProgress.status === 'completed';
-        const isOverdue = !isCompleted && assignment.deadline.toDate() < new Date();
+        const isOverdue = !isCompleted && assignment.deadline && assignment.deadline.toDate && assignment.deadline.toDate() < new Date();
 
         if (isCompleted) {
           completedCount++;

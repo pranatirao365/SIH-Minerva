@@ -23,6 +23,7 @@ export default function SupervisorLayout() {
       <Stack.Screen name="TaskAssignment" />
       <Stack.Screen name="AuditTracker" />
       <Stack.Screen name="ShiftPlanning" />
+      <Stack.Screen name="SmartWorkAssignment" />
       <Stack.Screen name="VideoGenerationModule" />
     </Stack>
   );

@@ -21,7 +21,7 @@ const TRAINING_WORLDS = [
   {
     id: 1,
     name: 'Hazard Spotting',
-    icon: '⛏️',
+    icon: '⛏',
     color: '#D97706',
     gradient: ['#854D0E', '#D97706', '#92400E'],
     description: 'Identify dangers in the dark tunnels',
@@ -32,7 +32,7 @@ const TRAINING_WORLDS = [
   {
     id: 2,
     name: 'Equipment Handling',
-    icon: '⚙️',
+    icon: '⚙',
     color: '#0369A1',
     gradient: ['#0C4A6E', '#0369A1', '#075985'],
     description: 'Master underground machinery safely',
@@ -43,7 +43,7 @@ const TRAINING_WORLDS = [
   {
     id: 3,
     name: 'Situational Safety',
-    icon: '🛡️',
+    icon: '🛡',
     color: '#047857',
     gradient: ['#064E3B', '#047857', '#065F46'],
     description: 'Survive cave-ins and gas leaks',

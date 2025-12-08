@@ -33,7 +33,7 @@ const TEST_PHONES = [
   '+919876543210',  // miner-1 (Blasting Department) - Test OTP: 123456
   '+919876543211'   // miner-2 (Equipment Maintenance) - Test OTP: 123456
 ];
-const IS_TEST_MODE = true; // Set to false in production
+const IS_TEST_MODE = false; // Set to false in production
 
 export default function PhoneLogin() {
   const router = useRouter();
@@ -69,26 +69,29 @@ export default function PhoneLogin() {
     setLoading(true);
 
     try {
-      // 🧪 TEST MODE: Skip real OTP for test numbers (but still apply rate limiting)
-      if (IS_TEST_MODE && TEST_PHONES.includes(phone)) {
-        console.log('🧪 TEST MODE: Using test phone number');
+      // 🧪 TEST MODE: Allow any phone number in test mode
+      if (IS_TEST_MODE) {
+        console.log('🧪 TEST MODE: Using phone number', phone);
         
         const testVerificationId = 'TEST_VERIFICATION_ID';
         
-        // Determine role based on phone number
+        // Determine role based on known phone numbers
         let roleInfo = '';
         if (phone === '+911234567890') roleInfo = 'Role: Miner';
         else if (phone === '+911234567891') roleInfo = 'Role: Engineer';
         else if (phone === '+911234567892') roleInfo = 'Role: Supervisor';
         else if (phone === '+911234567893') roleInfo = 'Role: Safety Officer';
         else if (phone === '+911234567894') roleInfo = 'Role: Admin';
+        else roleInfo = 'Role: Will be determined from Firestore';
+        
+        const isKnownTestPhone = TEST_PHONES.includes(phone);
         
         Alert.alert(
-          '🧪 Test Mode',
-          `Test phone detected!\n\nPhone: ${phone}\n${roleInfo}\nTest OTP: 123456\n\nEnter 123456 in the next screen.\n\n⏰ Next test OTP available in 30 seconds.`,
+          '🧪 Development Mode',
+          `${isKnownTestPhone ? 'Test phone detected!' : 'Development login'}\n\nPhone: ${phone}\n${roleInfo}\nTest OTP: 123456\n\nEnter 123456 in the next screen.`,
           [
             { 
-              text: 'OK', 
+              text: 'Continue', 
               onPress: () => {
                 router.push({
                   pathname: '/auth/OTPVerification',
@@ -106,13 +109,71 @@ export default function PhoneLogin() {
         return;
       }
       
-      // Production mode requires Firebase Phone Auth to be properly configured
-      // For now, show an alert that production auth is not available
-      Alert.alert(
-        'Production Mode Not Available',
-        'Phone authentication in production requires:\n\n1. Firebase Phone Auth configuration\n2. reCAPTCHA setup\n3. SMS quota and billing\n\nPlease use test phone numbers for development.',
-        [{ text: 'OK' }]
-      );
+      // 📱 PRODUCTION MODE: Real Firebase Phone Authentication
+      console.log('📱 Production Mode: Sending real SMS OTP to', phone);
+      
+      try {
+        // Create invisible reCAPTCHA verifier for web
+        // Note: This works best with Expo Development Build or Production Build
+        // For Expo Go, you may need to use test phone numbers
+        const appVerifier = new (await import('firebase/auth')).RecaptchaVerifier(
+          auth,
+          'recaptcha-container', // This will be created dynamically
+          {
+            size: 'invisible',
+            callback: () => {
+              console.log('✅ reCAPTCHA verified');
+            },
+            'expired-callback': () => {
+              console.log('⚠️ reCAPTCHA expired');
+              setError('Verification expired. Please try again.');
+            }
+          }
+        );
+
+        // Send OTP via SMS
+        const confirmationResult = await (await import('firebase/auth')).signInWithPhoneNumber(
+          auth,
+          phone,
+          appVerifier
+        );
+
+        console.log('✅ SMS sent successfully');
+        
+        Alert.alert(
+          'OTP Sent',
+          `A 6-digit verification code has been sent to ${phone} via SMS.`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                router.push({
+                  pathname: '/auth/OTPVerification',
+                  params: {
+                    phoneNumber: phone,
+                    verificationId: confirmationResult.verificationId,
+                    isTestMode: 'false'
+                  }
+                });
+              }
+            }
+          ]
+        );
+      } catch (error: any) {
+        console.error('❌ Firebase Phone Auth Error:', error);
+        
+        if (error.code === 'auth/invalid-phone-number') {
+          throw new Error('Invalid phone number format. Use +91XXXXXXXXXX');
+        } else if (error.code === 'auth/quota-exceeded') {
+          throw new Error('SMS quota exceeded. Please enable billing in Firebase Console or use test phone numbers.');
+        } else if (error.code === 'auth/too-many-requests') {
+          throw new Error('Too many requests. Please try again in a few minutes.');
+        } else if (error.code === 'auth/missing-phone-number') {
+          throw new Error('Please enter a valid phone number.');
+        } else {
+          throw new Error(error.message || 'Failed to send OTP. Please check Firebase configuration.');
+        }
+      }
     } catch (err: any) {
       console.error('❌ Error sending OTP:', err);
       

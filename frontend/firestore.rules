@@ -55,6 +55,21 @@ service cloud.firestore {
       allow read, write: if isLoggedIn();
     }
 
+    // --- POSTS COLLECTION (Reels, Photos, Videos uploaded by miners) ---
+    match /posts/{postId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode → authenticated users can read all posts
+      allow read: if isLoggedIn();
+
+      // Users can create posts
+      allow create: if isLoggedIn();
+
+      // Users can update/delete only their own posts
+      allow update, delete: if isLoggedIn() && request.auth.uid == resource.data.userId;
+    }
+
     // --- ASSIGNMENT PROGRESS COLLECTION ---
     match /assignmentProgress/{progressId} {
       // Test Mode → allow all

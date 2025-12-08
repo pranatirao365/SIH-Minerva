@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useRef } from 'react';
-import { Alert, Text, TouchableOpacity, View, ActivityIndicator, Animated, Vibration, ScrollView, Linking } from 'react-native';
+import { Alert, Text, TouchableOpacity, View, ActivityIndicator, Animated, Vibration, ScrollView, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AlertCircle, Phone, X, MapPin, Heart, AlertTriangle, CheckCircle, Shield, Clock, Radio } from '../../components/Icons';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import { sendSOSAlert } from '../../services/sosService';
+import { MinerFooter } from '../../components/BottomNav';
 
 export default function EmergencySOS() {
   const router = useRouter();
@@ -183,20 +184,21 @@ export default function EmergencySOS() {
   };
 
   return (
-    <LinearGradient
-      colors={['#7F1D1D', '#991B1B', '#B91C1C']}
-      className="flex-1"
-    >
-      <SafeAreaView className="flex-1">
-        <ScrollView 
-          className="flex-1"
-          contentContainerStyle={{ paddingBottom: 40 }}
-          showsVerticalScrollIndicator={false}
-        >
-        <View className="flex-1 items-center justify-center px-6 pt-4">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="absolute top-4 right-4 p-3 bg-white/10 rounded-full z-10"
+    <View style={{ flex: 1 }}>
+      <LinearGradient
+        colors={['#7F1D1D', '#991B1B', '#B91C1C']}
+        style={{ flex: 1 }}
+      >
+        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+          <ScrollView 
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingBottom: 120 }}
+            showsVerticalScrollIndicator={false}
+          >
+          <View className="flex-1 items-center justify-center px-6 pt-4">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="absolute top-4 right-4 p-3 bg-white/10 rounded-full z-10"
           >
             <X size={24} color="#FFFFFF" />
           </TouchableOpacity>
@@ -498,6 +500,8 @@ export default function EmergencySOS() {
         </View>
         </ScrollView>
       </SafeAreaView>
+      <MinerFooter activeTab="home" />
     </LinearGradient>
+    </View>
   );
 }

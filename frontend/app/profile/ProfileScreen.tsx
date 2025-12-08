@@ -7,6 +7,7 @@ import { useRoleStore } from '../../hooks/useRoleStore';
 import { translator } from '../../services/translator';
 import { ROLE_LABELS } from '../../constants/roles';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MinerFooter } from '../../components/BottomNav';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -156,6 +157,7 @@ export default function ProfileScreen() {
           <Text className="text-white font-bold text-lg ml-2">Logout</Text>
         </TouchableOpacity>
       </ScrollView>
+      {user.role === 'miner' && <MinerFooter activeTab="profile" />}
     </SafeAreaView>
   );
 }

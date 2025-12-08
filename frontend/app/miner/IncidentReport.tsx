@@ -608,7 +608,7 @@ export default function IncidentReport() {
         </Text>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
         {/* Info Banner */}
         <View style={{ backgroundColor: '#EF4444' + '15', borderRadius: 12, borderLeftWidth: 4, borderLeftColor: '#EF4444', padding: 16, marginBottom: 24 }}>
           <Text style={{ color: '#EF4444', fontSize: 15, fontWeight: '700', marginBottom: 6 }}>

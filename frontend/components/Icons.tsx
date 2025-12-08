@@ -76,6 +76,14 @@ export const Crown = (props: any) => <Ionicons name="trophy" {...props} />;
 export const Medal = (props: any) => <Ionicons name="medal" {...props} />;
 export const Share2 = (props: any) => <Ionicons name="share-social" {...props} />;
 export const Pickaxe = (props: any) => <MaterialCommunityIcons name="pickaxe" {...props} />;
+export const Music = (props: any) => <Ionicons name="musical-notes" {...props} />;
+export const Bookmark = (props: any) => <Ionicons name="bookmark" {...props} />;
+export const Edit = (props: any) => <Ionicons name="create" {...props} />;
+export const Grid = (props: any) => <Ionicons name="grid" {...props} />;
+export const MoreVertical = (props: any) => <Ionicons name="ellipsis-vertical" {...props} />;
+export const UserPlus = (props: any) => <Ionicons name="person-add" {...props} />;
+export const UserCheck = (props: any) => <Ionicons name="person-add" {...props} />;
+export const Image = (props: any) => <Ionicons name="image" {...props} />;
 
 // Export all icons as a namespace for easier importing
 export const Icons = {
@@ -152,5 +160,13 @@ export const Icons = {
   Medal,
   Share2,
   Pickaxe,
+  Music,
+  Bookmark,
+  Edit,
+  Grid,
+  MoreVertical,
+  UserPlus,
+  UserCheck,
+  Image,
 };
 

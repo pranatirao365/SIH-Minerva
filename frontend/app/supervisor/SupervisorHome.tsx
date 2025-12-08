@@ -17,6 +17,7 @@ import React from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoleStore } from '../../hooks/useRoleStore';
+import AppHeader from '../../components/AppHeader';
 
 export default function SupervisorHome() {
   const router = useRouter();
@@ -155,18 +156,14 @@ export default function SupervisorHome() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <AppHeader 
+        userName={user.name || 'Supervisor'}
+        showBack={false}
+        showNotifications={true}
+        showProfile={true}
+      />
+      
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>{user.name || 'Supervisor'}</Text>
-          </View>
-          <TouchableOpacity style={styles.settingsButton}>
-            <Settings size={24} color={COLORS.text} />
-          </TouchableOpacity>
-        </View>
-
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
@@ -260,32 +257,11 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
-  },
-  welcomeText: {
-    fontSize: 16,
-    color: COLORS.textMuted,
-    fontWeight: '500',
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginTop: 4,
-  },
-  settingsButton: {
-    padding: 8,
-  },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingHorizontal: 20,
+    marginTop: 20,
     marginBottom: 30,
   },
   statCard: {

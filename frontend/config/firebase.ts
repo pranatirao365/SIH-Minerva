@@ -24,8 +24,31 @@ const app = initializeApp(firebaseConfig);
 // Firebase automatically uses AsyncStorage for persistence in React Native
 export const auth = getAuth(app);
 
-// Initialize Firestore with minerva1 database
+// Initialize Firestore with minerva1 database and offline support
 export const db = getFirestore(app, 'minerva1');
+
+// Enable offline persistence for better reliability
+import { enableIndexedDbPersistence, enableNetwork } from 'firebase/firestore';
+
+// Enable offline support (only run once)
+try {
+  enableIndexedDbPersistence(db, {
+    forceOwnership: true
+  }).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('⚠️ Firestore persistence failed: Multiple tabs open');
+    } else if (err.code === 'unimplemented') {
+      console.warn('⚠️ Firestore persistence not available in this browser');
+    }
+  });
+} catch (err) {
+  console.warn('⚠️ Firestore persistence setup error:', err);
+}
+
+// Ensure network is enabled
+enableNetwork(db).catch((err) => {
+  console.warn('⚠️ Failed to enable Firestore network:', err);
+});
 
 // Initialize Firebase Storage
 // Firebase will automatically use the bucket from firebaseConfig

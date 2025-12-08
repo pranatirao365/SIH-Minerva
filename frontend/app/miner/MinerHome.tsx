@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmergencyButton } from '../../components/EmergencyButton';
+import AppHeader from '../../components/AppHeader';
 import {
     Activity,
     AlertTriangle,
@@ -111,6 +112,7 @@ export default function MinerHome() {
   }, []);
 
   const quickActions = [
+    { icon: Trophy, label: 'Training Journey', route: '/miner/TrainingModule', color: '#9C27B0' },
     { icon: Clipboard, label: 'Daily Checklist', route: '/miner/DailyChecklist', color: '#10B981' },
     { icon: Tool, label: 'Equipment Check', route: '/miner/EquipmentCheck', color: '#3B82F6' },
     { icon: Heart, label: 'Health Monitor', route: '/miner/HealthMonitoring', color: '#EF4444' },
@@ -170,27 +172,30 @@ export default function MinerHome() {
     <SafeAreaView style={styles.container}>
       <OfflineBanner />
       
+      {/* App Header with Notification & Profile */}
+      <AppHeader 
+        userName={user.name || 'Miner'}
+        showBack={false}
+        showNotifications={true}
+        showProfile={true}
+      />
+      
       <ScrollView style={styles.scrollView}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.userName}>{user.name || 'Miner'}</Text>
-          
-          {/* Safety Score */}
-          <View style={styles.scoreCard}>
-            <View style={styles.scoreContent}>
-              <View>
-                <Text style={styles.scoreLabel}>
-                  {translator.translate('safetyScore')}
-                </Text>
-                <Text style={styles.scoreValue}>{safetyScore}%</Text>
-              </View>
-              <TrendingUp size={40} color={COLORS.primary} />
+        {/* Safety Score Card */}
+        <View style={styles.scoreCard}>
+          <View style={styles.scoreContent}>
+            <View>
+              <Text style={styles.scoreLabel}>
+                {translator.translate('safetyScore')}
+              </Text>
+              <Text style={styles.scoreValue}>{safetyScore}%</Text>
             </View>
+            <TrendingUp size={40} color={COLORS.primary} />
           </View>
+        </View>
 
-          {/* Smart Helmet Status Widget */}
-          <View style={styles.helmetCard}>
+        {/* Smart Helmet Status Widget */}
+        <View style={styles.helmetCard}>
             <View style={styles.helmetHeader}>
               <View style={styles.helmetTitleRow}>
                 <Activity size={24} color="#10B981" />
@@ -292,7 +297,6 @@ export default function MinerHome() {
                 </Text>
               </View>
             )}
-          </View>
         </View>
 
         {/* Training Progress */}
@@ -434,25 +438,8 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  header: {
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-    backgroundColor: COLORS.card,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  welcomeText: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginTop: 4,
-  },
   scoreCard: {
-    marginTop: 16,
+    margin: 16,
     backgroundColor: COLORS.primary + '20',
     borderRadius: 12,
     padding: 16,

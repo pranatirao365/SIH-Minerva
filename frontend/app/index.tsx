@@ -8,7 +8,7 @@ import { testFirebaseSetup } from '../services/testFirebaseSetup';
 export default function Index() {
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
-  const { isAuthenticated, user } = useRoleStore();
+  const { isAuthenticated, user, languagePreferenceSet } = useRoleStore();
 
   useEffect(() => {
     // Test Firebase connection on app start (development only)
@@ -26,9 +26,17 @@ export default function Index() {
 
     // Small delay to ensure layout is mounted
     const timeout = setTimeout(() => {
+      console.log('🔍 [INDEX] Navigation check:', {
+        isAuthenticated,
+        userRole: user?.role,
+        languagePreferenceSet,
+        userId: user?.id
+      });
+      
       // Check authentication status
       if (!isAuthenticated) {
-        router.replace('/auth/LanguageSelect');
+        console.log('🔐 [INDEX] User not authenticated - redirecting to PhoneLogin');
+        router.replace('/auth/PhoneLogin');
       } else {
         // Navigate to appropriate home based on role
         const routes: Record<string, string> = {
@@ -39,7 +47,15 @@ export default function Index() {
           'admin': '/admin/AdminHome',
         };
         
+        // Special handling for miners: check language preference
+        if (user.role === 'miner' && !languagePreferenceSet) {
+          console.log('🆕 [INDEX] Miner without language preference - redirecting to LanguagePreference');
+          router.replace('/miner/LanguagePreference');
+          return;
+        }
+        
         const route = routes[user.role || 'miner'];
+        console.log('🏠 [INDEX] Redirecting to:', route);
         router.replace(route as any);
       }
     }, 100);

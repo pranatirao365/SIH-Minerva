@@ -71,20 +71,29 @@ export async function createVideoAssignment(
       throw new Error('Missing required fields for assignment');
     }
 
-    // Get miner details for department information
+    // Get miner details for department and language information
     const minerDepartments: string[] = [];
+    const minerLanguages: Record<string, string> = {};
     for (const minerId of assignedMinerIds) {
       try {
         const minerRef = doc(db, 'users', minerId);
         const minerSnap = await getDoc(minerRef);
         if (minerSnap.exists()) {
-          const dept = minerSnap.data()?.department;
+          const data = minerSnap.data();
+          const dept = data?.department;
+          const lang = data?.language || 'en';
+          
           if (dept && !minerDepartments.includes(dept)) {
             minerDepartments.push(dept);
           }
+          
+          minerLanguages[minerId] = lang;
+        } else {
+          minerLanguages[minerId] = 'en'; // Default to English
         }
       } catch (err) {
-        console.warn(`Could not fetch department for miner ${minerId}`);
+        console.warn(`Could not fetch details for miner ${minerId}`);
+        minerLanguages[minerId] = 'en'; // Default to English
       }
     }
 
@@ -107,6 +116,7 @@ export async function createVideoAssignment(
         completedAt: null,
         lastUpdated: now,
         watched: false, // Explicit watched flag
+        language: minerLanguages[minerId] || 'en',
       };
     });
 

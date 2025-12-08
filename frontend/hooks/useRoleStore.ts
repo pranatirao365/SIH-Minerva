@@ -20,12 +20,14 @@ interface RoleState {
   user: User;
   language: Language;
   isAuthenticated: boolean;
+  languagePreferenceSet: boolean;
   moduleProgress: ModuleProgress;
   safetyScore: number;
   setUser: (user: Partial<User>) => void;
   setLanguage: (language: Language) => void;
   setAuthenticated: (isAuthenticated: boolean) => void;
   setRole: (role: Role) => void;
+  setLanguagePreferenceSet: (set: boolean) => void;
   completeModule: (module: keyof ModuleProgress) => void;
   updateSafetyScore: (score: number) => void;
   logout: () => void;
@@ -40,6 +42,7 @@ export const useRoleStore = create<RoleState>((set) => ({
   },
   language: 'en',
   isAuthenticated: false,
+  languagePreferenceSet: false,
   moduleProgress: {
     video: false,
     briefing: false,
@@ -55,6 +58,7 @@ export const useRoleStore = create<RoleState>((set) => ({
   setRole: (role) => set((state) => ({
     user: { ...state.user, role },
   })),
+  setLanguagePreferenceSet: (languagePreferenceSet) => set({ languagePreferenceSet }),
   completeModule: (module) => set((state) => ({
     moduleProgress: { ...state.moduleProgress, [module]: true },
   })),
@@ -62,6 +66,7 @@ export const useRoleStore = create<RoleState>((set) => ({
   logout: () => set({
     user: { id: '', name: '', phone: '', role: null },
     isAuthenticated: false,
+    languagePreferenceSet: false,
     moduleProgress: { video: false, briefing: false, quiz: false, game: false },
     safetyScore: 0,
   }),

@@ -125,10 +125,10 @@ export default function SmartWorkAssignment() {
 
     setSearchingVideos(true);
     try {
-      // Search for videos with 80% or higher similarity
+      // Search for videos with 60% or higher similarity (considering both topic and description)
       const matches = await VideoLibraryService.searchVideosBySimilarity(
         workDescription,
-        80,
+        60,
         language !== 'all' ? language : undefined
       );
 
@@ -139,7 +139,7 @@ export default function SmartWorkAssignment() {
         // No matching videos found - offer to request generation
         Alert.alert(
           '🔍 No Matching Videos',
-          'No videos found matching your description (80% threshold). Would you like to request a new video to be generated?',
+          'No videos found matching your description (60% threshold). Would you like to request a new video to be generated?',
           [
             { text: 'Cancel', style: 'cancel' },
             { 
@@ -531,7 +531,7 @@ export default function SmartWorkAssignment() {
               <>
                 <Sparkles size={20} color="#fff" />
                 <Text style={styles.searchButtonText}>
-                  Search Matching Videos (80%+)
+                  Search Matching Videos (60%+)
                 </Text>
               </>
             )}
@@ -553,7 +553,7 @@ export default function SmartWorkAssignment() {
                 <View style={styles.resultsInfo}>
                   <AlertCircle size={16} color={COLORS.accent} />
                   <Text style={styles.resultsInfoText}>
-                    Found {matchedVideos.length} video(s) matching your description above 80% threshold
+                    Found {matchedVideos.length} video(s) matching your description above 60% threshold
                   </Text>
                 </View>
 
@@ -569,7 +569,7 @@ export default function SmartWorkAssignment() {
                 <XCircle size={48} color={COLORS.textMuted} />
                 <Text style={styles.noResultsTitle}>No Matching Videos</Text>
                 <Text style={styles.noResultsText}>
-                  No videos found with 80% or higher similarity.
+                  No videos found with 60% or higher similarity.
                   Request a new video to be generated?
                 </Text>
 

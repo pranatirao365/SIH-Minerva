@@ -25,7 +25,7 @@ export default function AppHeader({
   const handleLogout = () => {
     setShowProfileMenu(false);
     logout();
-    router.replace('/auth/LanguageSelect' as any);
+    router.replace('/auth/PhoneLogin' as any);
   };
 
   const handleProfilePress = () => {

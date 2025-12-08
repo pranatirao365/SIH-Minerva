@@ -142,7 +142,7 @@ const PreBlastInspection: React.FC<PreBlastInspectionProps> = ({ language, onCom
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={{ uri: 'https://images.unsplash.com/photo-1628744448840-55bdb2497bd4?w=3840&q=80&fit=crop' }}
+        source={require('../../../assets/images/blasting1.png')}
         style={styles.background}
         resizeMode="cover"
       >

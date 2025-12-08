@@ -221,7 +221,7 @@ export default function HazardScan() {
           `Cannot connect to backend at ${API_URL}.\n\n` +
           `Ensure:\n` +
           `1. Backend is running (python hazard_detection_api.py)\n` +
-          `2. Phone and PC are on same network (IP: ${process.env.EXPO_PUBLIC_IP_ADDRESS || '192.168.137.x'})\n` +
+          `2. Phone and PC are on same network (IP: ${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.x'})\n` +
           `3. Check if PC firewall is blocking port 8001`
         );
       }

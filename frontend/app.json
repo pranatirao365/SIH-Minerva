@@ -9,7 +9,7 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "packagerOpts": {
-      "host": "172.16.58.121"
+      "host": "192.168.137.122"
     },
     "ios": {
       "supportsTablet": true,

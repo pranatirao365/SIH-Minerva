@@ -7,38 +7,72 @@ import AudioPlayer from '../../components/AudioPlayer';
 import { AlertTriangle, ArrowLeft, Camera, CheckSquare, FileText, Mic } from '../../components/Icons';
 import type { Incident } from '../../services/incidentService';
 import { subscribeToIncidents, updateIncidentStatus } from '../../services/incidentService';
+import { getMinersBySupervisor } from '../../services/minerService';
+import { useRoleStore } from '../../hooks/useRoleStore';
 
 export default function IncidentDashboard() {
   const router = useRouter();
+  const { user } = useRoleStore();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'reviewed' | 'resolved'>('all');
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [updatingReviewed, setUpdatingReviewed] = useState(false);
   const [updatingResolved, setUpdatingResolved] = useState(false);
+  const [supervisorMinerIds, setSupervisorMinerIds] = useState<string[]>([]);
 
   useEffect(() => {
-    console.log('📊 Subscribing to incidents...');
-    
-    // Set timeout to stop loading after 3 seconds
-    const loadingTimeout = setTimeout(() => {
-      console.log('⏱️ Loading timeout - using fallback');
-      setLoading(false);
-    }, 3000);
+    const loadSupervisorMinersAndIncidents = async () => {
+      if (!user?.id) {
+        console.error('❌ Supervisor ID not found');
+        setLoading(false);
+        return;
+      }
 
-    const unsubscribe = subscribeToIncidents((newIncidents) => {
-      console.log('📥 Received incidents:', newIncidents.length);
-      clearTimeout(loadingTimeout);
-      setIncidents(newIncidents);
-      setLoading(false);
-    });
+      try {
+        // Step 1: Fetch all miners belonging to this supervisor
+        console.log('👥 Fetching miners for supervisor:', user.id);
+        const miners = await getMinersBySupervisor(user.id);
+        const minerIds = miners.map(m => m.id);
+        setSupervisorMinerIds(minerIds);
+        console.log('✅ Found', minerIds.length, 'miners for supervisor');
+        console.log('📋 Miner IDs:', minerIds);
 
-    return () => {
-      console.log('🔌 Unsubscribing from incidents');
-      clearTimeout(loadingTimeout);
-      unsubscribe();
+        // Step 2: Subscribe to all incidents
+        console.log('📊 Subscribing to incidents...');
+        
+        const loadingTimeout = setTimeout(() => {
+          console.log('⏱️ Loading timeout - using fallback');
+          setLoading(false);
+        }, 3000);
+
+        const unsubscribe = subscribeToIncidents((allIncidents) => {
+          console.log('📥 Received incidents:', allIncidents.length);
+          clearTimeout(loadingTimeout);
+          
+          // Step 3: Filter incidents to only include those from supervisor's miners
+          const filteredIncidents = allIncidents.filter(incident => 
+            minerIds.includes(incident.reportedBy)
+          );
+          
+          console.log('✅ Filtered to', filteredIncidents.length, 'incidents from supervisor\'s miners');
+          setIncidents(filteredIncidents);
+          setLoading(false);
+        });
+
+        return () => {
+          console.log('🔌 Unsubscribing from incidents');
+          clearTimeout(loadingTimeout);
+          unsubscribe();
+        };
+      } catch (error) {
+        console.error('❌ Error loading supervisor miners:', error);
+        setLoading(false);
+      }
     };
-  }, []);
+
+    loadSupervisorMinersAndIncidents();
+  }, [user?.id]);
 
   const filteredIncidents = incidents.filter(incident => 
     filter === 'all' ? true : incident.status === filter

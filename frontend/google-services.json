@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "929345200458",
-    "project_id": "sihtut-1",
-    "storage_bucket": "sihtut-1.firebasestorage.app"
+    "project_number": "163692260644",
+    "project_id": "sih-dec-2025",
+    "storage_bucket": "sih-dec-2025.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:929345200458:android:0a27dab54e23bb078ae1b3",
+        "mobilesdk_app_id": "1:163692260644:android:6a5b8c9d1e2f3a4b2317b1",
         "android_client_info": {
           "package_name": "com.minerva.mobile"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyB31h1DrohljL9c4cPeu3PncbDV1O1EutI"
+          "current_key": "AIzaSyAJZRgI_Zpp2iyeqBvreMhQCzvFxfHL2W0"
         }
       ],
       "services": {

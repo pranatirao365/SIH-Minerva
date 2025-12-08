@@ -975,7 +975,7 @@ export class VideoLibraryService {
     description: string,
     threshold: number = 80,
     language?: string
-  ): Promise<Array<VideoDocument & { similarityScore: number }>> {
+  ): Promise<(VideoDocument & { similarityScore: number })[]> {
     try {
       console.log('🔍 Searching videos by similarity...');
       console.log('📝 Description:', description);
@@ -990,7 +990,7 @@ export class VideoLibraryService {
       }
 
       const querySnapshot = await getDocs(q);
-      const matches: Array<VideoDocument & { similarityScore: number }> = [];
+      const matches: (VideoDocument & { similarityScore: number })[] = [];
 
       querySnapshot.forEach((docSnap) => {
         const video = docSnap.data() as VideoDocument;

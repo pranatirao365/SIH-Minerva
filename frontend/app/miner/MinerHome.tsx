@@ -132,7 +132,7 @@ export default function MinerHome() {
     { 
       icon: Video, 
       label: 'Watch Video', 
-      route: '/miner/SafetyVideoPlayer', 
+      route: '/miner/watch-video', 
       completed: moduleProgress.video,
       locked: false
     },

@@ -1,0 +1,98 @@
+// =====================================================
+// FIREBASE SECURITY RULES FOR HAZARD SCANS
+// =====================================================
+
+// ========== FIRESTORE RULES ==========
+// Add these rules to your firestore.rules file
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Hazard Scans Collection - User can only access their own scans
+    match /hazard_scans/{scanId} {
+      // Allow read if the user is authenticated and the document belongs to them
+      allow read: if request.auth != null && 
+                     resource.data.userId == request.auth.uid;
+      
+      // Allow create if the user is authenticated and creating their own document
+      allow create: if request.auth != null && 
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.keys().hasAll(['scanId', 'userId', 'imageUrl', 'hazardType', 'confidence', 'description', 'timestamp']);
+      
+      // Allow update if the user owns the document (for adding additional data)
+      allow update: if request.auth != null && 
+                       resource.data.userId == request.auth.uid;
+      
+      // Allow delete if the user owns the document
+      allow delete: if request.auth != null && 
+                       resource.data.userId == request.auth.uid;
+    }
+    
+    // Optional: Allow safety officers to read all hazard scans
+    match /hazard_scans/{scanId} {
+      allow read: if request.auth != null && 
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'safety-officer';
+    }
+  }
+}
+
+// ========== STORAGE RULES ==========
+// Add these rules to your storage.rules file
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Hazard Scan Images - User-specific access
+    match /hazard_scans/{userId}/{scanId} {
+      // Allow read if the user is authenticated and accessing their own files
+      allow read: if request.auth != null && 
+                     request.auth.uid == userId;
+      
+      // Allow write (upload) if the user is authenticated and uploading to their own folder
+      allow write: if request.auth != null && 
+                      request.auth.uid == userId &&
+                      request.resource.size < 10 * 1024 * 1024 && // Max 10MB
+                      request.resource.contentType.matches('image/.*'); // Only images
+      
+      // Allow delete if the user owns the file
+      allow delete: if request.auth != null && 
+                       request.auth.uid == userId;
+    }
+    
+    // Optional: Allow safety officers to read all hazard scan images
+    match /hazard_scans/{userId}/{scanId} {
+      allow read: if request.auth != null && 
+                     firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'safety-officer';
+    }
+  }
+}
+
+// =====================================================
+// FIRESTORE INDEXES
+// =====================================================
+// Add these composite indexes to firestore.indexes.json
+
+{
+  "indexes": [
+    {
+      "collectionGroup": "hazard_scans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hazard_scans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "hazardType", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -187,8 +187,7 @@ const MinerForm = React.memo(({ formData, setFormData }: { formData: any, setFor
       </TouchableOpacity>
     </View>
   </View>
-);
-});
+));
 
 const SupervisorForm = React.memo(({ formData, setFormData, minersList, setShowMinerModal }: { formData: any, setFormData: any, minersList: User[], setShowMinerModal: (show: boolean) => void }) => (
   <View>
@@ -288,8 +287,7 @@ const SupervisorForm = React.memo(({ formData, setFormData, minersList, setShowM
       )}
     </View>
   </View>
-);
-});
+));
 
 const SafetyOfficerForm = React.memo(({ formData, setFormData }: { formData: any, setFormData: any }) => (
   <View>
@@ -392,8 +390,7 @@ const SafetyOfficerForm = React.memo(({ formData, setFormData }: { formData: any
       </TouchableOpacity>
     </View>
   </View>
-);
-});
+));
 
 const EngineerForm = React.memo(({ formData, setFormData }: { formData: any, setFormData: any }) => (
   <View>
@@ -514,8 +511,7 @@ const EngineerForm = React.memo(({ formData, setFormData }: { formData: any, set
       </TouchableOpacity>
     </View>
   </View>
-);
-});
+));
 
 export default function AdminHome() {
   const router = useRouter();

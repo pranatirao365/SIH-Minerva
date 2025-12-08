@@ -1,4 +1,4 @@
-import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit, Timestamp, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
 
@@ -782,6 +782,69 @@ export class VideoLibraryService {
 
       await setDoc(requestRef, requestDoc);
       console.log('✅ Video request created successfully:', requestId);
+
+      // Create notifications for all safety officers
+      try {
+        console.log('🔍 Searching for safety officers...');
+        // Try both role formats (with hyphen and underscore)
+        const safetyOfficersQuery1 = query(
+          collection(db, 'users'),
+          where('role', '==', 'safety-officer')
+        );
+        const safetyOfficersQuery2 = query(
+          collection(db, 'users'),
+          where('role', '==', 'safety_officer')
+        );
+        
+        const [snapshot1, snapshot2] = await Promise.all([
+          getDocs(safetyOfficersQuery1),
+          getDocs(safetyOfficersQuery2)
+        ]);
+        
+        // Combine results and remove duplicates
+        const safetyOfficerDocs = new Map();
+        snapshot1.docs.forEach(doc => safetyOfficerDocs.set(doc.id, doc));
+        snapshot2.docs.forEach(doc => safetyOfficerDocs.set(doc.id, doc));
+        
+        const safetyOfficersSnapshot = Array.from(safetyOfficerDocs.values());
+        
+        console.log(`📋 Found ${safetyOfficersSnapshot.length} safety officers`);
+
+        const notificationPromises = safetyOfficersSnapshot.map(async (safetyOfficerDoc) => {
+          const safetyOfficer = safetyOfficerDoc.data();
+          const priorityEmoji = requestData.priority === 'urgent' ? '🚨' : requestData.priority === 'high' ? '⚠️' : requestData.priority === 'medium' ? '📹' : '📝';
+          
+          console.log(`📧 Creating notification for safety officer: ${safetyOfficerDoc.id} (${safetyOfficer.name})`);
+          
+          return addDoc(collection(db, 'notifications'), {
+            recipientId: safetyOfficerDoc.id,
+            recipientName: safetyOfficer.name || 'Safety Officer',
+            senderId: requestData.requestedBy,
+            senderName: requestData.requestedByName,
+            type: 'video_request',
+            title: `${priorityEmoji} New Video Request`,
+            message: `${requestData.requestedByName} has requested a video on "${requestData.topic}". ${requestData.description}`,
+            priority: requestData.priority,
+            read: false,
+            actionRequired: true,
+            createdAt: Timestamp.now(),
+            metadata: {
+              requestId,
+              videoTopic: requestData.topic,
+              requestPriority: requestData.priority,
+              requestDescription: requestData.description,
+              requestLanguage: requestData.language,
+            },
+          });
+        });
+
+        await Promise.all(notificationPromises);
+        console.log(`✅ Video request notifications sent to ${safetyOfficersSnapshot.length} safety officers`);
+      } catch (notificationError) {
+        console.error('❌ Error creating notifications for video request:', notificationError);
+        // Don't throw - request was created successfully even if notifications failed
+      }
+
       return requestId;
     } catch (error) {
       console.error('❌ Error creating video request:', error);

@@ -2,10 +2,29 @@ import { SupervisorProvider } from '@/contexts/SupervisorContext';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import * as Notifications from 'expo-notifications';
 import 'react-native-reanimated';
 import '../polyfills';
 
 export default function RootLayout() {
+  useEffect(() => {
+    // Set up notification handler
+    const subscription = Notifications.addNotificationReceivedListener(notification => {
+      console.log('Notification received:', notification);
+    });
+
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('Notification response:', response);
+      // Handle notification tap - could navigate to relevant screen
+    });
+
+    return () => {
+      subscription.remove();
+      responseSubscription.remove();
+    };
+  }, []);
+
   return (
     <SupervisorProvider>
       <ThemeProvider value={DarkTheme}>

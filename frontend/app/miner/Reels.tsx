@@ -18,7 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
-import { Heart, MessageCircle, Share2, Send, Bookmark, Volume2, User, UserPlus, UserCheck, Eye } from '../../components/Icons';
+import { Heart, MessageCircle, Send, Bookmark, Volume2, User, UserPlus, UserCheck, Eye } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import { MinerFooter } from '../../components/BottomNav';
@@ -114,11 +114,14 @@ export default function Reels() {
     const loadUserFollowingList = async () => {
         try {
             const userProfile = await getUserProfile(currentUserId);
-            if (userProfile) {
+            if (userProfile && userProfile.following) {
                 setFollowingUsers(new Set(userProfile.following));
+            } else {
+                setFollowingUsers(new Set());
             }
         } catch (error) {
             console.error('Error loading following list:', error);
+            setFollowingUsers(new Set());
         }
     };
 
@@ -532,32 +535,48 @@ export default function Reels() {
     };
 
     const handleFollow = async (userId: string) => {
-        if (!currentUserId || userId === currentUserId) return;
+        console.log('🔵 Follow button clicked for userId:', userId);
+        console.log('🔵 Current user ID:', currentUserId);
+        console.log('🔵 Currently following:', Array.from(followingUsers));
+        
+        if (!currentUserId || userId === currentUserId) {
+            console.log('⚠️ Cannot follow: invalid user IDs');
+            return;
+        }
 
         const isFollowing = followingUsers.has(userId);
+        console.log(`🔵 User is ${isFollowing ? 'already following' : 'not following'} this user`);
 
         // Optimistic update - update UI immediately
         if (isFollowing) {
             setFollowingUsers(prev => {
                 const newSet = new Set(prev);
                 newSet.delete(userId);
+                console.log('🟡 Optimistically unfollowed, new set:', Array.from(newSet));
                 return newSet;
             });
         } else {
-            setFollowingUsers(prev => new Set([...prev, userId]));
+            setFollowingUsers(prev => {
+                const newSet = new Set([...prev, userId]);
+                console.log('🟡 Optimistically followed, new set:', Array.from(newSet));
+                return newSet;
+            });
         }
 
         try {
             if (isFollowing) {
+                console.log('📤 Calling unfollowUser API...');
                 const success = await unfollowUser(currentUserId, userId);
                 if (success) {
                     console.log('✅ Successfully unfollowed user:', userId);
                 } else {
                     // Revert on failure
                     setFollowingUsers(prev => new Set([...prev, userId]));
-                    console.log('❌ Failed to unfollow user');
+                    console.log('❌ Failed to unfollow user - reverted');
+                    Alert.alert('Error', 'Failed to unfollow user. Please try again.');
                 }
             } else {
+                console.log('📤 Calling followUser API...');
                 const success = await followUser(currentUserId, userId);
                 if (success) {
                     console.log('✅ Successfully followed user:', userId);
@@ -568,11 +587,12 @@ export default function Reels() {
                         newSet.delete(userId);
                         return newSet;
                     });
-                    console.log('❌ Failed to follow user');
+                    console.log('❌ Failed to follow user - reverted');
+                    Alert.alert('Error', 'Failed to follow user. Please try again.');
                 }
             }
         } catch (error) {
-            console.error('Error following/unfollowing:', error);
+            console.error('❌ Error following/unfollowing:', error);
             // Revert on error
             if (isFollowing) {
                 setFollowingUsers(prev => new Set([...prev, userId]));
@@ -583,7 +603,7 @@ export default function Reels() {
                     return newSet;
                 });
             }
-            Alert.alert('❌ Error', 'Failed to update follow status');
+            Alert.alert('❌ Error', 'Failed to update follow status. Please check your connection.');
         }
     };
 
@@ -729,16 +749,6 @@ export default function Reels() {
                     >
                         <MessageCircle size={32} color="#FFF" />
                         <Text style={styles.actionText}>{item.comments.length}</Text>
-                    </TouchableOpacity>
-
-                    {/* Share */}
-                    <TouchableOpacity 
-                        style={styles.actionButton}
-                        onPress={() => handleShare(item.id)}
-                        activeOpacity={0.7}
-                    >
-                        <Share2 size={30} color="#FFF" />
-                        <Text style={styles.actionText}>{item.shares}</Text>
                     </TouchableOpacity>
                 </View>
 

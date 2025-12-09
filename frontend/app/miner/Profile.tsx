@@ -9,7 +9,10 @@ import {
     Image,
     Dimensions,
     ActivityIndicator,
+    Modal,
+    Pressable,
 } from 'react-native';
+import { Video as ExpoVideo, ResizeMode } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useRoleStore } from '../../hooks/useRoleStore';
@@ -36,12 +39,28 @@ const GRID_ITEM_SIZE = (width - 48) / 3; // 3 columns with padding
 
 type TabType = 'posts' | 'reels' | 'safety';
 
+interface Post {
+    id: string;
+    mediaUrl: string;
+    videoUrl?: string;
+    videoType: 'photo' | 'video';
+    caption: string;
+    likedBy: any[];
+    comments: any[];
+    timestamp: any;
+}
+
 export default function MinerProfileScreen() {
     const router = useRouter();
     const { user, logout, safetyScore } = useRoleStore();
     const [activeTab, setActiveTab] = useState<TabType>('posts');
     const [profileData, setProfileData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [userPosts, setUserPosts] = useState<Post[]>([]);
+    const [userReels, setUserReels] = useState<Post[]>([]);
+    const [loadingPosts, setLoadingPosts] = useState(false);
+    const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+    const [modalVisible, setModalVisible] = useState(false);
 
     const currentUserId = user?.id || user?.phone || '';
 
@@ -132,6 +151,110 @@ export default function MinerProfileScreen() {
         }
     };
 
+    // Load user posts and reels
+    useEffect(() => {
+        if (currentUserId) {
+            loadUserMedia();
+        }
+    }, [currentUserId]);
+
+    const loadUserMedia = async () => {
+        setLoadingPosts(true);
+        try {
+            console.log('🔍 Loading media for userId:', currentUserId);
+            
+            const postsQuery = query(
+                collection(db, 'posts'),
+                where('userId', '==', currentUserId)
+            );
+            
+            const snapshot = await getDocs(postsQuery);
+            console.log('📦 Total posts found:', snapshot.size);
+            
+            // Use a Set to track unique post IDs and prevent duplicates
+            const seenIds = new Set<string>();
+            
+            const allPosts: Post[] = [];
+            const photos: Post[] = [];
+            const videos: Post[] = [];
+            
+            snapshot.forEach((doc) => {
+                // Skip if we've already seen this post ID (prevent duplicates)
+                if (seenIds.has(doc.id)) {
+                    console.log('⚠️ Skipping duplicate post:', doc.id);
+                    return;
+                }
+                seenIds.add(doc.id);
+                
+                const data = doc.data();
+                
+                // Skip posts without valid URLs
+                const url = data.mediaUrl || data.videoUrl || '';
+                if (!url || url.trim() === '') {
+                    console.log('⚠️ Skipping post without URL:', doc.id);
+                    return;
+                }
+                
+                console.log('📄 Valid Post:', {
+                    id: doc.id,
+                    videoType: data.videoType,
+                    url: url.substring(0, 50) + '...',
+                });
+                
+                const post: Post = {
+                    id: doc.id,
+                    mediaUrl: url,
+                    videoUrl: url,
+                    videoType: data.videoType || 'photo',
+                    caption: data.caption || '',
+                    likedBy: data.likedBy || [],
+                    comments: data.comments || [],
+                    timestamp: data.timestamp,
+                };
+                
+                allPosts.push(post);
+                
+                // More flexible matching for videoType
+                const type = (data.videoType || '').toString().toLowerCase();
+                console.log(`Checking post ${doc.id} with type: "${type}"`);
+                
+                if (type === 'photo' || type === 'image') {
+                    console.log(`✅ Adding to photos: ${doc.id}`);
+                    photos.push(post);
+                } else if (type === 'video') {
+                    console.log(`✅ Adding to videos: ${doc.id}`);
+                    videos.push(post);
+                } else {
+                    // If no videoType or unrecognized, check URL extension
+                    const url = data.mediaUrl || data.videoUrl || '';
+                    if (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi')) {
+                        console.log(`✅ Adding to videos (by extension): ${doc.id}`);
+                        videos.push(post);
+                    } else {
+                        // Default to photo for images
+                        console.log(`✅ Adding to photos (default): ${doc.id}`);
+                        photos.push(post);
+                    }
+                }
+            });
+            
+            // Sort by timestamp (newest first)
+            photos.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+            videos.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+            
+            setUserPosts(photos);
+            setUserReels(videos);
+            
+            console.log(`📸 Loaded ${photos.length} photos and ${videos.length} videos for profile grid`);
+            console.log('Photos IDs:', photos.map(p => p.id));
+            console.log('Videos IDs:', videos.map(v => v.id));
+        } catch (error) {
+            console.error('❌ Error loading user media:', error);
+        } finally {
+            setLoadingPosts(false);
+        }
+    };
+
     const handleLogout = () => {
         Alert.alert(
             'Logout',
@@ -163,13 +286,22 @@ export default function MinerProfileScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.username}>{user.name || 'Miner'}</Text>
-                    <TouchableOpacity 
-                        style={styles.logoutButton}
-                        onPress={handleLogout}
-                        activeOpacity={0.8}
-                    >
-                        <Text style={styles.logoutButtonText}>Logout</Text>
-                    </TouchableOpacity>
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity 
+                            style={styles.fixButton}
+                            onPress={() => router.push('/admin/fix-posts')}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.fixButtonText}>🔧 Fix Posts</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={styles.logoutButton}
+                            onPress={handleLogout}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.logoutButtonText}>Logout</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Profile Info */}
@@ -281,17 +413,80 @@ export default function MinerProfileScreen() {
                 {/* Content Grid */}
                 <View style={styles.contentContainer}>
                     {activeTab === 'posts' && (
-                        <View style={styles.emptyState}>
-                            <Text style={styles.emptyStateText}>No posts yet</Text>
-                            <Text style={styles.emptyStateSubtext}>Your uploaded photos will appear here</Text>
-                        </View>
+                        loadingPosts ? (
+                            <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
+                        ) : userPosts.length > 0 ? (
+                            <View style={styles.postsGrid}>
+                                {userPosts.map((post) => (
+                                    <TouchableOpacity
+                                        key={post.id}
+                                        style={styles.gridItem}
+                                        activeOpacity={0.8}
+                                        onPress={() => {
+                                            console.log('📸 Opening post:', post.id, 'URL:', post.mediaUrl);
+                                            setSelectedPost(post);
+                                            setModalVisible(true);
+                                        }}
+                                    >
+                                        <Image
+                                            source={{ uri: post.mediaUrl }}
+                                            style={styles.gridImage}
+                                            resizeMode="cover"
+                                            onLoad={() => console.log('✅ Image loaded:', post.id)}
+                                            onError={(error) => console.log('❌ Image error:', post.id, error.nativeEvent)}
+                                        />
+                                        <View style={styles.gridOverlay}>
+                                            <Text style={styles.gridStats}>❤️ {post.likedBy.length}</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        ) : (
+                            <View style={styles.emptyState}>
+                                <Text style={styles.emptyStateText}>No posts yet</Text>
+                                <Text style={styles.emptyStateSubtext}>Your uploaded photos will appear here</Text>
+                            </View>
+                        )
                     )}
                     
                     {activeTab === 'reels' && (
-                        <View style={styles.emptyState}>
-                            <Text style={styles.emptyStateText}>No videos yet</Text>
-                            <Text style={styles.emptyStateSubtext}>Your uploaded videos will appear here</Text>
-                        </View>
+                        loadingPosts ? (
+                            <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
+                        ) : userReels.length > 0 ? (
+                            <View style={styles.postsGrid}>
+                                {userReels.map((reel) => (
+                                    <TouchableOpacity
+                                        key={reel.id}
+                                        style={styles.gridItem}
+                                        activeOpacity={0.8}
+                                        onPress={() => {
+                                            console.log('🎥 Opening reel:', reel.id, 'URL:', reel.mediaUrl);
+                                            setSelectedPost(reel);
+                                            setModalVisible(true);
+                                        }}
+                                    >
+                                        <Image
+                                            source={{ uri: reel.mediaUrl }}
+                                            style={styles.gridImage}
+                                            resizeMode="cover"
+                                            onLoad={() => console.log('✅ Video thumbnail loaded:', reel.id)}
+                                            onError={(error) => console.log('❌ Video thumbnail error:', reel.id, error.nativeEvent)}
+                                        />
+                                        <View style={styles.videoIndicator}>
+                                            <Video size={24} color="#FFF" />
+                                        </View>
+                                        <View style={styles.gridOverlay}>
+                                            <Text style={styles.gridStats}>❤️ {reel.likedBy.length}</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        ) : (
+                            <View style={styles.emptyState}>
+                                <Text style={styles.emptyStateText}>No videos yet</Text>
+                                <Text style={styles.emptyStateSubtext}>Your uploaded videos will appear here</Text>
+                            </View>
+                        )
                     )}
                     
                     {activeTab === 'safety' && (
@@ -323,6 +518,71 @@ export default function MinerProfileScreen() {
 
                 
             </ScrollView>
+
+            {/* Media Viewer Modal */}
+            <Modal
+                visible={modalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <Pressable 
+                        style={styles.modalBackdrop} 
+                        onPress={() => setModalVisible(false)}
+                    />
+                    
+                    <View style={styles.modalContent}>
+                        {/* Close Button */}
+                        <TouchableOpacity
+                            style={styles.closeButton}
+                            onPress={() => setModalVisible(false)}
+                        >
+                            <Text style={styles.closeButtonText}>✕</Text>
+                        </TouchableOpacity>
+
+                        {/* Media Display */}
+                        {selectedPost && (
+                            <View style={styles.mediaContainer}>
+                                {selectedPost.videoType === 'video' ? (
+                                    <ExpoVideo
+                                        source={{ uri: selectedPost.videoUrl || selectedPost.mediaUrl }}
+                                        style={styles.fullMedia}
+                                        useNativeControls
+                                        resizeMode={ResizeMode.CONTAIN}
+                                        shouldPlay
+                                        onLoad={() => console.log('✅ Video loaded in modal')}
+                                        onError={(error) => console.log('❌ Video error in modal:', error)}
+                                    />
+                                ) : (
+                                    <Image
+                                        source={{ uri: selectedPost.mediaUrl }}
+                                        style={styles.fullMedia}
+                                        resizeMode="contain"
+                                        onLoad={() => console.log('✅ Image loaded in modal:', selectedPost.mediaUrl)}
+                                        onError={(error) => console.log('❌ Image error in modal:', error.nativeEvent)}
+                                    />
+                                )}
+                                
+                                {/* Caption */}
+                                {selectedPost.caption && (
+                                    <View style={styles.captionContainer}>
+                                        <Text style={styles.captionText}>{selectedPost.caption}</Text>
+                                    </View>
+                                )}
+                                
+                                {/* Stats */}
+                                <View style={styles.statsContainer}>
+                                    <Text style={styles.statsText}>
+                                        ❤️ {selectedPost.likedBy.length} likes • 
+                                        💬 {selectedPost.comments.length} comments
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </Modal>
 
             <MinerFooter activeTab="profile" />
         </SafeAreaView>
@@ -535,16 +795,54 @@ const styles = StyleSheet.create({
     contentContainer: {
         paddingTop: 2,
     },
-    grid: {
+    loader: {
+        marginTop: 40,
+    },
+    postsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 2,
         paddingHorizontal: 2,
     },
     gridItem: {
         width: GRID_ITEM_SIZE,
         height: GRID_ITEM_SIZE,
+        margin: 1,
         position: 'relative',
+        backgroundColor: COLORS.card,
+        borderRadius: 4,
+        overflow: 'hidden',
+    },
+    gridImage: {
+        width: '100%',
+        height: '100%',
+    },
+    gridOverlay: {
+        position: 'absolute',
+        bottom: 4,
+        left: 4,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        borderRadius: 4,
+    },
+    gridStats: {
+        color: '#FFF',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    videoIndicator: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        borderRadius: 20,
+        padding: 4,
+    },
+    grid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 2,
+        paddingHorizontal: 2,
     },
     gridImageContainer: {
         width: '100%',
@@ -559,11 +857,6 @@ const styles = StyleSheet.create({
     },
     gridPlaceholderEmoji: {
         fontSize: 32,
-    },
-    videoIndicator: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
     },
     safetyContent: {
         padding: 16,
@@ -608,6 +901,23 @@ const styles = StyleSheet.create({
         color: COLORS.textMuted,
         marginTop: 4,
     },
+    fixButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        backgroundColor: COLORS.primary,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: COLORS.primary,
+    },
+    fixButtonText: {
+        color: '#FFF',
+        fontSize: 13,
+        fontWeight: '700',
+    },
     logoutButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -651,5 +961,77 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: COLORS.textMuted,
         textAlign: 'center',
+    },
+    modalContainer: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.95)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalBackdrop: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+    },
+    modalContent: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    closeButton: {
+        position: 'absolute',
+        top: 50,
+        right: 20,
+        zIndex: 10,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    closeButtonText: {
+        color: '#FFF',
+        fontSize: 24,
+        fontWeight: '700',
+    },
+    mediaContainer: {
+        width: '100%',
+        height: '80%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    fullMedia: {
+        width: '100%',
+        height: '100%',
+    },
+    captionContainer: {
+        position: 'absolute',
+        bottom: 60,
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+    },
+    captionText: {
+        color: '#FFF',
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    statsContainer: {
+        position: 'absolute',
+        bottom: 20,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+    },
+    statsText: {
+        color: '#FFF',
+        fontSize: 13,
+        fontWeight: '600',
     },
 });

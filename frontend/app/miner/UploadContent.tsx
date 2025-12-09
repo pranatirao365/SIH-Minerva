@@ -230,62 +230,63 @@ export default function UploadContent() {
                 }
             }
             
-            // Create post document in Firestore (works even if Storage fails)
-            (async () => {
-            // Create post document in Firestore (works even if Storage fails)
-            (async () => {
-                // Extract hashtags from caption and hashtags field
-                const allHashtags = [...new Set([
-                    ...caption.match(/#[\w]+/g) || [],
-                    ...hashtags.split(/[\s,]+/).filter(tag => tag.startsWith('#'))
-                ])].map(tag => tag.replace('#', ''));
+            console.log('💾 Saving to Firestore with URL:', downloadURL);
+            
+            // Validate that we have a valid URL before saving
+            if (!downloadURL || downloadURL.trim() === '') {
+                throw new Error('No valid download URL - upload may have failed');
+            }
+            
+            // Extract hashtags from caption and hashtags field
+            const allHashtags = [...new Set([
+                ...caption.match(/#[\w]+/g) || [],
+                ...hashtags.split(/[\s,]+/).filter(tag => tag.startsWith('#'))
+            ])].map(tag => tag.replace('#', ''));
 
-                // Create post document in Firestore
-                const postData = {
-                    userId: user.id || user.phone,
-                    userName: user.name || 'Unknown Miner',
-                    userRole: user.role,
-                    userPhone: user.phone,
-                    videoType: mediaType === 'video' ? 'video' : 'photo',
-                    videoUrl: downloadURL, // Public URL from Firebase Storage or local URI
-                    mediaUrl: downloadURL, // Backward compatibility
-                    caption: caption.trim(),
-                    hashtags: allHashtags,
-                    likedBy: [],
-                    savedBy: [],
-                    comments: [],
-                    shares: 0,
-                    views: 0,
-                    timestamp: serverTimestamp(),
-                    createdAt: serverTimestamp(),
-                    status: 'active',
-                };
+            // Create post document in Firestore
+            const postData = {
+                userId: user.id || user.phone,
+                userName: user.name || 'Unknown Miner',
+                userRole: user.role,
+                userPhone: user.phone,
+                videoType: mediaType === 'video' ? 'video' : 'photo',
+                videoUrl: downloadURL, // Public URL from Firebase Storage or local URI
+                mediaUrl: downloadURL, // Backward compatibility
+                caption: caption.trim(),
+                hashtags: allHashtags,
+                likedBy: [],
+                savedBy: [],
+                comments: [],
+                shares: 0,
+                views: 0,
+                timestamp: serverTimestamp(),
+                createdAt: serverTimestamp(),
+                status: 'active',
+            };
 
-                await addDoc(collection(db, 'posts'), postData);
-                console.log('✅ Post created in Firestore');
+            await addDoc(collection(db, 'posts'), postData);
+            console.log('✅ Post created in Firestore with data:', postData);
 
-                Alert.alert(
-                    'Success! 🎉',
-                    'Your post has been uploaded and is now visible to all miners.',
-                    [
-                        {
-                            text: 'View Feed',
-                            onPress: () => router.push('/miner/Reels'),
+            Alert.alert(
+                'Success! 🎉',
+                'Your post has been uploaded and is now visible to all miners.',
+                [
+                    {
+                        text: 'View Feed',
+                        onPress: () => router.push('/miner/Reels'),
+                    },
+                    {
+                        text: 'Upload Another',
+                        onPress: () => {
+                            setMediaUri(null);
+                            setMediaType(null);
+                            setCaption('');
+                            setHashtags('');
+                            setUploadProgress(0);
                         },
-                        {
-                            text: 'Upload Another',
-                            onPress: () => {
-                                setMediaUri(null);
-                                setMediaType(null);
-                                setCaption('');
-                                setHashtags('');
-                                setUploadProgress(0);
-                            },
-                        },
-                    ]
-                );
-            })();
-            });
+                    },
+                ]
+            );
         } catch (error) {
             console.error('Error uploading post:', error);
             Alert.alert(

@@ -142,10 +142,9 @@ export default function SilicaSurvivorGame() {
     {
       id: 3,
       position: WAVE_POSITIONS[2],
-      title: '🧠 Knowledge Check',
-      question: 'Which PPE equipment have you NOT worn so far?',
-      options: ['Mask only', 'Specs only', 'Both mask and specs', 'I wore all PPE'],
-      correctAnswer: 0, // Will be determined dynamically
+      title: '🛡 PPE Selection Zone',
+      question: 'You can still wear protective equipment. What would you like to wear?',
+      options: ['Wear Mask', 'Wear Specs', 'Wear Both (Mask + Specs)', 'Continue without PPE'],
     },
     {
       id: 4,
@@ -325,19 +324,6 @@ export default function SilicaSurvivorGame() {
   const triggerWave = (wave: Wave) => {
     setCurrentQuestion(wave);
     spawnParticles(); // Show silica VFX
-
-    // For Wave 3, determine correct answer dynamically
-    if (wave.id === 3) {
-      let correctOption = 3; // Default: wore all PPE
-      if (!ppeState.hasMask && !ppeState.hasSpecs) {
-        correctOption = 2; // Both not worn
-      } else if (!ppeState.hasMask) {
-        correctOption = 0; // Mask not worn
-      } else if (!ppeState.hasSpecs) {
-        correctOption = 1; // Specs not worn
-      }
-      wave.correctAnswer = correctOption;
-    }
   };
 
   // ========================================
@@ -372,12 +358,22 @@ export default function SilicaSurvivorGame() {
         }
         break;
 
-      case 3: // Wave 3 - Knowledge check
-        if (answerIndex === currentQuestion.correctAnswer) {
-          // Correct answer - health recovery
-          healthChange = 5;
+      case 3: // Wave 3 - PPE Selection Zone
+        if (answerIndex === 0) {
+          // Wear Mask only
+          ppeUpdate.hasMask = true;
+          healthChange = 10; // Reward for wearing PPE
+        } else if (answerIndex === 1) {
+          // Wear Specs only
+          ppeUpdate.hasSpecs = true;
+          healthChange = 10; // Reward for wearing PPE
+        } else if (answerIndex === 2) {
+          // Wear Both
+          ppeUpdate.hasMask = true;
+          ppeUpdate.hasSpecs = true;
+          healthChange = 20; // Bigger reward for full protection
         } else {
-          // Wrong answer - penalty
+          // Continue without PPE - penalty
           healthChange = -15;
         }
         break;
@@ -387,8 +383,8 @@ export default function SilicaSurvivorGame() {
         if (ppeUpdate.hasMask && ppeUpdate.hasSpecs) {
           healthChange = 0; // Full protection - both items worn
         } else {
-          // Missing at least one PPE item - apply critical damage to show damaged sprite
-          healthChange = -65; // Heavy damage to bring health below 40% and trigger damaged.png
+          // Missing at least one PPE item - GAME OVER
+          healthChange = -200; // Instant game over if not wearing both items
         }
         break;
     }
@@ -400,11 +396,11 @@ export default function SilicaSurvivorGame() {
     setGameState(prev => {
       const newHealth = Math.max(0, Math.min(100, prev.health + healthChange));
 
-      // Check if health depleted
-      if (newHealth <= 0) {
+      // Check if health depleted or dropped below 30%
+      if (newHealth <= 0 || newHealth < 30) {
         return {
           ...prev,
-          health: 0,
+          health: newHealth,
           gameOver: true,
           showPopup: false,
           isRunning: false,

@@ -78,7 +78,37 @@ export default function TrainingLevel() {
 
   const handleCompleteLevel = () => {
     console.log(`✅ Level ${levelNumber} completed in ${world?.name}`);
-    router.back();
+    
+    // After level 4, navigate to the corresponding game
+    if (levelNumber === 4) {
+      let gamePath = '';
+      switch (worldId) {
+        case 1: // Hazard Spotting → Roof Stability
+          gamePath = '/miner/RoofInstabilityGame';
+          break;
+        case 2: // Equipment Handling → Second Skin
+          gamePath = '/miner/TheSecondSkinGame';
+          break;
+        case 3: // Situational Safety → Blasting Safety
+          gamePath = '/miner/BlastingSafetyGame';
+          break;
+        case 4: // Emergency Response → Fire Safety
+          gamePath = '/miner/SimulationScreen';
+          break;
+        case 5: // Safety Mindset → Silica Survivor
+          gamePath = '/miner/SilicaSurvivorGame';
+          break;
+      }
+      
+      if (gamePath) {
+        console.log(`🎮 Navigating to game: ${gamePath}`);
+        router.push(gamePath as any);
+      } else {
+        router.back();
+      }
+    } else {
+      router.back();
+    }
   };
 
   return (

@@ -160,7 +160,6 @@ export default function TeamTaskStatus() {
               >
                 <View style={styles.minerHeader}>
                   <View style={styles.minerHeaderLeft}>
-                    <User size={20} color={COLORS.primary} />
                     <View style={styles.minerInfo}>
                       <Text style={styles.minerName}>{miner.minerName}</Text>
                       <Text style={styles.minerId}>{miner.minerId}</Text>

@@ -141,7 +141,7 @@ export default function SafetyOfficerHome() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Safety Management</Text>
 
-          <View style={styles.modulesGrid}>
+          <View style={styles.modulesColumn}>
             {mainModules.map((module, index) => {
               const Icon = module.icon;
               const showBadge = module.title === 'Testimonial Review' && pendingTestimonialsCount > 0;
@@ -150,10 +150,7 @@ export default function SafetyOfficerHome() {
               return (
                 <TouchableOpacity
                   key={index}
-                  style={[
-                    styles.moduleCard,
-                    module.gradient && styles.moduleCardGradient,
-                  ]}
+                  style={styles.moduleBar}
                   onPress={() => {
                     router.push(module.route as any);
                     if (showBadge) loadPendingCount();
@@ -162,24 +159,23 @@ export default function SafetyOfficerHome() {
                 >
                   <View
                     style={[
-                      styles.moduleIconContainer,
+                      styles.moduleBarIconContainer,
                       { backgroundColor: module.color + '20' },
                     ]}
                   >
-                    <Icon size={28} color={module.color} />
-                    {showBadge && (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{pendingTestimonialsCount}</Text>
-                      </View>
-                    )}
-                    {showNew && !showBadge && (
-                      <View style={[styles.badge, { backgroundColor: '#10B981' }]}>
-                        <Text style={styles.badgeText}>NEW</Text>
-                      </View>
-                    )}
+                    <Icon size={24} color={module.color} />
                   </View>
-                  <Text style={styles.moduleTitle}>{module.title}</Text>
-                  <Text style={styles.moduleDescription}>{module.description}</Text>
+                  <Text style={styles.moduleBarTitle}>{module.title}</Text>
+                  {showBadge && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{pendingTestimonialsCount}</Text>
+                    </View>
+                  )}
+                  {showNew && !showBadge && (
+                    <View style={[styles.badge, { backgroundColor: '#10B981' }]}>
+                      <Text style={styles.badgeText}>NEW</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -249,6 +245,25 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 14,
   },
+  modulesColumn: {
+    flexDirection: 'column',
+    gap: 12,
+  },
+  moduleBar: {
+    width: '100%',
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
   moduleCard: {
     width: '48%',
     backgroundColor: COLORS.card,
@@ -266,6 +281,14 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     borderWidth: 2,
     backgroundColor: COLORS.primary + '08',
+  },
+  moduleBarIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
   },
   moduleIconContainer: {
     width: 60,
@@ -305,6 +328,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.5,
+  },
+  moduleBarTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    flex: 1,
   },
   moduleTitle: {
     fontSize: 16,

@@ -291,10 +291,10 @@ export default function MinerCallCenter() {
           </View>
           <Text style={styles.minerPhone}>{item.phoneNumber}</Text>
           {item.department && (
-            <Text style={styles.minerDepartment}>📍 {item.department}</Text>
+            <Text style={styles.minerDepartment}>{item.department}</Text>
           )}
           {item.shift && (
-            <Text style={styles.minerShift}>⏰ Shift: {item.shift}</Text>
+            <Text style={styles.minerShift}>Shift: {item.shift}</Text>
           )}
         </View>
         <View style={styles.selectionIndicator}>

@@ -110,15 +110,18 @@ export default function MinerHome() {
     };
   }, []);
 
-  const quickActions = [
+  const inspectionActions = [
     { icon: Clipboard, label: 'Pre-Shift Inspection', route: '/miner/DailyChecklist', color: '#10B981' },
+    { icon: Shield, label: 'PPE Scan', route: '/miner/PPEScanScreen', color: COLORS.accent },
+  ];
+
+  const quickActions = [
     { icon: Heart, label: 'Health Monitor', route: '/miner/HealthMonitoring', color: '#EF4444' },
     { icon: Award, label: 'Leaderboard', route: '/miner/ProgressTracker', color: '#FFD700' },
     { icon: User, label: 'Testimonials', route: '/miner/Testimonials', color: '#EC4899' },
     { icon: BookOpen, label: 'Case Studies', route: '/miner/CaseStudies', color: '#F59E0B' },
     { icon: Map, label: 'Heat Map', route: '/miner/HeatMapView', color: COLORS.primary },
     { icon: Camera, label: 'Hazard Scan', route: '/miner/HazardScan', color: COLORS.destructive },
-    { icon: Shield, label: 'PPE Scan', route: '/miner/PPEScanScreen', color: COLORS.accent },
   ];
 
   const trainingModules = [
@@ -169,8 +172,38 @@ export default function MinerHome() {
           </View>
         </View>
 
+        {/* Safety Inspections - Floating Card */}
+        <View style={styles.inspectionSection}>
+          <Text style={styles.sectionTitle}>Safety Inspections</Text>
+          
+          <View style={styles.inspectionContainer}>
+            <View style={styles.inspectionWrapper}>
+              {inspectionActions.map((action, index) => {
+                const Icon = action.icon;
+                if (!Icon) {
+                  console.warn('Missing icon for inspection action:', action.label);
+                  return null;
+                }
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => router.push(action.route as any)}
+                    style={styles.inspectionCard}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.inspectionIconContainer}>
+                      <Icon size={24} color={action.color} />
+                    </View>
+                    <Text style={styles.inspectionLabel}>{action.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+
         {/* Training Progress */}
-        <View style={styles.section}>
+        <View style={[styles.section, styles.sectionWithTopMargin]}>
           <Text style={styles.sectionTitle}>
             {translator.translate('safetyTraining')}
           </Text>
@@ -422,10 +455,29 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingTop: 24,
+    paddingBottom: 100,
     backgroundColor: COLORS.card,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+  },
+  inspectionSection: {
+    marginTop: -98,
+    paddingHorizontal: 24,
+    zIndex: 10,
+    elevation: 10,
+  },
+  inspectionContainer: {
+    backgroundColor: '#1A1D2E',
+    borderRadius: 16,
+    padding: 12,
+    marginTop: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    zIndex: 10,
   },
   welcomeText: {
     fontSize: 14,
@@ -463,6 +515,9 @@ const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 24,
     paddingVertical: 24,
+  },
+  sectionWithTopMargin: {
+    marginTop: 0,
   },
   lastSection: {
     paddingBottom: 100,
@@ -533,6 +588,28 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     marginTop: 8,
+    fontWeight: '600',
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  inspectionWrapper: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  inspectionCard: {
+    flex: 1,
+    backgroundColor: '#2A2D3A',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 80,
+  },
+  inspectionIconContainer: {
+    marginBottom: 6,
+  },
+  inspectionLabel: {
+    fontSize: 13,
     fontWeight: '600',
     color: COLORS.text,
     textAlign: 'center',

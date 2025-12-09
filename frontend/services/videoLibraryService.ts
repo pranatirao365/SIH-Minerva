@@ -1,4 +1,4 @@
-import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit, Timestamp, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
 
@@ -164,7 +164,7 @@ export class VideoLibraryService {
       console.log('📹 Video URL:', videoUrl);
       
       // Extract the video path from URL
-      // URL format: http://172.16.58.121:4000/videos/filename.mp4
+      // URL format: http://172.16.58.80:4000/videos/filename.mp4
       const urlParts = videoUrl.split('/videos/');
       if (urlParts.length < 2) {
         console.warn('⚠️ Invalid video URL format, skipping deletion');
@@ -172,7 +172,7 @@ export class VideoLibraryService {
       }
       
       const filename = urlParts[1];
-      const deleteUrl = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.121'}:4000/api/video/delete/${filename}`;
+      const deleteUrl = `http://${process.env.EXPO_PUBLIC_IP_ADDRESS || '172.16.58.80'}:4000/api/video/delete/${filename}`;
       
       console.log('🔗 Delete endpoint:', deleteUrl);
       
@@ -782,6 +782,69 @@ export class VideoLibraryService {
 
       await setDoc(requestRef, requestDoc);
       console.log('✅ Video request created successfully:', requestId);
+
+      // Create notifications for all safety officers
+      try {
+        console.log('🔍 Searching for safety officers...');
+        // Try both role formats (with hyphen and underscore)
+        const safetyOfficersQuery1 = query(
+          collection(db, 'users'),
+          where('role', '==', 'safety-officer')
+        );
+        const safetyOfficersQuery2 = query(
+          collection(db, 'users'),
+          where('role', '==', 'safety_officer')
+        );
+        
+        const [snapshot1, snapshot2] = await Promise.all([
+          getDocs(safetyOfficersQuery1),
+          getDocs(safetyOfficersQuery2)
+        ]);
+        
+        // Combine results and remove duplicates
+        const safetyOfficerDocs = new Map();
+        snapshot1.docs.forEach(doc => safetyOfficerDocs.set(doc.id, doc));
+        snapshot2.docs.forEach(doc => safetyOfficerDocs.set(doc.id, doc));
+        
+        const safetyOfficersSnapshot = Array.from(safetyOfficerDocs.values());
+        
+        console.log(`📋 Found ${safetyOfficersSnapshot.length} safety officers`);
+
+        const notificationPromises = safetyOfficersSnapshot.map(async (safetyOfficerDoc) => {
+          const safetyOfficer = safetyOfficerDoc.data();
+          const priorityEmoji = requestData.priority === 'urgent' ? '🚨' : requestData.priority === 'high' ? '⚠️' : requestData.priority === 'medium' ? '📹' : '📝';
+          
+          console.log(`📧 Creating notification for safety officer: ${safetyOfficerDoc.id} (${safetyOfficer.name})`);
+          
+          return addDoc(collection(db, 'notifications'), {
+            recipientId: safetyOfficerDoc.id,
+            recipientName: safetyOfficer.name || 'Safety Officer',
+            senderId: requestData.requestedBy,
+            senderName: requestData.requestedByName,
+            type: 'video_request',
+            title: `${priorityEmoji} New Video Request`,
+            message: `${requestData.requestedByName} has requested a video on "${requestData.topic}". ${requestData.description}`,
+            priority: requestData.priority,
+            read: false,
+            actionRequired: true,
+            createdAt: Timestamp.now(),
+            metadata: {
+              requestId,
+              videoTopic: requestData.topic,
+              requestPriority: requestData.priority,
+              requestDescription: requestData.description,
+              requestLanguage: requestData.language,
+            },
+          });
+        });
+
+        await Promise.all(notificationPromises);
+        console.log(`✅ Video request notifications sent to ${safetyOfficersSnapshot.length} safety officers`);
+      } catch (notificationError) {
+        console.error('❌ Error creating notifications for video request:', notificationError);
+        // Don't throw - request was created successfully even if notifications failed
+      }
+
       return requestId;
     } catch (error) {
       console.error('❌ Error creating video request:', error);
@@ -847,7 +910,18 @@ export class VideoLibraryService {
    */
   static async updateVideoRequest(requestId: string, updates: Partial<VideoRequestDocument>): Promise<void> {
     try {
+      console.log('🔄 Updating video request:', requestId, 'with updates:', updates);
       const requestRef = doc(db, 'videoRequests', requestId);
+      
+      // Check if document exists first
+      const docSnap = await getDoc(requestRef);
+      if (!docSnap.exists()) {
+        console.error('❌ Video request document does not exist:', requestId);
+        throw new Error(`Video request ${requestId} does not exist`);
+      }
+      
+      console.log('📄 Current request data:', docSnap.data());
+      
       await updateDoc(requestRef, {
         ...updates,
         updatedAt: Timestamp.now(),
@@ -855,6 +929,8 @@ export class VideoLibraryService {
       console.log('✅ Video request updated successfully:', requestId);
     } catch (error) {
       console.error('❌ Error updating video request:', error);
+      console.error('❌ Request ID:', requestId);
+      console.error('❌ Updates:', updates);
       throw error;
     }
   }

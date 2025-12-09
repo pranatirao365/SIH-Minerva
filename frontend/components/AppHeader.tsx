@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable } from 'reac
 import { useRouter } from 'expo-router';
 import { Icons } from './Icons';
 import { useRoleStore } from '../hooks/useRoleStore';
+import { useVideoRequestNotifications } from '../hooks/useVideoRequestNotifications';
 import { COLORS } from '../constants/styles';
 
 interface AppHeaderProps {
@@ -20,12 +21,13 @@ export default function AppHeader({
 }: AppHeaderProps) {
   const router = useRouter();
   const { user, logout } = useRoleStore();
+  const { notificationCount } = useVideoRequestNotifications();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const handleLogout = () => {
     setShowProfileMenu(false);
     logout();
-    router.replace('/auth/LanguageSelect' as any);
+    router.replace('/auth/PhoneLogin' as any);
   };
 
   const handleProfilePress = () => {
@@ -57,9 +59,13 @@ export default function AppHeader({
           >
             <Icons.Bell size={22} color="#A1A1AA" />
             {/* Notification badge */}
-            <View style={styles.notificationBadge}>
-              <Text style={styles.badgeText}>3</Text>
-            </View>
+            {notificationCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.badgeText}>
+                  {notificationCount > 99 ? '99+' : notificationCount.toString()}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         )}
 

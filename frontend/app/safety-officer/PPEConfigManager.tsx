@@ -547,7 +547,7 @@ export default function PPEConfigManager() {
                   {/* Miner Info Section */}
                   <View style={styles.minerListInfo}>
                     <View style={styles.minerNameRow}>
-                      <User size={20} color={isCompliant ? "#FFFFFF" : "#FFFFFF"} />
+                      <User size={20} color="#FFFFFF" />
                       <Text style={[styles.minerName, isCompliant ? styles.safeText : styles.unsafeText]}>{miner.name}</Text>
                     </View>
                     <Text style={[styles.minerDetails, isCompliant ? styles.safeText : styles.unsafeText]}>
@@ -555,7 +555,7 @@ export default function PPEConfigManager() {
                     </Text>
                     <Text style={[styles.scanTime, isCompliant ? styles.safeText : styles.unsafeText]}>Scanned at {formatTime(miner.timestamp)}</Text>
                     {missingParameter && (
-                      <Text style={[styles.missingParameterText, isCompliant ? styles.safeText : styles.unsafeText]}>
+                      <Text style={styles.missingParameterText}>
                         Missing: {missingParameter}
                       </Text>
                     )}
@@ -1061,8 +1061,8 @@ const styles = StyleSheet.create({
   },
   missingParameterText: {
     fontSize: 14,
-    color: COLORS.destructive,
-    fontWeight: '500',
+    color: '#EF4444',
+    fontWeight: '600',
     marginTop: 4,
   },
   statusButton: {
@@ -1101,23 +1101,27 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   safeCard: {
-    backgroundColor: '#10B981', // Green for safe
+    backgroundColor: '#1A1D2E', // Dark background like unsafe cards
+    borderColor: '#10B981',
+    borderWidth: 1.5,
   },
   unsafeCard: {
-    backgroundColor: COLORS.destructive, // Red for unsafe
+    backgroundColor: '#1A1D2E', // Dark background like the image
+    borderColor: '#EF4444',
+    borderWidth: 1.5,
   },
   safeText: {
-    color: '#FFFFFF',
+    color: '#FFFFFF', // White text for both safe and unsafe
   },
   unsafeText: {
-    color: '#FFFFFF',
+    color: '#FFFFFF', // White text for both safe and unsafe
   },
   notifyMinerButton: {
     padding: 8,
     borderRadius: 6,
-    backgroundColor: '#F59E0B', // Amber/yellow for better visibility
-    borderWidth: 1,
-    borderColor: '#FCD34D',
+    backgroundColor: '#1A1D2E', // Dark background like the cards
+    borderWidth: 1.5,
+    borderColor: '#F59E0B', // Amber/orange border
     minWidth: 36,
     minHeight: 36,
     alignItems: 'center',

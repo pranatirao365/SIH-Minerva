@@ -85,8 +85,11 @@ export default function VideoGenerationModule() {
         setSelectedLanguage(requestData.language || '');
         setCurrentRequestId(requestData.requestId || null);
         
-        // Clear the pending request data
-        await AsyncStorage.removeItem('pendingVideoRequest');
+        console.log('📋 Loaded pending request:', requestData);
+        console.log('📋 Set currentRequestId to:', requestData.requestId);
+        
+        // DON'T clear the pending request data here - keep it until video is completed
+        // await AsyncStorage.removeItem('pendingVideoRequest');
         
         // Show notification to user
         Alert.alert(
@@ -225,6 +228,9 @@ export default function VideoGenerationModule() {
   };
 
   const saveToLibrary = async () => {
+    console.log('📚 saveToLibrary called');
+    console.log('📚 currentRequestId:', currentRequestId);
+    
     try {
       // Show loading alert
       Alert.alert('Processing', 'Generating AI description for your video...');
@@ -274,7 +280,7 @@ Requirements:
 Example format: "Proper PPE Usage in Underground Mining Operations"`;
         
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyA47y_mmOfzKL1jo4ce8qmK2RyY9_mk4sk`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyD3FRdf4bg8s7W5h3hkZXEbXNI4GTQO1vI`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -338,6 +344,18 @@ Example format: "Proper PPE Usage in Underground Mining Operations"`;
 
       // Update video request status if this was generated from a request
       if (currentRequestId) {
+        console.log('📝 Updating video request status for ID:', currentRequestId);
+        console.log('📝 Request ID type:', typeof currentRequestId);
+        console.log('📝 Request ID length:', currentRequestId?.length);
+        console.log('📝 Request ID value:', JSON.stringify(currentRequestId));
+        
+        // Validate requestId format (should be a Firestore document ID)
+        if (!currentRequestId || typeof currentRequestId !== 'string' || currentRequestId.length === 0) {
+          console.error('❌ Invalid currentRequestId:', currentRequestId);
+          Alert.alert('Error', 'Invalid request ID. Cannot update request status.');
+          return;
+        }
+        
         try {
           console.log('📝 Updating video request status...');
           await VideoLibraryService.updateVideoRequest(currentRequestId, {
@@ -392,6 +410,9 @@ Example format: "Proper PPE Usage in Underground Mining Operations"`;
           }
 
           setCurrentRequestId(null); // Clear the request ID
+          
+          // Clear the pending request data only after successful completion
+          await AsyncStorage.removeItem('pendingVideoRequest');
         } catch (requestError) {
           console.error('❌ Failed to update video request:', requestError);
           // Don't fail the whole process for this
@@ -666,6 +687,25 @@ Example format: "Proper PPE Usage in Underground Mining Operations"`;
           
           // Mark all stages as completed
           setStages(prev => prev.map(stage => ({ ...stage, status: 'completed' })));
+          
+          // Update video request status immediately after successful generation
+          if (currentRequestId) {
+            try {
+              console.log('📝 Updating video request status after generation completion for ID:', currentRequestId);
+              await VideoLibraryService.updateVideoRequest(currentRequestId, {
+                status: 'completed',
+                completedAt: Timestamp.now(),
+              });
+              console.log('✅ Video request updated to completed after generation');
+              
+              // Clear the pending request from AsyncStorage since it's now completed
+              await AsyncStorage.removeItem('pendingVideoRequest');
+              console.log('🧹 Cleared pending video request from AsyncStorage');
+            } catch (requestUpdateError) {
+              console.error('❌ Failed to update video request after generation:', requestUpdateError);
+              // Continue with video display even if request update fails
+            }
+          }
           
           // Convert URL to absolute URL with correct LAN IP
           let videoUrl = data.videoUrl;

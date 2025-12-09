@@ -1,97 +1,84 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AlertTriangle, ArrowLeft, CheckCircle, Clock, MapPin, Phone, User } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
+import { getActiveSOSAlerts, acknowledgeSOSAlert, resolveSOSAlert } from '../../services/sosService';
 
 interface SOSAlert {
-  id: string;
-  minerName: string;
+  id?: string;
   minerId: string;
-  helmetId: string;
-  timestamp: Date;
-  location: string;
-  status: 'active' | 'responded' | 'resolved';
-  heartRate?: number;
-  spO2?: number;
-  temperature?: number;
+  minerName: string;
+  minerPhone?: string;
+  location?: {
+    latitude?: number;
+    longitude?: number;
+    description?: string;
+  };
+  helmetData?: {
+    heartRate?: number;
+    spo2?: number;
+    temperature?: number;
+    helmetWorn?: boolean;
+  };
+  timestamp: any; // Timestamp
+  status: 'active' | 'acknowledged' | 'resolved' | 'cancelled';
+  acknowledgedBy?: string;
+  acknowledgedAt?: any;
+  resolvedBy?: string;
+  resolvedAt?: any;
+  priority: 'critical' | 'high' | 'medium';
+  notes?: string;
 }
 
 export default function SOSNotifications() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  
-  // Mock SOS alerts - in production, fetch from backend API
-  const [sosAlerts, setSosAlerts] = useState<SOSAlert[]>([
-    {
-      id: '1',
-      minerName: 'Rajesh Kumar',
-      minerId: 'M-001',
-      helmetId: 'ESP32-001',
-      timestamp: new Date(Date.now() - 5 * 60000), // 5 minutes ago
-      location: 'Tunnel A - Section 12',
-      status: 'active',
-      heartRate: 110,
-      spO2: 92,
-      temperature: 32.5,
-    },
-    {
-      id: '2',
-      minerName: 'Amit Singh',
-      minerId: 'M-003',
-      helmetId: 'ESP32-003',
-      timestamp: new Date(Date.now() - 15 * 60000), // 15 minutes ago
-      location: 'Shaft B - Level 3',
-      status: 'responded',
-      heartRate: 95,
-      spO2: 94,
-      temperature: 30.2,
-    },
-    {
-      id: '3',
-      minerName: 'Priya Sharma',
-      minerId: 'M-005',
-      helmetId: 'ESP32-005',
-      timestamp: new Date(Date.now() - 45 * 60000), // 45 minutes ago
-      location: 'Tunnel C - Section 8',
-      status: 'resolved',
-      heartRate: 78,
-      spO2: 96,
-      temperature: 28.8,
-    },
-  ]);
+  const [sosAlerts, setSosAlerts] = useState<SOSAlert[]>([]);
 
-  const onRefresh = () => {
+  useEffect(() => {
+    loadAlerts();
+  }, []);
+
+  const loadAlerts = async () => {
+    try {
+      const alerts = await getActiveSOSAlerts();
+      setSosAlerts(alerts);
+    } catch (error) {
+      console.error('Error loading SOS alerts:', error);
+    }
+  };
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setRefreshing(false);
-      console.log('Refreshed SOS alerts');
-    }, 1500);
+    await loadAlerts();
+    setRefreshing(false);
   };
 
-  const handleRespond = (alertId: string) => {
-    setSosAlerts(prev =>
-      prev.map(alert =>
-        alert.id === alertId ? { ...alert, status: 'responded' as const } : alert
-      )
-    );
+  const handleRespond = async (alertId: string) => {
+    try {
+      await acknowledgeSOSAlert(alertId, 'safety-officer'); // assuming user id
+      await loadAlerts(); // reload
+    } catch (error) {
+      console.error('Error acknowledging alert:', error);
+    }
   };
 
-  const handleResolve = (alertId: string) => {
-    setSosAlerts(prev =>
-      prev.map(alert =>
-        alert.id === alertId ? { ...alert, status: 'resolved' as const } : alert
-      )
-    );
+  const handleResolve = async (alertId: string) => {
+    try {
+      await resolveSOSAlert(alertId, 'safety-officer');
+      await loadAlerts();
+    } catch (error) {
+      console.error('Error resolving alert:', error);
+    }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
         return '#EF4444';
-      case 'responded':
+      case 'acknowledged':
         return '#F59E0B';
       case 'resolved':
         return '#10B981';
@@ -104,7 +91,7 @@ export default function SOSNotifications() {
     switch (status) {
       case 'active':
         return 'ACTIVE';
-      case 'responded':
+      case 'acknowledged':
         return 'IN PROGRESS';
       case 'resolved':
         return 'RESOLVED';
@@ -113,7 +100,8 @@ export default function SOSNotifications() {
     }
   };
 
-  const formatTimestamp = (date: Date) => {
+  const formatTimestamp = (timestamp: any) => {
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     const now = new Date();
     const diff = Math.floor((now.getTime() - date.getTime()) / 60000); // minutes
 
@@ -124,7 +112,7 @@ export default function SOSNotifications() {
   };
 
   const activeAlerts = sosAlerts.filter(a => a.status === 'active');
-  const respondedAlerts = sosAlerts.filter(a => a.status === 'responded');
+  const respondedAlerts = sosAlerts.filter(a => a.status === 'acknowledged');
   const resolvedAlerts = sosAlerts.filter(a => a.status === 'resolved');
 
   return (
@@ -200,7 +188,7 @@ export default function SOSNotifications() {
                         {alert.minerName}
                       </Text>
                       <Text style={{ fontSize: 12, color: COLORS.textMuted }}>
-                        ID: {alert.minerId} • {alert.helmetId}
+                        ID: {alert.minerId}
                       </Text>
                     </View>
                     <View style={{
@@ -220,7 +208,7 @@ export default function SOSNotifications() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
                       <MapPin size={14} color={COLORS.textMuted} />
                       <Text style={{ fontSize: 13, color: COLORS.text, marginLeft: 6 }}>
-                        {alert.location}
+                        {alert.location?.description || 'Unknown Location'}
                       </Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -247,9 +235,9 @@ export default function SOSNotifications() {
                       <Text style={{
                         fontSize: 16,
                         fontWeight: 'bold',
-                        color: alert.heartRate && alert.heartRate > 100 ? '#EF4444' : COLORS.text,
+                        color: alert.helmetData?.heartRate && alert.helmetData.heartRate > 100 ? '#EF4444' : COLORS.text,
                       }}>
-                        {alert.heartRate || '--'} BPM
+                        {alert.helmetData?.heartRate || '--'} BPM
                       </Text>
                     </View>
                     <View style={{ flex: 1 }}>
@@ -259,9 +247,9 @@ export default function SOSNotifications() {
                       <Text style={{
                         fontSize: 16,
                         fontWeight: 'bold',
-                        color: alert.spO2 && alert.spO2 < 95 ? '#F59E0B' : COLORS.text,
+                        color: alert.helmetData?.spo2 && alert.helmetData.spo2 < 95 ? '#F59E0B' : COLORS.text,
                       }}>
-                        {alert.spO2 || '--'}%
+                        {alert.helmetData?.spo2 || '--'}%
                       </Text>
                     </View>
                     <View style={{ flex: 1 }}>
@@ -269,7 +257,7 @@ export default function SOSNotifications() {
                         Temp
                       </Text>
                       <Text style={{ fontSize: 16, fontWeight: 'bold', color: COLORS.text }}>
-                        {alert.temperature || '--'}°C
+                        {alert.helmetData?.temperature || '--'}°C
                       </Text>
                     </View>
                   </View>
@@ -337,7 +325,7 @@ export default function SOSNotifications() {
                         {alert.minerName}
                       </Text>
                       <Text style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2 }}>
-                        {alert.location} • {formatTimestamp(alert.timestamp)}
+                        {alert.location?.description || 'Unknown'} • {formatTimestamp(alert.timestamp)}
                       </Text>
                     </View>
                     <View style={{
@@ -401,7 +389,7 @@ export default function SOSNotifications() {
                         {alert.minerName}
                       </Text>
                       <Text style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2 }}>
-                        {alert.location} • {formatTimestamp(alert.timestamp)}
+                        {alert.location?.description || 'Unknown'} • {formatTimestamp(alert.timestamp)}
                       </Text>
                     </View>
                   </View>

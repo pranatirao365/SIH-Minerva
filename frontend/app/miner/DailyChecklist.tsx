@@ -9,9 +9,10 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Calendar, CheckCircle, CheckSquare, Clock } from '../../components/Icons';
+import { ArrowLeft, Calendar, CheckCircle, CheckSquare, Clock, Camera } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
 
@@ -22,6 +23,7 @@ interface ChecklistItem {
   category: 'PPE' | 'Equipment' | 'Environment' | 'Health';
   required: boolean;
   checked: boolean;
+  checkpoints?: string[]; // Add detailed checkpoints
 }
 
 interface ChecklistHistory {
@@ -35,6 +37,8 @@ export default function DailyChecklist() {
   const router = useRouter();
   const { user } = useRoleStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ChecklistItem | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
   const [items, setItems] = useState<ChecklistItem[]>([
     {
       id: '1',
@@ -43,6 +47,12 @@ export default function DailyChecklist() {
       category: 'PPE',
       required: true,
       checked: false,
+      checkpoints: [
+        'No cracks or damage',
+        'Straps are secure',
+        'Sensors are working',
+        'Clean and intact',
+      ],
     },
     {
       id: '2',
@@ -51,6 +61,12 @@ export default function DailyChecklist() {
       category: 'PPE',
       required: true,
       checked: false,
+      checkpoints: [
+        'Steel toe intact',
+        'No holes or tears',
+        'Good tread',
+        'Laces secure',
+      ],
     },
     {
       id: '3',
@@ -59,6 +75,11 @@ export default function DailyChecklist() {
       category: 'PPE',
       required: true,
       checked: false,
+      checkpoints: [
+        'Reflective strips visible',
+        'No tears or damage',
+        'Clean and visible',
+      ],
     },
     {
       id: '4',
@@ -67,6 +88,11 @@ export default function DailyChecklist() {
       category: 'PPE',
       required: true,
       checked: false,
+      checkpoints: [
+        'No tears or holes',
+        'Proper fit',
+        'Clean and dry',
+      ],
     },
     {
       id: '5',
@@ -75,6 +101,12 @@ export default function DailyChecklist() {
       category: 'Equipment',
       required: true,
       checked: false,
+      checkpoints: [
+        'Bright beam',
+        'Battery charged',
+        'Strap secure',
+        'Spare batteries available',
+      ],
     },
     {
       id: '6',
@@ -83,6 +115,12 @@ export default function DailyChecklist() {
       category: 'Equipment',
       required: true,
       checked: false,
+      checkpoints: [
+        'Calibrated today',
+        'Alarm tested',
+        'Battery > 50%',
+        'Sensor clean',
+      ],
     },
     {
       id: '7',
@@ -91,6 +129,12 @@ export default function DailyChecklist() {
       category: 'Equipment',
       required: true,
       checked: false,
+      checkpoints: [
+        'WiFi connected',
+        'Heart rate sensor working',
+        'Temperature sensor working',
+        'Battery > 20%',
+      ],
     },
     {
       id: '8',
@@ -249,7 +293,7 @@ export default function DailyChecklist() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Daily Safety Checklist</Text>
+        <Text style={styles.headerTitle}>Pre-Shift Inspection</Text>
         <View style={styles.backButton} />
       </View>
 
@@ -288,6 +332,26 @@ export default function DailyChecklist() {
           )}
         </View>
 
+        {/* PPE Scan Section */}
+        <TouchableOpacity 
+          style={styles.sectionContainer}
+          onPress={() => router.push('/miner/PPEScanScreen')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={styles.scanIconBadge}>
+                <Camera size={20} color={COLORS.primary} />
+              </View>
+              <View style={styles.sectionTitleContent}>
+                <Text style={styles.scanSectionTitle}>PPE Scanner</Text>
+                <Text style={styles.sectionSubtitle}>Verify your safety equipment</Text>
+              </View>
+            </View>
+            <Text style={styles.chevronIcon}>›</Text>
+          </View>
+        </TouchableOpacity>
+
         {/* Checklist Items by Category */}
         {['PPE', 'Equipment', 'Environment', 'Health'].map(category => {
           const categoryItems = items.filter(i => i.category === category);
@@ -302,7 +366,14 @@ export default function DailyChecklist() {
                 <TouchableOpacity
                   key={item.id}
                   style={[styles.checklistItem, item.checked && styles.checkedItem]}
-                  onPress={() => toggleItem(item.id)}
+                  onPress={() => {
+                    if (item.checkpoints && item.checkpoints.length > 0) {
+                      setSelectedItem(item);
+                      setShowDetail(true);
+                    } else {
+                      toggleItem(item.id);
+                    }
+                  }}
                   activeOpacity={0.7}
                 >
                   <View style={styles.checkboxContainer}>
@@ -325,6 +396,9 @@ export default function DailyChecklist() {
                       )}
                     </View>
                     <Text style={styles.itemDescription}>{item.description}</Text>
+                    {item.checkpoints && item.checkpoints.length > 0 && (
+                      <Text style={styles.detailsLink}>Tap for detailed checkpoints →</Text>
+                    )}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -357,6 +431,48 @@ export default function DailyChecklist() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Detail Modal */}
+      {showDetail && selectedItem && (
+        <View style={styles.modal}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{selectedItem.title}</Text>
+            <Text style={styles.modalDescription}>{selectedItem.description}</Text>
+
+            <Text style={styles.checkpointsTitle}>Detailed Checkpoints:</Text>
+            {selectedItem.checkpoints?.map((checkpoint, index) => (
+              <View key={index} style={styles.checkpointRow}>
+                <CheckCircle size={16} color={COLORS.primary} />
+                <Text style={styles.checkpoint}>{checkpoint}</Text>
+              </View>
+            ))}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.markCompleteBtn]}
+                onPress={() => {
+                  toggleItem(selectedItem.id);
+                  setShowDetail(false);
+                  setSelectedItem(null);
+                }}
+              >
+                <CheckCircle size={20} color="#FFFFFF" />
+                <Text style={styles.modalButtonText}>Mark as Complete</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelBtn]}
+                onPress={() => {
+                  setShowDetail(false);
+                  setSelectedItem(null);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -569,5 +685,136 @@ const styles = StyleSheet.create({
   historyTime: {
     fontSize: 12,
     color: COLORS.textMuted,
+  },
+  detailsLink: {
+    fontSize: 12,
+    color: COLORS.primary,
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  modal: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginBottom: 20,
+  },
+  checkpointsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  checkpointRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 10,
+  },
+  checkpoint: {
+    fontSize: 14,
+    color: COLORS.text,
+    flex: 1,
+  },
+  modalButtons: {
+    marginTop: 24,
+    gap: 12,
+  },
+  modalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  markCompleteBtn: {
+    backgroundColor: COLORS.primary,
+  },
+  cancelBtn: {
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  // PPE Scan Styles
+  sectionContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: COLORS.card,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  scanIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: `${COLORS.primary}15`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitleContent: {
+    flex: 1,
+  },
+  scanSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  chevronIcon: {
+    fontSize: 24,
+    color: COLORS.textMuted,
+    fontWeight: '300',
   },
 });

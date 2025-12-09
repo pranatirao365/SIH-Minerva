@@ -5,7 +5,7 @@ const config = getDefaultConfig(__dirname);
 // Configure Metro to bind to LAN IP for network access
 config.server = {
   ...config.server,
-  host: '172.16.58.121', // Bind to LAN IP
+  host: '172.16.58.80', // Bind to LAN IP
   port: 8081, // Default Metro port
   enhanceMiddleware: (middleware) => {
     return (req, res, next) => {

@@ -30,6 +30,7 @@ import {
 } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
 import { useRoleStore } from '../../hooks/useRoleStore';
+import { MinerFooter } from '../../components/BottomNav';
 import {
     getApprovedTestimonials,
     getMyTestimonials,
@@ -530,6 +531,7 @@ export default function Testimonials() {
           </View>
         </View>
       </Modal>
+      <MinerFooter activeTab="reels" />
     </SafeAreaView>
   );
 }

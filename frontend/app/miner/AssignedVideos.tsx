@@ -98,15 +98,7 @@ export default function AssignedVideos() {
 
     try {
       setLoading(true);
-      console.log('='.repeat(60));
-      console.log('[ASSIGNED_VIDEOS] Loading data for miner');
-      console.log('[ASSIGNED_VIDEOS] User ID:', user?.id);
-      console.log('[ASSIGNED_VIDEOS] User Phone:', user?.phone);
-      console.log('[ASSIGNED_VIDEOS] User Name:', user?.name);
-      console.log('[ASSIGNED_VIDEOS] Query minerId:', currentMinerId);
-      console.log('='.repeat(60));
 
-      // Query assignments
       const assignmentsRef = collection(db, 'videoAssignments');
       const assignmentsQuery = query(
         assignmentsRef,
@@ -115,21 +107,6 @@ export default function AssignedVideos() {
       );
       
       const assignmentsSnapshot = await getDocs(assignmentsQuery);
-      console.log(`[ASSIGNED_VIDEOS] Query returned ${assignmentsSnapshot.size} assignments`);
-      
-      if (assignmentsSnapshot.size > 0) {
-        console.log('[ASSIGNED_VIDEOS] Sample assignment data:');
-        assignmentsSnapshot.docs.slice(0, 2).forEach((doc, idx) => {
-          const data = doc.data();
-          console.log(`[ASSIGNED_VIDEOS]   Assignment ${idx + 1}:`, {
-            id: doc.id,
-            videoId: data.videoId,
-            assignedTo: data.assignedTo,
-            assignedBy: data.assignedBy,
-            status: data.status
-          });
-        });
-      }
       
       const loadedAssignments: VideoAssignment[] = [];
       const loadedVideos: VideoItem[] = [];
@@ -137,15 +114,12 @@ export default function AssignedVideos() {
 
       for (const assignmentDoc of assignmentsSnapshot.docs) {
         const assignmentData = assignmentDoc.data();
-        console.log(`[ASSIGNED_VIDEOS]   Processing assignment: ${assignmentDoc.id}`);
         
         // Fetch video from videoLibrary
         const videoDoc = await getDoc(doc(db, 'videoLibrary', assignmentData.videoId));
         if (!videoDoc.exists()) {
-          console.log(`[ASSIGNED_VIDEOS]   ❌ Video ${assignmentData.videoId} not found in videoLibrary`);
           continue;
         }
-        console.log(`[ASSIGNED_VIDEOS]   ✓ Video found: ${assignmentData.videoId}`);
 
         const videoData = videoDoc.data();
         if (!videoData.videoUrl || !videoData.topic) {
@@ -208,23 +182,6 @@ export default function AssignedVideos() {
       setAssignments(loadedAssignments);
       setVideos(loadedVideos);
       setAssignmentProgress(loadedProgress);
-
-      console.log('='.repeat(60));
-      console.log(`[ASSIGNED_VIDEOS] ✅ FINAL RESULT: ${loadedAssignments.length} total assignments loaded`);
-      console.log(`[ASSIGNED_VIDEOS] ${loadedVideos.length} videos loaded`);
-      console.log(`[ASSIGNED_VIDEOS] ${loadedProgress.length} progress records loaded`);
-      
-      // Log completion status breakdown
-      const completedCount = loadedProgress.filter(p => p.watched).length;
-      const incompleteCount = loadedAssignments.length - completedCount;
-      console.log(`[ASSIGNED_VIDEOS] Breakdown: ${completedCount} completed, ${incompleteCount} incomplete`);
-      console.log(`[ASSIGNED_VIDEOS] Completion checked via: watched=true OR status='completed' OR progress>=100`);
-      console.log(`[ASSIGNED_VIDEOS] Note: Only incomplete assignments will be displayed`);
-      if (loadedAssignments.length === 0 && assignmentsSnapshot.size > 0) {
-        console.log('[ASSIGNED_VIDEOS] ⚠️ WARNING: Assignments were found but all filtered out');
-        console.log('[ASSIGNED_VIDEOS] Likely cause: Videos missing from videoLibrary collection');
-      }
-      console.log('='.repeat(60));
     } catch (error) {
       console.error('❌ Error loading assignments:', error);
       Alert.alert('Error', 'Failed to load assignments. Please try again.');
@@ -295,13 +252,11 @@ export default function AssignedVideos() {
             const oldIP = urlMatch[1];
             const port = urlMatch[2];
             updatedUrl = videoUrl.replace(`http://${oldIP}:${port}`, `http://${currentIP}:${port}`);
-            console.log('[VIDEO_URL] Updated old IP:', oldIP, '->', currentIP);
             break;
           }
         }
       }
       
-      console.log('[VIDEO_URL] Final URL:', updatedUrl);
       return updatedUrl;
     }
 

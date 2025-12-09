@@ -22,6 +22,7 @@ import { MinerFooter } from '../../components/BottomNav';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { moderateVideo, showModerationResult, getVideoMetadata } from '../../services/videoModerationService';
 
 type MediaType = 'photo' | 'video' | null;
 
@@ -125,6 +126,43 @@ export default function UploadContent() {
         if (!caption.trim()) {
             Alert.alert('Caption Required', 'Please add a caption to your post');
             return;
+        }
+
+        // Step 1: AI Moderation for videos
+        if (mediaType === 'video') {
+            try {
+                console.log('🤖 Starting AI moderation...');
+                
+                // Get video metadata
+                const metadata = await getVideoMetadata(mediaUri);
+                
+                // Extract hashtags
+                const allHashtags = [...new Set([
+                    ...caption.match(/#[\w]+/g) || [],
+                    ...hashtags.split(/[\s,]+/).filter(tag => tag.startsWith('#'))
+                ])].map(tag => tag.replace('#', ''));
+                
+                // Run AI moderation
+                const moderationResult = await moderateVideo(
+                    mediaUri,
+                    caption,
+                    allHashtags,
+                    metadata.duration,
+                    metadata.size
+                );
+                
+                // Show result and get user confirmation
+                const shouldProceed = await showModerationResult(moderationResult);
+                
+                if (!shouldProceed) {
+                    return; // User cancelled or video rejected
+                }
+                
+            } catch (error) {
+                console.error('Moderation error:', error);
+                Alert.alert('Error', 'Failed to moderate video. Please try again.');
+                return;
+            }
         }
 
         setUploading(true);

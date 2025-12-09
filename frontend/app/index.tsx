@@ -41,31 +41,12 @@ export default function Index() {
     // Don't navigate while landing screen is showing
     if (showLanding) return;
 
-    // Test Firebase connection on app start (development only)
-    if (__DEV__) {
-      console.log('\n🚀 Starting Firebase connection test...');
-      testFirebaseSetup().then(results => {
-        console.log('\n✅ Firebase test completed\n');
-      }).catch(err => {
-        console.error('❌ Firebase test failed:', err);
-      });
-    }
-
     // Wait for navigation to be ready
     if (!rootNavigationState?.key) return;
 
     // Small delay to ensure layout is mounted
     const timeout = setTimeout(() => {
-      console.log('🔍 [INDEX] Navigation check:', {
-        isAuthenticated,
-        userRole: user?.role,
-        languagePreferenceSet,
-        userId: user?.id
-      });
-      
-      // Check authentication status
       if (!isAuthenticated) {
-        console.log('🔐 [INDEX] User not authenticated - redirecting to PhoneLogin');
         router.replace('/auth/PhoneLogin');
       } else {
         // Navigate to appropriate home based on role
@@ -79,15 +60,11 @@ export default function Index() {
         
         // Special handling for miners: check language preference
         if (user.role === 'miner' && !languagePreferenceSet) {
-          console.log('🆕 [INDEX] Miner without language preference - redirecting to MinerHome');
-          // TODO: Create LanguagePreference screen
-          // router.replace('/miner/LanguagePreference');
           router.replace('/miner/MinerHome' as any);
           return;
         }
         
         const route = routes[user.role || 'miner'];
-        console.log('🏠 [INDEX] Redirecting to:', route);
         router.replace(route as any);
       }
     }, 100);

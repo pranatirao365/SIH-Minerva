@@ -1,20 +1,28 @@
 export const mockSafetyVideos = [
   {
     id: '1',
+    title: 'Blasting Safety Procedures',
+    duration: '5:45',
+    thumbnail: 'https://via.placeholder.com/300x180?text=Blasting+Safety',
+    completed: false,
+    videoUrl: require('@/assets/videos/reels/VID-20251209-WA0001.mp4'),
+  },
+  {
+    id: '2',
     title: 'Mine Safety Basics',
     duration: '5:30',
     thumbnail: 'https://via.placeholder.com/300x180?text=Safety+Basics',
     completed: false,
   },
   {
-    id: '2',
+    id: '3',
     title: 'PPE Equipment Guide',
     duration: '4:15',
     thumbnail: 'https://via.placeholder.com/300x180?text=PPE+Guide',
     completed: false,
   },
   {
-    id: '3',
+    id: '4',
     title: 'Emergency Procedures',
     duration: '6:20',
     thumbnail: 'https://via.placeholder.com/300x180?text=Emergency',
@@ -35,62 +43,7 @@ export const mockVoiceBriefings = [
 export const mockQuizQuestions = [
   {
     id: '1',
-    question: 'What is the first step when entering a mine?',
-    options: [
-      'Check oxygen levels',
-      'Turn on torch',
-      'Report to supervisor',
-      'Wear helmet',
-    ],
-    correctAnswer: 0,
-  },
-  {
-    id: '2',
-    question: 'How often should PPE be inspected?',
-    options: [
-      'Once a week',
-      'Before every shift',
-      'Once a month',
-      'Only when damaged',
-    ],
-    correctAnswer: 1,
-  },
-  {
-    id: '3',
-    question: 'What should you do if you detect gas?',
-    options: [
-      'Continue working',
-      'Open windows',
-      'Evacuate immediately',
-      'Call a friend',
-    ],
-    correctAnswer: 2,
-  },
-  {
-    id: '4',
-    question: 'Maximum continuous working hours underground?',
-    options: [
-      '6 hours',
-      '8 hours',
-      '10 hours',
-      '12 hours',
-    ],
-    correctAnswer: 1,
-  },
-  {
-    id: '5',
-    question: 'What does a red tag on equipment indicate?',
-    options: [
-      'New equipment',
-      'Do not operate',
-      'Requires maintenance',
-      'High priority',
-    ],
-    correctAnswer: 1,
-  },
-  {
-    id: '6',
-    question: 'Minimum distance from blasting area?',
+    question: 'What is the minimum safe distance from a blasting area during detonation?',
     options: [
       '50 meters',
       '100 meters',
@@ -98,6 +51,83 @@ export const mockQuizQuestions = [
       '500 meters',
     ],
     correctAnswer: 2,
+  },
+  {
+    id: '2',
+    question: 'Before blasting operations, what is the first safety measure?',
+    options: [
+      'Sound the alarm and evacuate all personnel',
+      'Check weather conditions',
+      'Turn off all lights',
+      'Call supervisor',
+    ],
+    correctAnswer: 0,
+  },
+  {
+    id: '3',
+    question: 'What type of explosive is commonly used in coal mining?',
+    options: [
+      'TNT only',
+      'Permissible explosives',
+      'Black powder',
+      'Nitroglycerin',
+    ],
+    correctAnswer: 1,
+  },
+  {
+    id: '4',
+    question: 'Who is authorized to handle explosives in a mine?',
+    options: [
+      'Any experienced miner',
+      'The supervisor only',
+      'Licensed blasting personnel only',
+      'All miners after basic training',
+    ],
+    correctAnswer: 2,
+  },
+  {
+    id: '5',
+    question: 'After blasting, how long must you wait before re-entering the area?',
+    options: [
+      '5 minutes',
+      'Wait for all-clear signal after ventilation',
+      '1 hour regardless',
+      'Immediately if no smoke visible',
+    ],
+    correctAnswer: 1,
+  },
+  {
+    id: '6',
+    question: 'What should be checked immediately after a blast misfires?',
+    options: [
+      'Rush to fix it immediately',
+      'Wait prescribed time, then investigate with blaster',
+      'Call police',
+      'Try blasting again',
+    ],
+    correctAnswer: 1,
+  },
+  {
+    id: '7',
+    question: 'Explosives must be stored in:',
+    options: [
+      'Any locked room',
+      'Near the working area',
+      'Approved magazine away from work areas',
+      'Supervisor office',
+    ],
+    correctAnswer: 2,
+  },
+  {
+    id: '8',
+    question: 'What protective equipment is mandatory during blasting operations?',
+    options: [
+      'Helmet only',
+      'Full PPE including hearing protection',
+      'Safety boots only',
+      'Gloves and goggles',
+    ],
+    correctAnswer: 1,
   },
 ];
 

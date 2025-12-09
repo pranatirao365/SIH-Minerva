@@ -20,7 +20,7 @@ interface ChecklistItem {
   id: string;
   title: string;
   description: string;
-  category: 'PPE' | 'Equipment' | 'Environment' | 'Health';
+  category: 'PPE' | 'Equipment';
   required: boolean;
   checked: boolean;
   checkpoints?: string[]; // Add detailed checkpoints
@@ -136,38 +136,6 @@ export default function DailyChecklist() {
         'Battery > 20%',
       ],
     },
-    {
-      id: '8',
-      title: 'Emergency Exits',
-      description: 'Verify you know all emergency exit routes',
-      category: 'Environment',
-      required: true,
-      checked: false,
-    },
-    {
-      id: '9',
-      title: 'Ventilation Check',
-      description: 'Confirm adequate air circulation in work area',
-      category: 'Environment',
-      required: false,
-      checked: false,
-    },
-    {
-      id: '10',
-      title: 'Physical Wellness',
-      description: 'Check if you feel fit for work (rest, hydration, no injuries)',
-      category: 'Health',
-      required: true,
-      checked: false,
-    },
-    {
-      id: '11',
-      title: 'Medication Check',
-      description: 'Ensure you have necessary medications if required',
-      category: 'Health',
-      required: false,
-      checked: false,
-    },
   ]);
 
   const [todayCompleted, setTodayCompleted] = useState(false);
@@ -279,9 +247,7 @@ export default function DailyChecklist() {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'PPE': return '🦺';
-      case 'Equipment': return '🔧';
-      case 'Environment': return '🌍';
-      case 'Health': return '❤️';
+      case 'Equipment': return '⚙️';
       default: return '✓';
     }
   };
@@ -353,7 +319,7 @@ export default function DailyChecklist() {
         </TouchableOpacity>
 
         {/* Checklist Items by Category */}
-        {['PPE', 'Equipment', 'Environment', 'Health'].map(category => {
+        {['PPE', 'Equipment'].map(category => {
           const categoryItems = items.filter(i => i.category === category);
           
           return (

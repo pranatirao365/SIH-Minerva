@@ -35,7 +35,8 @@ import {
     serverTimestamp,
     getDoc,
     setDoc,
-    increment
+    increment,
+    where
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import {
@@ -78,162 +79,8 @@ interface Reel {
     views: number;
     timestamp: any;
     hashtags?: string[];
+    isAssetVideo?: boolean; // Flag for videos loaded from local assets
 }
-
-// Reels data with actual video files from assets
-const REELS_DATA: Reel[] = [
-    {
-        id: '1',
-        userId: 'safety_officer_1',
-        userName: 'Safety Officer Rajesh',
-        caption: '🚨 Emergency Exit Procedures - Know your escape routes! Every second counts in an emergency. Stay prepared, stay safe! 🏃‍♂️ #EmergencyPrep #MiningSafety #SafetyFirst',
-        videoUrl: require('../../assets/videos/reels/emergency_exit_procedure_20251207_174801.mp4'),
-        videoType: 'video',
-        likedBy: [],
-        savedBy: [],
-        comments: [],
-        shares: 0,
-        views: 0,
-        timestamp: Date.now() - 3600000,
-        hashtags: ['EmergencyPrep', 'MiningSafety', 'SafetyFirst'],
-    },
-    {
-        id: '2',
-        userId: 'health_expert_1',
-        userName: 'Dr. Priya Sharma',
-        caption: '⚕️ Mining Related Diseases - Prevention is better than cure! Learn about occupational health risks and how to protect yourself. Your health matters! 💪 #MiningHealth #OccupationalSafety #HealthAwareness',
-        videoUrl: require('../../assets/videos/reels/mining_related_diseases_20251208_163507.mp4'),
-        videoType: 'video',
-        likedBy: [],
-        savedBy: [],
-        comments: [],
-        shares: 0,
-        views: 0,
-        timestamp: Date.now() - 7200000,
-        hashtags: ['MiningHealth', 'OccupationalSafety', 'HealthAwareness'],
-    },
-    {
-        id: '3',
-        userId: 'trainer_amit',
-        userName: 'Trainer Amit Singh',
-        caption: '🦺 PPE & Basic Tools - Your first line of defense! Always wear proper protective equipment. Helmet, boots, gloves, and more. Safety never takes a day off! ✅ #PPE #SafetyGear #ProtectiveEquipment',
-        videoUrl: require('../../assets/videos/reels/test_video_generation_20251208_093146.mp4'),
-        videoType: 'video',
-        likedBy: [],
-        savedBy: [],
-        comments: [],
-        shares: 0,
-        views: 0,
-        timestamp: Date.now() - 10800000,
-        hashtags: ['PPE', 'SafetyGear', 'ProtectiveEquipment'],
-    },
-    {
-        id: '4',
-        userId: 'engineer_sunita',
-        userName: 'Engineer Sunita Devi',
-        caption: '💨 Proper Ventilation Systems - Fresh air saves lives! Understanding ventilation is crucial for underground safety. Breathe easy, work safely! 🌬️ #Ventilation #AirQuality #MineSafety',
-        videoUrl: require('../../assets/videos/reels/proper_ventilation_systems_20251207_204747.mp4'),
-        videoType: 'video',
-        likedBy: [],
-        savedBy: [],
-        comments: [],
-        shares: 0,
-        views: 0,
-        timestamp: Date.now() - 14400000,
-        hashtags: ['Ventilation', 'AirQuality', 'MineSafety'],
-    },
-    {
-        id: '5',
-        userId: 'supervisor_vikram',
-        userName: 'Supervisor Vikram Rao',
-        caption: '🚛 Tipper Safety Protocol - Safe unloading procedures prevent accidents! Watch how proper technique saves lives. Follow the guidelines always! ⚠️ #TipperSafety #LoadManagement #SafetyProtocol',
-        videoUrl: require('../../assets/videos/reels/the_tipper_content_should_be_unloaded_20251207_220332.mp4'),
-        videoType: 'video',
-        likedBy: [],
-        savedBy: [],
-        comments: [],
-        shares: 0,
-        views: 0,
-        timestamp: Date.now() - 18000000,
-        hashtags: ['TipperSafety', 'LoadManagement', 'SafetyProtocol'],
-    },
-    {
-        id: '6',
-        userId: 'miner_arjun',
-        userName: 'Arjun Kumar',
-        caption: '⛏️ Daily safety check complete! Started my shift with proper inspection. Remember: Safety is not by accident, it\'s by choice! 🔒 #DailyCheck #MinerLife #SafetyFirst',
-        videoUrl: require('../../assets/videos/reels/VID-20251209-WA0001.mp4'),
-        videoType: 'video',
-        likedBy: [],
-        savedBy: [],
-        comments: [],
-        shares: 0,
-        views: 0,
-        timestamp: Date.now() - 21600000,
-        hashtags: ['DailyCheck', 'MinerLife', 'SafetyFirst'],
-    },
-    {
-        id: '7',
-        userId: 'miner_pooja',
-        userName: 'Pooja Verma',
-        caption: '🎯 Training completed! Level up with new safety certifications. Knowledge is power, safety is priority! 📚 #SafetyTraining #SkillDevelopment #MinerEducation',
-        videoUrl: require('../../assets/videos/reels/VID-20251209-WA0002.mp4'),
-        videoType: 'video',
-        likedBy: [],
-        savedBy: [],
-        comments: [],
-        shares: 0,
-        views: 0,
-        timestamp: Date.now() - 25200000,
-        hashtags: ['SafetyTraining', 'SkillDevelopment', 'MinerEducation'],
-    },
-    {
-        id: '8',
-        userId: 'miner_ravi',
-        userName: 'Ravi Patel',
-        caption: '🔦 Underground operations today! Proper lighting and communication are essential. Stay alert, stay connected! 💡 #UndergroundMining #TeamWork #SafeOps',
-        videoUrl: require('../../assets/videos/reels/VID-20251209-WA0003.mp4'),
-        videoType: 'video',
-        likedBy: [],
-        savedBy: [],
-        comments: [],
-        shares: 0,
-        views: 0,
-        timestamp: Date.now() - 28800000,
-        hashtags: ['UndergroundMining', 'TeamWork', 'SafeOps'],
-    },
-    {
-        id: '9',
-        userId: 'miner_meera',
-        userName: 'Meera Reddy',
-        caption: '👷‍♀️ Team coordination in action! When we work together, we work safer. Communication is key to zero accidents! 🤝 #TeamCoordination #SafetyCollaboration #WorkTogether',
-        videoUrl: require('../../assets/videos/reels/VID-20251209-WA0004.mp4'),
-        videoType: 'video',
-        likedBy: [],
-        savedBy: [],
-        comments: [],
-        shares: 0,
-        views: 0,
-        timestamp: Date.now() - 32400000,
-        hashtags: ['TeamCoordination', 'SafetyCollaboration', 'WorkTogether'],
-    },
-    {
-        id: '10',
-        userId: 'miner_deepak',
-        userName: 'Deepak Joshi',
-        caption: '⚙️ Equipment maintenance check! Well-maintained tools mean safer operations. Take care of your equipment, it takes care of you! 🔧 #Maintenance #ToolSafety #PreventiveCare',
-        videoUrl: require('../../assets/videos/reels/VID-20251209-WA0005.mp4'),
-        videoType: 'video',
-        likedBy: [],
-        savedBy: [],
-        comments: [],
-        shares: 0,
-        views: 0,
-        timestamp: Date.now() - 36000000,
-        hashtags: ['Maintenance', 'ToolSafety', 'PreventiveCare'],
-    },
-];
-
 export default function Reels() {
     const router = useRouter();
     const { user } = useRoleStore();
@@ -342,56 +189,60 @@ export default function Reels() {
     useEffect(() => {
         const loadReels = async () => {
             const reelsRef = collection(db, 'posts');
-            const q = query(reelsRef, orderBy('timestamp', 'desc'));
+            const q = query(
+                reelsRef, 
+                where('videoType', '==', 'video'),
+                where('status', '==', 'active')
+            );
 
             console.log('🔄 Loading reels from Firebase...');
 
             const unsubscribe = onSnapshot(q, async (snapshot) => {
                 const loadedReels: Reel[] = [];
-                let totalPosts = 0;
-                let videoPosts = 0;
-                let otherPosts = 0;
 
                 snapshot.forEach((doc) => {
-                    totalPosts++;
                     const data = doc.data();
                     
-                    // Only include video type posts
-                    if (data.videoType === 'video' || data.videoType === 'reel') {
-                        videoPosts++;
-                        loadedReels.push({
-                            id: doc.id,
-                            userId: data.userId || '',
-                            userName: data.userName || 'Unknown Miner',
-                            userPhone: data.userPhone,
-                            caption: data.caption || '',
-                            videoUrl: data.videoUrl || '',
-                            videoType: 'video',
-                            likedBy: data.likedBy || [],
-                            savedBy: data.savedBy || [],
-                            comments: data.comments || [],
-                            shares: data.shares || 0,
-                            views: data.views || 0,
-                            timestamp: data.timestamp,
-                            hashtags: data.hashtags || [],
-                        });
-                    } else {
-                        otherPosts++;
-                        console.log(`⏭️ Skipping non-video post: ${doc.id} (type: ${data.videoType})`);
+                    // Handle asset videos from local files
+                    let videoUrl = data.videoUrl;
+                    if (data.isAssetVideo && data.videoUrl?.startsWith('asset://')) {
+                        const fileName = data.videoUrl.replace('asset://', '');
+                        // Map to local asset
+                        const assetMap: { [key: string]: any } = {
+                            'videos/reels/emergency_exit_procedure_20251207_174801.mp4': require('@/assets/videos/reels/emergency_exit_procedure_20251207_174801.mp4'),
+                            'videos/reels/test_video_generation_20251208_093146.mp4': require('@/assets/videos/reels/test_video_generation_20251208_093146.mp4'),
+                            'videos/reels/proper_ventilation_systems_20251207_204747.mp4': require('@/assets/videos/reels/proper_ventilation_systems_20251207_204747.mp4'),
+                            'videos/reels/the_tipper_content_should_be_unloaded_20251207_220332.mp4': require('@/assets/videos/reels/the_tipper_content_should_be_unloaded_20251207_220332.mp4'),
+                            'videos/reels/VID-20251209-WA0001.mp4': require('@/assets/videos/reels/VID-20251209-WA0001.mp4'),
+                            'videos/reels/VID-20251209-WA0002.mp4': require('@/assets/videos/reels/VID-20251209-WA0002.mp4'),
+                            'videos/reels/VID-20251209-WA0003.mp4': require('@/assets/videos/reels/VID-20251209-WA0003.mp4'),
+                            'videos/reels/VID-20251209-WA0004.mp4': require('@/assets/videos/reels/VID-20251209-WA0004.mp4'),
+                            'videos/reels/VID-20251209-WA0005.mp4': require('@/assets/videos/reels/VID-20251209-WA0005.mp4'),
+                        };
+                        videoUrl = assetMap[fileName] || videoUrl;
                     }
+                    
+                    loadedReels.push({
+                        id: doc.id,
+                        userId: data.userId || '',
+                        userName: data.userName || 'Unknown Miner',
+                        userPhone: data.userPhone,
+                        caption: data.caption || '',
+                        videoUrl,
+                        videoType: 'video',
+                        likedBy: data.likedBy || [],
+                        savedBy: data.savedBy || [],
+                        comments: data.comments || [],
+                        shares: data.shares || 0,
+                        views: data.views || 0,
+                        timestamp: data.timestamp,
+                        hashtags: data.hashtags || [],
+                        isAssetVideo: data.isAssetVideo || false,
+                    });
                 });
                 
-                console.log(`📊 Posts Summary:`);
-                console.log(`   Total posts: ${totalPosts}`);
-                console.log(`   Video posts: ${videoPosts}`);
-                console.log(`   Other posts: ${otherPosts}`);
-                console.log(`   Loaded reels: ${loadedReels.length}`);
-                
-                // Show only local demo reels
-                setReels(REELS_DATA);
-                console.log('✅ Showing local demo reels only');
-                console.log(`   Local demo reels: ${REELS_DATA.length}`);
-                
+                console.log(`✅ Loaded ${loadedReels.length} reels from Firebase`);
+                setReels(loadedReels);
                 setLoading(false);
                 setRefreshing(false);
             });
@@ -402,7 +253,7 @@ export default function Reels() {
         loadReels();
     }, []);
 
-    // Track reel views when scrolling - only for Firebase reels
+    // Track reel views when scrolling
     useEffect(() => {
         if (reels.length > 0 && currentIndex < reels.length) {
             const currentReel = reels[currentIndex];
@@ -411,17 +262,12 @@ export default function Reels() {
                 // Mark as viewed for this user session
                 viewedReels.current.add(currentReel.id);
                 
-                // Only increment views for Firebase reels (not local demo reels)
-                // Local demo reels have numeric IDs (1, 2, 3, etc)
-                // Firebase reels have alphanumeric IDs
-                const isLocalDemoReel = /^\d+$/.test(currentReel.id);
-                
-                if (!isLocalDemoReel) {
-                    // Increment view count in Firebase only for real posts
+                // Skip Firebase sync for asset videos
+                if (!currentReel.isAssetVideo) {
                     incrementPostViews(currentReel.id);
-                    console.log(`📊 View counted for reel: ${currentReel.id} by ${currentUserName}`);
+                    console.log(`📊 View counted for reel: ${currentReel.id}`);
                 } else {
-                    console.log(`📊 Local demo reel view (not synced to Firebase): ${currentReel.id}`);
+                    console.log(`📊 Asset video view (local only): ${currentReel.id}`);
                 }
             }
         }
@@ -455,7 +301,6 @@ export default function Reels() {
         if (!reel) return;
 
         const isLiked = reel.likedBy.includes(currentUserId);
-        const isLocalDemoReel = /^\d+$/.test(reelId);
 
         // Optimistic update - update UI immediately
         setReels(prevReels => prevReels.map(r => {
@@ -470,8 +315,8 @@ export default function Reels() {
             return r;
         }));
 
-        // Only sync to Firebase for real posts, not local demos
-        if (!isLocalDemoReel) {
+        // Only sync to Firebase for non-asset videos
+        if (!reel.isAssetVideo) {
             try {
                 if (isLiked) {
                     await unlikePost(reelId, currentUserId, reel.userId);
@@ -503,7 +348,6 @@ export default function Reels() {
         if (!reel) return;
 
         const isSaved = reel.savedBy.includes(currentUserId);
-        const isLocalDemoReel = /^\d+$/.test(reelId);
 
         // Optimistic update
         setReels(prevReels => prevReels.map(r => {
@@ -518,17 +362,12 @@ export default function Reels() {
             return r;
         }));
 
-        // Only sync to Firebase for real posts
-        if (!isLocalDemoReel) {
+        // Only sync to Firebase for non-asset videos
+        if (!reel.isAssetVideo) {
             try {
                 const success = await savePost(reelId, currentUserId);
                 if (success) {
-                    Alert.alert(
-                        isSaved ? '✅ Removed' : '💾 Saved!',
-                        isSaved 
-                            ? 'Post removed from saved items'
-                            : 'Post saved to your collection'
-                    );
+                    console.log(isSaved ? '✅ Removed from saved' : '💾 Saved to collection');
                 }
             } catch (error) {
                 console.error('Error updating save:', error);
@@ -549,8 +388,8 @@ export default function Reels() {
             Alert.alert(
                 isSaved ? '✅ Removed' : '💾 Saved!',
                 isSaved 
-                    ? 'Demo reel removed from saved items'
-                    : 'Demo reel saved locally'
+                    ? 'Content removed from saved'
+                    : 'Content saved locally'
             );
         }
     };
@@ -558,8 +397,6 @@ export default function Reels() {
     const handleShare = async (reelId: string) => {
         const reel = reels.find(r => r.id === reelId);
         if (!reel) return;
-
-        const isLocalDemoReel = /^\d+$/.test(reelId);
 
         try {
             // Show share options
@@ -580,12 +417,12 @@ export default function Reels() {
 
                             await setStringAsync(`minerva://reel/${reelId}`);
                             
-                            // Only sync to Firebase for real posts
-                            if (!isLocalDemoReel) {
+                            // Only sync to Firebase for non-asset videos
+                            if (!reel.isAssetVideo) {
                                 await sharePost(reelId, currentUserId, currentUserName, reel.userId);
                             }
                             
-                            Alert.alert('✅ Link copied to clipboard!');
+                            console.log('✅ Link copied to clipboard');
                         }
                     },
                     {
@@ -601,14 +438,14 @@ export default function Reels() {
                                     return r;
                                 }));
 
-                                // Only sync to Firebase for real posts
-                                if (!isLocalDemoReel) {
+                                // Only sync to Firebase for non-asset videos
+                                if (!reel.isAssetVideo) {
                                     await sharePost(reelId, currentUserId, currentUserName, reel.userId);
                                 }
                                 
-                                Alert.alert('✅ Share successful!', `Shared ${reel.userName}'s reel`);
+                                console.log('✅ Share successful');
                             } else {
-                                Alert.alert('❌ Sharing not available on this device');
+                                console.log('❌ Sharing not available on this device');
                             }
                         }
                     },
@@ -617,7 +454,7 @@ export default function Reels() {
             );
         } catch (error) {
             console.error('Error sharing:', error);
-            Alert.alert('❌ Error', 'Failed to share reel');
+            console.log('❌ Failed to share reel');
         }
     };
 
@@ -626,8 +463,6 @@ export default function Reels() {
 
         const reel = reels.find(r => r.id === selectedReelId);
         if (!reel) return;
-
-        const isLocalDemoReel = /^\d+$/.test(selectedReelId);
 
         const newComment: ReelComment = {
             id: `temp_${Date.now()}`,
@@ -650,8 +485,8 @@ export default function Reels() {
 
         setCommentText('');
 
-        // Only sync to Firebase for real posts
-        if (!isLocalDemoReel) {
+        // Only sync to Firebase for non-asset videos
+        if (!reel.isAssetVideo) {
             try {
                 await addComment(
                     selectedReelId,
@@ -660,13 +495,13 @@ export default function Reels() {
                     newComment.text,
                     reel.userId
                 );
-                Alert.alert('✅ Comment added!');
+                console.log('✅ Comment added');
             } catch (error) {
                 console.error('Error adding comment:', error);
-                Alert.alert('❌ Error', 'Failed to add comment');
+                console.log('❌ Failed to add comment');
             }
         } else {
-            Alert.alert('✅ Comment added!', 'Comment saved locally for demo reel');
+            console.log('✅ Comment saved for demo reel');
         }
     };
 
@@ -694,13 +529,12 @@ export default function Reels() {
                 } else {
                     // Revert on failure
                     setFollowingUsers(prev => new Set([...prev, userId]));
-                    Alert.alert('❌ Error', 'Failed to unfollow user');
+                    console.log('❌ Failed to unfollow user');
                 }
             } else {
                 const success = await followUser(currentUserId, userId);
                 if (success) {
                     console.log('✅ Successfully followed user:', userId);
-                    Alert.alert('✅ Following!', 'You are now following this user');
                 } else {
                     // Revert on failure
                     setFollowingUsers(prev => {
@@ -708,7 +542,7 @@ export default function Reels() {
                         newSet.delete(userId);
                         return newSet;
                     });
-                    Alert.alert('❌ Error', 'Failed to follow user');
+                    console.log('❌ Failed to follow user');
                 }
             }
         } catch (error) {
@@ -747,14 +581,25 @@ export default function Reels() {
         }
     };
 
-    const toggleMute = () => {
-        setIsMuted(!isMuted);
+    const toggleMute = async () => {
+        const newMutedState = !isMuted;
+        setIsMuted(newMutedState);
+        
         // Update all video refs
-        Object.values(videoRefs.current).forEach(video => {
-            if (video) {
-                video.setIsMutedAsync(!isMuted);
-            }
-        });
+        try {
+            const promises = Object.values(videoRefs.current).map(video => {
+                if (video) {
+                    return video.setIsMutedAsync(newMutedState).catch(err => {
+                        console.log('Error toggling mute:', err);
+                    });
+                }
+                return Promise.resolve();
+            });
+            await Promise.all(promises);
+            console.log(`🔊 Audio ${newMutedState ? 'muted' : 'unmuted'}`);
+        } catch (error) {
+            console.error('Error toggling mute:', error);
+        }
     };
 
     if (loading) {
@@ -869,19 +714,6 @@ export default function Reels() {
                         <Share2 size={30} color="#FFF" />
                         <Text style={styles.actionText}>{item.shares}</Text>
                     </TouchableOpacity>
-
-                    {/* Save */}
-                    <TouchableOpacity 
-                        style={styles.actionButton}
-                        onPress={() => handleSave(item.id)}
-                        activeOpacity={0.7}
-                    >
-                        <Bookmark 
-                            size={30} 
-                            color="#FFF"
-                            fill={isSaved ? '#FFF' : 'none'}
-                        />
-                    </TouchableOpacity>
                 </View>
 
                 {/* Bottom info */}
@@ -928,34 +760,6 @@ export default function Reels() {
                     <Text style={styles.caption} numberOfLines={2}>
                         {item.caption}
                     </Text>
-                    
-                    {/* Stats row with accurate counts */}
-                    <View style={styles.statsRow}>
-                        <View style={styles.statItem}>
-                            <Eye size={14} color="rgba(255,255,255,0.7)" />
-                            <Text style={styles.statText}>
-                                {item.views || 0} {item.views === 1 ? 'view' : 'views'}
-                            </Text>
-                        </View>
-                        <View style={styles.statItem}>
-                            <Heart size={14} color="rgba(255,255,255,0.7)" />
-                            <Text style={styles.statText}>
-                                {item.likedBy?.length || 0} {item.likedBy?.length === 1 ? 'like' : 'likes'}
-                            </Text>
-                        </View>
-                        <View style={styles.statItem}>
-                            <MessageCircle size={14} color="rgba(255,255,255,0.7)" />
-                            <Text style={styles.statText}>
-                                {item.comments?.length || 0} {item.comments?.length === 1 ? 'comment' : 'comments'}
-                            </Text>
-                        </View>
-                        <View style={styles.statItem}>
-                            <Share2 size={14} color="rgba(255,255,255,0.7)" />
-                            <Text style={styles.statText}>
-                                {item.shares || 0} {item.shares === 1 ? 'share' : 'shares'}
-                            </Text>
-                        </View>
-                    </View>
                 </View>
             </View>
         );
@@ -1096,13 +900,20 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 60,
         right: 16,
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 10,
+        borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+        elevation: 8,
     },
     bottomGradient: {
         position: 'absolute',
@@ -1113,22 +924,35 @@ const styles = StyleSheet.create({
     },
     rightActions: {
         position: 'absolute',
-        right: 12,
+        right: 16,
         bottom: 250,
-        gap: 24,
+        gap: 20,
+        alignItems: 'center',
     },
     actionButton: {
         alignItems: 'center',
-        gap: 4,
+        gap: 6,
+        padding: 8,
+        borderRadius: 28,
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        minWidth: 56,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 4,
     },
     actionText: {
         color: '#FFF',
-        fontSize: 12,
-        fontWeight: '600',
+        fontSize: 13,
+        fontWeight: '700',
+        textShadowColor: 'rgba(0, 0, 0, 0.8)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
     },
     bottomInfo: {
         position: 'absolute',
-        bottom: 125,
+        bottom: 145,
         left: 12,
         right: 80,
     },
@@ -1151,14 +975,19 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     avatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         backgroundColor: COLORS.primary,
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 2,
+        borderWidth: 2.5,
         borderColor: '#FFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 4,
     },
     avatarText: {
         color: '#FFF',
@@ -1175,26 +1004,38 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        paddingHorizontal: 16,
-        paddingVertical: 6,
-        borderRadius: 20,
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 24,
         backgroundColor: COLORS.primary,
-        borderWidth: 1,
+        borderWidth: 2,
         borderColor: '#FFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.4,
+        shadowRadius: 6,
+        elevation: 6,
+        minWidth: 100,
+        justifyContent: 'center',
     },
     followingButton: {
-        backgroundColor: '#FFF',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
         borderColor: COLORS.primary,
     },
     followText: {
         color: '#FFF',
-        fontSize: 13,
-        fontWeight: '700',
+        fontSize: 14,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
     },
     followingText: {
         color: COLORS.primary,
-        fontSize: 13,
-        fontWeight: '700',
+        fontSize: 14,
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
     statsRow: {
         flexDirection: 'row',
@@ -1216,7 +1057,8 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: 14,
         lineHeight: 20,
-        marginBottom: 12,
+        marginBottom: 4,
+        marginTop: 8,
     },
     audioInfo: {
         flexDirection: 'row',
@@ -1333,19 +1175,33 @@ const styles = StyleSheet.create({
         maxHeight: 100,
     },
     sendButton: {
-        padding: 8,
+        padding: 10,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 107, 0, 0.1)',
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     closeButton: {
         marginHorizontal: 16,
-        marginTop: 12,
-        paddingVertical: 14,
+        marginTop: 16,
+        paddingVertical: 16,
         backgroundColor: COLORS.background,
-        borderRadius: 12,
+        borderRadius: 16,
         alignItems: 'center',
+        borderWidth: 2,
+        borderColor: COLORS.border,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
     },
     closeButtonText: {
         color: COLORS.text,
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 17,
+        fontWeight: '700',
+        letterSpacing: 0.5,
     },
 });

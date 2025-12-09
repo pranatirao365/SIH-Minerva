@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import {
     Animated,
     Dimensions,
+    Image,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -61,7 +62,6 @@ export default function ProgressTracker() {
   const [leaderboard, setLeaderboard] = useState<MinerProgress[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [currentUser, setCurrentUser] = useState<MinerProgress | null>(null);
-  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'all'>('week');
   const [refreshing, setRefreshing] = useState(false);
   const [animatedValue] = useState(new Animated.Value(0));
 
@@ -76,7 +76,7 @@ export default function ProgressTracker() {
       tension: 40,
       useNativeDriver: true,
     }).start();
-  }, [timeRange]);
+  }, []);
 
   const loadLeaderboardData = async () => {
     try {
@@ -247,13 +247,13 @@ export default function ProgressTracker() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Progress & Leaderboard</Text>
+        <Text style={styles.headerTitle}>Leaderboard</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -264,226 +264,123 @@ export default function ProgressTracker() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
         }
       >
-        {/* Current User Stats Card */}
-        {currentUser && (
-          <Animated.View
-            style={[
-              styles.currentUserCard,
-              {
-                transform: [
-                  {
-                    scale: animatedValue.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.9, 1],
-                    }),
-                  },
-                ],
-                opacity: animatedValue,
-              },
-            ]}
-          >
-            <LinearGradient
-              colors={['#6366F1', '#8B5CF6']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.currentUserGradient}
-            >
-              <View style={styles.currentUserHeader}>
-                <View>
-                  <Text style={styles.currentUserRank}>Rank #{currentUser.rank}</Text>
-                  <Text style={styles.currentUserName}>{currentUser.name}</Text>
-                </View>
-                <View style={styles.currentUserLevel}>
-                  <Trophy size={24} color="#FFD700" />
-                  <Text style={styles.currentUserLevelText}>Level {currentUser.level}</Text>
-                </View>
+        {/* Top 3 Podium Display */}
+        {leaderboard.length >= 3 && (
+          <View style={styles.podiumContainer}>
+            {/* 2nd Place - Left */}
+            <View style={styles.podiumItem}>
+              <View style={[styles.minerAvatar, styles.avatar2nd]}>
+                <Image 
+                  source={require('@/assets/images/2.jpg')} 
+                  style={styles.trophyImage}
+                  resizeMode="contain"
+                />
               </View>
+              <View style={[styles.podium, styles.podium2nd]}>
+                <Text style={styles.podiumRank}>2</Text>
+                <Text style={styles.podiumLabel}>nd</Text>
+              </View>
+              <Text style={styles.podiumName} numberOfLines={1}>{leaderboard[1]?.name}</Text>
+              <View style={styles.podiumPointsBadge}>
+                <Text style={styles.podiumPoints}>{leaderboard[1]?.totalPoints}</Text>
+              </View>
+            </View>
 
-              <View style={styles.currentUserStats}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{currentUser.totalPoints}</Text>
-                  <Text style={styles.statLabel}>Points</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{currentUser.videosCompleted}</Text>
-                  <Text style={styles.statLabel}>Videos</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{currentUser.quizzesCompleted}</Text>
-                  <Text style={styles.statLabel}>Quizzes</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{currentUser.streak}</Text>
-                  <Text style={styles.statLabel}>Streak 🔥</Text>
-                </View>
+            {/* 1st Place - Center */}
+            <View style={[styles.podiumItem, styles.podium1stContainer]}>
+              <View style={[styles.minerAvatar, styles.avatar1st]}>
+                <Image 
+                  source={require('@/assets/images/1.jpg')} 
+                  style={styles.trophyImage}
+                  resizeMode="contain"
+                />
               </View>
+              <View style={[styles.podium, styles.podium1st]}>
+                <Text style={[styles.podiumRank, styles.podium1stRank]}>1</Text>
+                <Text style={[styles.podiumLabel, styles.podium1stLabel]}>st</Text>
+              </View>
+              <Text style={[styles.podiumName, styles.podium1stName]}>{leaderboard[0]?.name}</Text>
+              <View style={[styles.podiumPointsBadge, styles.podium1stBadge]}>
+                <Text style={[styles.podiumPoints, styles.podium1stPoints]}>{leaderboard[0]?.totalPoints}</Text>
+              </View>
+            </View>
 
-              <View style={styles.badgesContainer}>
-                {currentUser.badges.map((badge, index) => (
-                  <Text key={index} style={styles.badge}>{badge}</Text>
-                ))}
+            {/* 3rd Place - Right */}
+            <View style={styles.podiumItem}>
+              <View style={[styles.minerAvatar, styles.avatar3rd]}>
+                <Image 
+                  source={require('@/assets/images/3.jpg')} 
+                  style={styles.trophyImage}
+                  resizeMode="contain"
+                />
               </View>
-            </LinearGradient>
-          </Animated.View>
+              <View style={[styles.podium, styles.podium3rd]}>
+                <Text style={styles.podiumRank}>3</Text>
+                <Text style={styles.podiumLabel}>rd</Text>
+              </View>
+              <Text style={styles.podiumName} numberOfLines={1}>{leaderboard[2]?.name}</Text>
+              <View style={styles.podiumPointsBadge}>
+                <Text style={styles.podiumPoints}>{leaderboard[2]?.totalPoints}</Text>
+              </View>
+            </View>
+          </View>
         )}
 
-        {/* Time Range Filter */}
-        <View style={styles.timeRangeContainer}>
-          {(['week', 'month', 'all'] as const).map((range) => (
-            <TouchableOpacity
-              key={range}
-              style={[styles.timeRangeButton, timeRange === range && styles.timeRangeButtonActive]}
-              onPress={() => setTimeRange(range)}
-            >
-              <Text style={[styles.timeRangeText, timeRange === range && styles.timeRangeTextActive]}>
-                {range === 'week' ? 'This Week' : range === 'month' ? 'This Month' : 'All Time'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Leaderboard */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Trophy size={24} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Leaderboard</Text>
+        {/* Current User Card - if not in top 3 */}
+        {currentUser && currentUser.rank > 3 && (
+          <View style={styles.currentUserContainer}>
+            <View style={styles.currentUserCard}>
+              <View style={styles.currentUserRankBadge}>
+                <Text style={styles.currentUserRankText}>{currentUser.rank}</Text>
+              </View>
+              <View style={styles.currentUserInfo}>
+                <Text style={styles.currentUserName}>{currentUser.name}</Text>
+                <Text style={styles.currentUserSubtitle}>{currentUser.totalPoints} Points</Text>
+              </View>
+              <View style={styles.currentUserBadge}>
+                <Text style={styles.currentUserBadgeText}>You</Text>
+              </View>
+            </View>
           </View>
+        )}
 
-          {leaderboard.map((miner, index) => (
-            <Animated.View
+        {/* Rest of Leaderboard - Starting from rank 4 */}
+        <View style={styles.section}>
+          {leaderboard.slice(3).map((miner, index) => (
+            <View
               key={miner.id}
               style={[
                 styles.leaderboardCard,
                 miner.isCurrentUser && styles.currentUserHighlight,
-                {
-                  transform: [
-                    {
-                      translateX: animatedValue.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [50, 0],
-                      }),
-                    },
-                  ],
-                  opacity: animatedValue,
-                },
               ]}
             >
-              {miner.rank <= 3 && (
-                <LinearGradient
-                  colors={getRankColor(miner.rank)}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.topRankGradient}
-                >
-                  <View style={styles.leaderboardContent}>
-                    <View style={styles.leaderboardLeft}>
-                      <View style={styles.rankBadge}>{getRankIcon(miner.rank)}</View>
-                      <View>
-                        <Text style={[styles.minerName, miner.rank <= 3 && { color: '#FFFFFF' }]}>
-                          {miner.name}
-                        </Text>
-                        <View style={styles.minerStats}>
-                          <Text style={[styles.minerStat, miner.rank <= 3 && { color: '#FFFFFF' }]}>
-                            Level {miner.level}
-                          </Text>
-                          <Text style={[styles.minerStat, miner.rank <= 3 && { color: '#FFFFFF' }]}>
-                            •
-                          </Text>
-                          <Text style={[styles.minerStat, miner.rank <= 3 && { color: '#FFFFFF' }]}>
-                            {miner.safetyScore}% Safe
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                    <View style={styles.leaderboardRight}>
-                      <Text style={[styles.points, miner.rank <= 3 && { color: '#FFFFFF' }]}>
-                        {miner.totalPoints}
-                      </Text>
-                      <Text style={[styles.pointsLabel, miner.rank <= 3 && { color: '#FFFFFF' }]}>
-                        points
-                      </Text>
-                    </View>
+              <View style={styles.leaderboardContent}>
+                <View style={styles.leaderboardLeft}>
+                  <View style={styles.rankCircle}>
+                    <Text style={styles.rankNumber}>{miner.rank}</Text>
                   </View>
-                </LinearGradient>
-              )}
-
-              {miner.rank > 3 && (
-                <View style={styles.leaderboardContent}>
-                  <View style={styles.leaderboardLeft}>
-                    <View style={styles.rankBadge}>{getRankIcon(miner.rank)}</View>
-                    <View>
-                      <Text style={styles.minerName}>{miner.name}</Text>
-                      <View style={styles.minerStats}>
-                        <Text style={styles.minerStat}>Level {miner.level}</Text>
-                        <Text style={styles.minerStat}>•</Text>
-                        <Text style={styles.minerStat}>{miner.safetyScore}% Safe</Text>
-                      </View>
-                    </View>
-                  </View>
-                  <View style={styles.leaderboardRight}>
-                    <Text style={styles.points}>{miner.totalPoints}</Text>
-                    <Text style={styles.pointsLabel}>points</Text>
+                  <View style={styles.minerInfo}>
+                    <Text style={styles.minerName}>{miner.name}</Text>
+                    <Text style={styles.minerSubtitle}>{miner.totalPoints} Points</Text>
                   </View>
                 </View>
-              )}
-            </Animated.View>
-          ))}
-        </View>
-
-        {/* Achievements */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Award size={24} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Achievements</Text>
-          </View>
-
-          {achievements.map((achievement) => (
-            <View
-              key={achievement.id}
-              style={[
-                styles.achievementCard,
-                achievement.unlocked && styles.achievementUnlocked,
-              ]}
-            >
-              <View style={styles.achievementIcon}>
-                <Text style={styles.achievementEmoji}>{achievement.icon}</Text>
-              </View>
-              <View style={styles.achievementContent}>
-                <Text style={[styles.achievementTitle, achievement.unlocked && styles.achievementTitleUnlocked]}>
-                  {achievement.title}
-                </Text>
-                <Text style={styles.achievementDescription}>{achievement.description}</Text>
-                
-                {!achievement.unlocked && achievement.progress !== undefined && (
-                  <View style={styles.progressContainer}>
-                    <View style={styles.progressBar}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          { width: `${(achievement.progress / (achievement.total || 1)) * 100}%` },
-                        ]}
-                      />
+                <View style={styles.leaderboardRight}>
+                  {miner.isCurrentUser ? (
+                    <View style={styles.youBadge}>
+                      <Text style={styles.youBadgeText}>You</Text>
                     </View>
-                    <Text style={styles.progressText}>
-                      {achievement.progress}/{achievement.total}
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.achievementPoints}>
-                <Star size={16} color={achievement.unlocked ? '#FFD700' : COLORS.textMuted} />
-                <Text style={[styles.pointsValue, achievement.unlocked && { color: '#FFD700' }]}>
-                  {achievement.points}
-                </Text>
+                  ) : (
+                    <View style={styles.trendBadge}>
+                      <Text style={styles.trendIcon}>📈</Text>
+                    </View>
+                  )}
+                </View>
               </View>
             </View>
           ))}
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -499,154 +396,293 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 18,
+    backgroundColor: COLORS.card,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   backButton: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: COLORS.background,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: COLORS.text,
   },
   scrollView: {
     flex: 1,
   },
-  currentUserCard: {
-    margin: 20,
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 12,
-  },
-  currentUserGradient: {
-    padding: 20,
-  },
-  currentUserHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  currentUserRank: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 4,
-  },
-  currentUserName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  currentUserLevel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
-  },
-  currentUserLevelText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  currentUserStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  badgesContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-  },
-  badge: {
-    fontSize: 24,
-  },
   timeRangeContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingVertical: 20,
     gap: 12,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 4,
   },
   timeRangeButton: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: COLORS.card,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    backgroundColor: '#F5F5F7',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   timeRangeButtonActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: '#8E8FFA',
   },
   timeRangeText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    color: COLORS.text,
+    color: '#8E8E93',
   },
   timeRangeTextActive: {
     color: '#FFFFFF',
   },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  sectionHeader: {
+  podiumContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 48,
+    paddingBottom: 32,
+    backgroundColor: COLORS.card,
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  sectionTitle: {
-    fontSize: 20,
+  podiumItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  podium1stContainer: {
+    marginBottom: 20,
+  },
+  crownIcon: {
+    marginBottom: 8,
+  },
+  minerAvatar: {
+    width: 109,
+    height: 109,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  trophyImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
+  },
+  avatar1st: {
+    width: 140,
+    height: 140,
+  },
+  avatar2nd: {},
+  avatar3rd: {},
+  avatarText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  avatar1stText: {
+    fontSize: 32,
+  },
+  podium: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    alignItems: 'center',
+    width: '100%',
+    minHeight: 80,
+  },
+  podium1st: {
+    backgroundColor: COLORS.primary,
+    minHeight: 110,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  podium2nd: {
+    backgroundColor: '#3F3F46',
+    minHeight: 80,
+    borderWidth: 1,
+    borderColor: '#52525B',
+  },
+  podium3rd: {
+    backgroundColor: '#27272A',
+    minHeight: 70,
+    borderWidth: 1,
+    borderColor: '#3F3F46',
+  },
+  podiumRank: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    lineHeight: 38,
+  },
+  podium1stRank: {
+    fontSize: 40,
+  },
+  podiumLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  podium1stLabel: {
+    fontSize: 18,
+  },
+  podiumName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: -8,
+    marginBottom: 10,
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  podium1stName: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: COLORS.text,
+    letterSpacing: 0.5,
+  },
+  podiumPointsBadge: {
+    backgroundColor: COLORS.card,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  podium1stBadge: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+    borderWidth: 2,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  podiumPoints: {
+    fontSize: 13,
     fontWeight: '700',
     color: COLORS.text,
   },
-  leaderboardCard: {
-    marginBottom: 12,
-    borderRadius: 16,
-    overflow: 'hidden',
+  podium1stPoints: {
+    fontSize: 15,
+    color: '#FFFFFF',
+  },
+  currentUserContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: COLORS.background,
+  },
+  currentUserCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.card,
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  currentUserRankBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  currentUserRankText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  currentUserInfo: {
+    flex: 1,
+  },
+  currentUserName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  currentUserSubtitle: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+  },
+  currentUserBadge: {
+    backgroundColor: '#10B981',
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 18,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  currentUserBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  section: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    backgroundColor: COLORS.background,
+  },
+  leaderboardCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   currentUserHighlight: {
-    borderColor: COLORS.primary,
     borderWidth: 2,
-  },
-  topRankGradient: {
-    padding: 16,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.card,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
   },
   leaderboardContent: {
     flexDirection: 'row',
@@ -657,122 +693,68 @@ const styles = StyleSheet.create({
   leaderboardLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
     flex: 1,
+    gap: 16,
   },
-  rankBadge: {
+  rankCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
   },
   rankNumber: {
     fontSize: 18,
     fontWeight: '700',
     color: COLORS.text,
   },
+  minerInfo: {
+    flex: 1,
+  },
   minerName: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: 4,
+    letterSpacing: 0.2,
   },
-  minerStats: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  minerStat: {
-    fontSize: 13,
+  minerSubtitle: {
+    fontSize: 14,
     color: COLORS.textMuted,
   },
   leaderboardRight: {
-    alignItems: 'flex-end',
+    marginLeft: 12,
   },
-  points: {
-    fontSize: 20,
+  youBadge: {
+    backgroundColor: '#10B981',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  youBadgeText: {
+    fontSize: 13,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: '#FFFFFF',
   },
-  pointsLabel: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-  },
-  achievementCard: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    opacity: 0.6,
-  },
-  achievementUnlocked: {
-    opacity: 1,
-    borderColor: '#FFD700',
-  },
-  achievementIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  trendBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  achievementEmoji: {
-    fontSize: 28,
-  },
-  achievementContent: {
-    flex: 1,
-  },
-  achievementTitle: {
+  trendIcon: {
     fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.textMuted,
-    marginBottom: 4,
-  },
-  achievementTitleUnlocked: {
-    color: COLORS.text,
-  },
-  achievementDescription: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    marginBottom: 8,
-  },
-  progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  progressBar: {
-    flex: 1,
-    height: 6,
-    backgroundColor: COLORS.background,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: COLORS.primary,
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    fontWeight: '600',
-  },
-  achievementPoints: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginLeft: 12,
-  },
-  pointsValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.textMuted,
   },
 });

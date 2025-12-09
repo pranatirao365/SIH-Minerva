@@ -60,11 +60,9 @@ export default function SmartHelmetStatus() {
   // Initialize WebSocket connection
   const connectWebSocket = () => {
     try {
-      console.log('Attempting to connect to:', getWebSocketURL());
       const ws = new WebSocket(getWebSocketURL());
       
       ws.onopen = () => {
-        console.log('✅ WebSocket connected to Smart Helmet');
         setConnected(true);
         setReconnectAttempts(0);
       };
@@ -74,36 +72,20 @@ export default function SmartHelmetStatus() {
           const data = JSON.parse(event.data) as HelmetData;
           setHelmetData(data);
           setLastUpdate(new Date());
-
-          // Alert for emergency
-          if (data.emergency) {
-            Alert.alert(
-              '🚨 EMERGENCY ALERT',
-              'Emergency button pressed on helmet!',
-              [{ text: 'Acknowledged', style: 'destructive' }]
-            );
-          }
         } catch (error) {
-          console.error('Error parsing WebSocket data:', error);
+          // Silent error handling
         }
       };
 
       ws.onerror = (error) => {
-        console.error('❌ WebSocket connection failed');
-        console.error('Make sure:');
-        console.error('1. ESP32 is powered on and connected to WiFi');
-        console.error('2. IP address in config is correct:', ESP32_CONFIG.IP);
-        console.error('3. Phone and ESP32 are on the same network');
-        setConnected(false);
+        setIsConnected(false);
       };
 
       ws.onclose = () => {
-        console.log('WebSocket disconnected');
         setConnected(false);
         
-        // Attempt to reconnect
+        // Attempt to reconnect silently
         if (reconnectAttempts < ESP32_CONFIG.MAX_RECONNECT_ATTEMPTS) {
-          console.log(`Reconnecting... attempt ${reconnectAttempts + 1}/${ESP32_CONFIG.MAX_RECONNECT_ATTEMPTS}`);
           reconnectTimeoutRef.current = setTimeout(() => {
             setReconnectAttempts(prev => prev + 1);
             connectWebSocket();
@@ -113,7 +95,6 @@ export default function SmartHelmetStatus() {
 
       wsRef.current = ws;
     } catch (error) {
-      console.error('Failed to connect WebSocket:', error);
       setConnected(false);
     }
   };

@@ -17,8 +17,7 @@ import { useRoleStore } from '@/hooks/useRoleStore';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
-// TEMPORARY DEBUG LOG - REMOVE AFTER VERIFICATION
-console.log('[WatchVideoModule] RENDERED file path: app/miner/WatchVideoModule.tsx');
+
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -44,9 +43,6 @@ export default function WatchVideoModule() {
   const [completedVideos, setCompletedVideos] = useState<CompletedVideoItem[]>([]);
 
   useEffect(() => {
-    console.log('[WVM] 🔄 Tab changed to:', activeTab);
-    console.log('[WVM] 👤 Current miner ID:', currentMinerId);
-    
     if (activeTab === 'watched' && currentMinerId) {
       loadCompletedVideos();
     }
@@ -54,19 +50,11 @@ export default function WatchVideoModule() {
 
   const loadCompletedVideos = async () => {
     if (!currentMinerId) {
-      console.log('[WVM] ⚠️ No current miner ID');
       return;
     }
 
     try {
       setLoading(true);
-      console.log('='.repeat(60));
-      console.log('[WATCH_VIDEO] Loading completed videos');
-      console.log('[WATCH_VIDEO] User ID:', user?.id);
-      console.log('[WATCH_VIDEO] User Phone:', user?.phone);
-      console.log('[WATCH_VIDEO] User Name:', user?.name);
-      console.log('[WATCH_VIDEO] Query minerId:', currentMinerId);
-      console.log('='.repeat(60));
 
       // Query videoAssignments where minerId is in assignedTo array
       const assignmentsRef = collection(db, 'videoAssignments');
@@ -76,42 +64,23 @@ export default function WatchVideoModule() {
       );
       
       const assignmentsSnapshot = await getDocs(assignmentsQuery);
-      console.log(`[WATCH_VIDEO] Query returned ${assignmentsSnapshot.size} total assignments`);
-      if (assignmentsSnapshot.size > 0) {
-        console.log('[WATCH_VIDEO] Sample assignment data:');
-        assignmentsSnapshot.docs.slice(0, 2).forEach((doc, idx) => {
-          const data = doc.data();
-          console.log(`[WATCH_VIDEO]   Assignment ${idx + 1}:`, {
-            id: doc.id,
-            videoId: data.videoId,
-            assignedTo: data.assignedTo,
-            assignedBy: data.assignedBy
-          });
-        });
-      }
       
       const completed: CompletedVideoItem[] = [];
 
       for (const assignmentDoc of assignmentsSnapshot.docs) {
         const assignmentData = assignmentDoc.data();
         const assignmentId = assignmentDoc.id;
-        
-        console.log(`[WATCH_VIDEO]   Processing assignment: ${assignmentId}`);
 
         // Fetch video from videoLibrary
         const videoDoc = await getDoc(doc(db, 'videoLibrary', assignmentData.videoId));
         if (!videoDoc.exists()) {
-          console.log('[WVM]   ⚠️ Video not found in library');
           continue;
         }
 
         const videoData = videoDoc.data();
         if (!videoData.videoUrl || !videoData.topic) {
-          console.log('[WVM]   ⚠️ Invalid video data');
           continue;
         }
-
-        console.log('[WVM] videos', { id: videoDoc.id, ...videoData });
 
         // 5. Check progress in assignmentProgress collection
         const progressId = `${assignmentId}_${currentMinerId}`;
@@ -136,16 +105,12 @@ export default function WatchVideoModule() {
           progressData.watched === true ||
           progressData.status === 'completed' ||
           (progressData.progress || 0) >= 100 ||
-          (progressData.watchedDuration && videoData.duration && 
-           progressData.watchedDuration >= videoData.duration);
+          (progressData.watchedDuration && progressData.totalDuration && 
+           progressData.watchedDuration >= progressData.totalDuration * 0.9);
 
         if (!isCompleted) {
-          console.log('[WATCH_VIDEO]   ⏭️ Skipping - not marked as completed');
-          console.log('[WATCH_VIDEO]      watched:', progressData.watched, 'status:', progressData.status, 'progress:', progressData.progress);
           continue;
         }
-
-        console.log('[WATCH_VIDEO]   ✅ Video is completed!');
 
         // 7. SAFE timestamp handling - handle Firestore Timestamp and ISO strings
         let completedAtTimestamp = Date.now();
@@ -180,27 +145,12 @@ export default function WatchVideoModule() {
         };
 
         completed.push(completedVideo);
-        console.log('[WVM]   ➕ Added to completed list:', completedVideo.videoTopic);
       }
 
       // 9. Sort by completion date (most recent first)
       completed.sort((a, b) => b.completedAt - a.completedAt);
 
       setCompletedVideos(completed);
-      
-      console.log('='.repeat(60));
-      console.log(`[WATCH_VIDEO] ✅ FINAL RESULT: ${completed.length} completed videos loaded`);
-      if (completed.length === 0 && assignmentsSnapshot.size > 0) {
-        console.log('[WATCH_VIDEO] ⚠️ WARNING: Assignments were found but no completed videos');
-        console.log('[WATCH_VIDEO] Possible reasons:');
-        console.log('[WATCH_VIDEO]   - No progress records in assignmentProgress collection');
-        console.log('[WATCH_VIDEO]   - Videos not marked as completed (watched: false or progress < 100)');
-        console.log('[WATCH_VIDEO]   - Videos missing from videoLibrary');
-      } else if (assignmentsSnapshot.size === 0) {
-        console.log('[WATCH_VIDEO] ℹ️ No assignments found for this miner');
-        console.log('[WATCH_VIDEO] Query used: assignedTo array-contains', currentMinerId);
-      }
-      console.log('='.repeat(60));
     } catch (error) {
       console.error('[WVM] ❌ Error loading completed videos:', error);
       Alert.alert('Error', 'Failed to load completed videos. Check console for details.');

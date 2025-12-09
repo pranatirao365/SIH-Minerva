@@ -11,9 +11,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useRoleStore } from '../../hooks/useRoleStore';
+import { followUser, unfollowUser, getFollowers, getFollowing } from '../../services/socialService';
 import { COLORS } from '../../constants/styles';
 import { Search, UserPlus, UserCheck, ArrowLeft } from '../../components/Icons';
 import { MinerFooter } from '../../components/BottomNav';
@@ -35,10 +36,37 @@ export default function FriendsScreen() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [following, setFollowing] = useState<Set<string>>(new Set());
+    const [followersCount, setFollowersCount] = useState(0);
+    const [followingCount, setFollowingCount] = useState(0);
 
     useEffect(() => {
         fetchMiners();
+        loadFollowersAndFollowing();
     }, []);
+
+    const loadFollowersAndFollowing = async () => {
+        try {
+            const userId = user.id || user.phone;
+            if (!userId) return;
+
+            // Load who the current user is following
+            const followingList = await getFollowing(userId);
+            const followingIds = new Set(followingList.map(u => u.id));
+            setFollowing(followingIds);
+            setFollowingCount(followingList.length);
+
+            // Load who follows the current user
+            const followersList = await getFollowers(userId);
+            setFollowersCount(followersList.length);
+
+            console.log('✅ Loaded followers and following:', {
+                followers: followersList.length,
+                following: followingList.length
+            });
+        } catch (error) {
+            console.error('Error loading followers/following:', error);
+        }
+    };
 
     const fetchMiners = async () => {
         try {
@@ -73,17 +101,62 @@ export default function FriendsScreen() {
         }
     };
 
-    const handleFollow = (minerId: string) => {
+    const handleFollow = async (minerId: string) => {
+        const userId = user.id || user.phone;
+        if (!userId) return;
+
+        const isFollowing = following.has(minerId);
+
+        // Optimistic UI update
         setFollowing((prev) => {
             const newSet = new Set(prev);
-            if (newSet.has(minerId)) {
+            if (isFollowing) {
                 newSet.delete(minerId);
             } else {
                 newSet.add(minerId);
             }
             return newSet;
         });
-        // TODO: Update in Firebase
+
+        setFollowingCount(prev => isFollowing ? prev - 1 : prev + 1);
+
+        try {
+            if (isFollowing) {
+                const success = await unfollowUser(userId, minerId);
+                if (!success) {
+                    // Revert on failure
+                    setFollowing(prev => new Set([...prev, minerId]));
+                    setFollowingCount(prev => prev + 1);
+                    console.error('Failed to unfollow user');
+                }
+            } else {
+                const success = await followUser(userId, minerId);
+                if (!success) {
+                    // Revert on failure
+                    setFollowing(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(minerId);
+                        return newSet;
+                    });
+                    setFollowingCount(prev => prev - 1);
+                    console.error('Failed to follow user');
+                }
+            }
+        } catch (error) {
+            console.error('Error in handleFollow:', error);
+            // Revert UI on error
+            if (isFollowing) {
+                setFollowing(prev => new Set([...prev, minerId]));
+                setFollowingCount(prev => prev + 1);
+            } else {
+                setFollowing(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(minerId);
+                    return newSet;
+                });
+                setFollowingCount(prev => prev - 1);
+            }
+        }
     };
 
     const filteredMiners = miners.filter((miner) =>
@@ -179,11 +252,11 @@ export default function FriendsScreen() {
                         <Text style={styles.statLabel}>Miners</Text>
                     </View>
                     <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{following.size}</Text>
+                        <Text style={styles.statValue}>{followingCount}</Text>
                         <Text style={styles.statLabel}>Following</Text>
                     </View>
                     <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{Math.floor(Math.random() * 50) + 30}</Text>
+                        <Text style={styles.statValue}>{followersCount}</Text>
                         <Text style={styles.statLabel}>Followers</Text>
                     </View>
                 </View>

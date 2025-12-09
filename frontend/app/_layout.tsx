@@ -6,6 +6,8 @@ import { useEffect } from 'react';
 import * as Notifications from 'expo-notifications';
 import 'react-native-reanimated';
 import '../polyfills';
+// Suppress all Alert popups globally - log to console instead
+import '../utils/suppressAlerts';
 
 export default function RootLayout() {
   useEffect(() => {

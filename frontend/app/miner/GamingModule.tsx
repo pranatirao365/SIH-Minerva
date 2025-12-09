@@ -1,10 +1,9 @@
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Animated, ScrollView, Text, TouchableOpacity, View, StyleSheet, Dimensions } from 'react-native';
+import React from 'react';
+import { ScrollView, Text, TouchableOpacity, View, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, Trophy, Zap, Flame, Shield } from '../../components/Icons';
-import { useRoleStore } from '../../hooks/useRoleStore';
+import { ArrowLeft, Trophy, Zap } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
 
 const { width } = Dimensions.get('window');
@@ -50,8 +49,8 @@ const GAMES = [
     id: 'second-skin',
     title: 'Second Skin',
     icon: '🦺',
-    description: 'Test your reaction time',
-    route: null, // Built-in game
+    description: 'PPE equipment matching challenge',
+    route: '/miner/TheSecondSkinGame',
     color: '#10B981',
     gradient: ['#34D399', '#10B981'],
   },
@@ -64,114 +63,13 @@ type Props = {
 
 export default function GamingModule({ inline = false, onClose }: Props) {
   const router = useRouter();
-  const { completeModule } = useRoleStore();
-  const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(30);
-  const [gameActive, setGameActive] = useState(false);
-  const [targets, setTargets] = useState<{id: number; x: number; y: number}[]>([]);
-  const scaleAnim = new Animated.Value(1);
-
-  useEffect(() => {
-    if (gameActive && timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0) {
-      handleGameEnd();
-    }
-  }, [timeLeft, gameActive]);
-
-  const startGame = () => {
-    setScore(0);
-    setTimeLeft(30);
-    setGameActive(true);
-    spawnTarget();
-  };
-
-  const spawnTarget = () => {
-    const newTarget = {
-      id: Date.now(),
-      x: Math.random() * 80,
-      y: Math.random() * 70,
-    };
-    setTargets([newTarget]);
-    
-    setTimeout(() => {
-      if (gameActive) spawnTarget();
-    }, 1500);
-  };
-
-  const hitTarget = (id: number) => {
-    setTargets(targets.filter(t => t.id !== id));
-    setScore(score + 10);
-    
-    Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 1.2, duration: 100, useNativeDriver: true }),
-      Animated.timing(scaleAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
-    ]).start();
-  };
-
-  const handleGameEnd = () => {
-    setGameActive(false);
-    setTargets([]);
-    completeModule('game');
-  };
-
-  const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const Container: any = inline ? View : SafeAreaView;
 
   const handleGamePress = (game: typeof GAMES[0]) => {
     if (game.route) {
       router.push(game.route as any);
-    } else {
-      // Built-in game (Second Skin)
-      setSelectedGame(game.id);
-      startGame();
     }
   };
-
-  // If Second Skin game is selected and active, show the original game
-  if (selectedGame === 'second-skin' && gameActive) {
-    return (
-      <Container style={styles.container}>
-        {/* Game Header */}
-        <View style={styles.gameHeader}>
-          <TouchableOpacity onPress={() => { setGameActive(false); setSelectedGame(null); }}>
-            <ArrowLeft size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text style={styles.gameTitle}>Second Skin</Text>
-          <View style={{ width: 24 }} />
-        </View>
-
-        {/* Game Area - Original reflex game */}
-        <View style={styles.gameArea}>
-          <View style={styles.gameStats}>
-            <View style={styles.statBox}>
-              <Text style={styles.statLabel}>Score</Text>
-              <Animated.Text style={[styles.statValue, { transform: [{ scale: scaleAnim }] }]}>
-                {score}
-              </Animated.Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statLabel}>Time</Text>
-              <Text style={styles.statValue}>{timeLeft}s</Text>
-            </View>
-          </View>
-
-          <View style={styles.targetContainer}>
-            {targets.map(target => (
-              <TouchableOpacity
-                key={target.id}
-                style={[styles.target, { left: `${target.x}%`, top: `${target.y}%` }]}
-                onPress={() => hitTarget(target.id)}
-              >
-                <Text style={styles.targetEmoji}>⚠️</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </Container>
-    );
-  }
 
   return (
     <Container style={styles.container}>
@@ -324,68 +222,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#FFF',
-  },
-  // Game screen styles
-  gameHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#27272A',
-  },
-  gameTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFF',
-  },
-  gameArea: {
-    flex: 1,
-    padding: 16,
-  },
-  gameStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 24,
-  },
-  statBox: {
-    backgroundColor: '#18181B',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#27272A',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#A1A1AA',
-    marginBottom: 4,
-    fontWeight: '600',
-  },
-  statValue: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: COLORS.primary,
-  },
-  targetContainer: {
-    flex: 1,
-    backgroundColor: '#18181B',
-    borderRadius: 20,
-    position: 'relative',
-  },
-  target: {
-    position: 'absolute',
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.destructive,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-  },
-  targetEmoji: {
-    fontSize: 28,
   },
 });

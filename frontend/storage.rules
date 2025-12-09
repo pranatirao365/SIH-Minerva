@@ -58,6 +58,15 @@ service firebase.storage {
       allow write: if isLoggedIn() && request.auth.uid == userId;
     }
 
+    // PHOTOS - for user uploaded photos (reels, posts, etc.)
+    match /photos/{allPaths=**} {
+      allow read, write: if isTestMode();
+      allow read: if isLoggedIn();
+      allow write: if isLoggedIn() 
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
     // Deny everything else
     match /{allPaths=**} {
       allow read, write: if false;

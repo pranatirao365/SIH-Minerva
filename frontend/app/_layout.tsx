@@ -3,7 +3,8 @@ import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import 'react-native-reanimated';
 import '../polyfills';
 // Suppress all Alert popups globally - log to console instead
@@ -11,20 +12,28 @@ import '../utils/suppressAlerts';
 
 export default function RootLayout() {
   useEffect(() => {
-    // Set up notification handler
-    const subscription = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notification received:', notification);
-    });
+    // Only set up notifications if not in Expo Go
+    const isExpoGo = Constants.appOwnership === 'expo';
+    
+    if (!isExpoGo) {
+      // Dynamically import notifications only for production builds
+      import('expo-notifications').then((Notifications) => {
+        const subscription = Notifications.addNotificationReceivedListener(notification => {
+          console.log('Notification received:', notification);
+        });
 
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('Notification response:', response);
-      // Handle notification tap - could navigate to relevant screen
-    });
+        const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+          console.log('Notification response:', response);
+        });
 
-    return () => {
-      subscription.remove();
-      responseSubscription.remove();
-    };
+        return () => {
+          subscription.remove();
+          responseSubscription.remove();
+        };
+      }).catch(err => {
+        console.log('Notifications not available in Expo Go');
+      });
+    }
   }, []);
 
   return (

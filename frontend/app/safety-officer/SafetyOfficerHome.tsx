@@ -73,13 +73,6 @@ export default function SafetyOfficerHome() {
       color: '#EC4899',
     },
     {
-      icon: MapPin,
-      title: 'Hazard Zone Visualization',
-      description: 'Explore 3D mine zone visualizations',
-      route: '/safety-officer/HazardZoneHeatMap',
-      color: '#06B6D4',
-    },
-    {
       icon: Shield,
       title: 'PPE Config Manager',
       description: 'Configure PPE requirements',
@@ -92,6 +85,14 @@ export default function SafetyOfficerHome() {
       description: 'Handle supervisor video requests',
       route: '/safety-officer/VideoRequestHandler',
       color: '#10B981',
+    },
+    {
+      icon: BookOpen,
+      title: 'Quiz Requests',
+      description: 'Handle supervisor quiz requests',
+      route: '/safety-officer/QuizRequestHandler',
+      color: '#06B6D4',
+      isNew: true,
     },
     {
       icon: FileText,
@@ -107,7 +108,6 @@ export default function SafetyOfficerHome() {
       route: '/safety-officer/DailyQuizManager',
       color: '#06B6D4',
       gradient: true,
-      isNew: true,
     },
   ];
 

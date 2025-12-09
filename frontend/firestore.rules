@@ -97,6 +97,24 @@ service cloud.firestore {
       allow read, write: if isLoggedIn();
     }
 
+    // --- QUIZ REQUESTS COLLECTION ---
+    match /quizRequests/{requestId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode → authenticated users can read/write quiz requests
+      allow read, write: if isLoggedIn();
+    }
+
+    // --- QUIZ ASSIGNMENTS COLLECTION ---
+    match /quizAssignments/{assignmentId} {
+      // Test Mode → allow all
+      allow read, write: if isTestMode();
+
+      // Normal Mode → authenticated users can read/write quiz assignments
+      allow read, write: if isLoggedIn();
+    }
+
     // --- WORK ASSIGNMENTS COLLECTION (Smart Work Assignment feature) ---
     match /workAssignments/{assignmentId} {
       // Test Mode → allow all

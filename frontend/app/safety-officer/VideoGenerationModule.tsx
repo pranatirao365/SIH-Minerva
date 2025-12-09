@@ -352,70 +352,66 @@ Example format: "Proper PPE Usage in Underground Mining Operations"`;
         // Validate requestId format (should be a Firestore document ID)
         if (!currentRequestId || typeof currentRequestId !== 'string' || currentRequestId.length === 0) {
           console.error('❌ Invalid currentRequestId:', currentRequestId);
-          Alert.alert('Error', 'Invalid request ID. Cannot update request status.');
-          return;
-        }
-        
-        try {
-          console.log('📝 Updating video request status...');
-          await VideoLibraryService.updateVideoRequest(currentRequestId, {
-            status: 'completed',
-            videoId: videoId,
-            completedAt: Timestamp.now(),
-          });
-          console.log('✅ Video request updated successfully');
+          console.warn('⚠️ Skipping request status update due to invalid ID');
+          // Don't return - continue with video save
+        } else {
+          try {
+            console.log('📝 Marking video request as completed...');
+            await VideoLibraryService.completeVideoRequest(currentRequestId, videoId);
+            console.log('✅ Video request marked as completed successfully');
 
-          // Create assignments for miners if specified in the request
-          const requestDetails = await VideoLibraryService.getVideoRequestById(currentRequestId);
-          if (requestDetails?.minerIds && requestDetails.minerIds.length > 0) {
-            console.log('👥 Creating assignments for miners:', requestDetails.minerIds);
-            for (const minerId of requestDetails.minerIds) {
+            // Create assignments for miners if specified in the request
+            const requestDetails = await VideoLibraryService.getVideoRequestById(currentRequestId);
+            if (requestDetails?.minerIds && requestDetails.minerIds.length > 0) {
+              console.log('👥 Creating assignments for miners:', requestDetails.minerIds);
+              for (const minerId of requestDetails.minerIds) {
+                try {
+                  const assignmentData = {
+                    videoId: videoId,
+                    videoTopic: aiTitle,
+                    assignedTo: [minerId],
+                    assignedBy: currentUserId,
+                    deadline: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), // 7 days from now
+                    isMandatory: true,
+                    isDailyTask: false,
+                    departments: [], // Will be populated based on miner data
+                    description: `Auto-assigned video for work: ${requestDetails.description}`,
+                    status: 'active' as const,
+                    priority: 'high' as const,
+                  };
+
+                  await VideoLibraryService.createAssignment(assignmentData);
+                  console.log('✅ Assignment created for miner:', minerId);
+                } catch (assignmentError) {
+                  console.error('❌ Failed to create assignment for miner:', minerId, assignmentError);
+                }
+              }
+              console.log('✅ All assignments created successfully');
+
+              // Notify the supervisor that video is ready and assignments created
               try {
-                const assignmentData = {
-                  videoId: videoId,
-                  videoTopic: aiTitle,
-                  assignedTo: [minerId],
-                  assignedBy: currentUserId,
-                  deadline: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), // 7 days from now
-                  isMandatory: true,
-                  isDailyTask: false,
-                  departments: [], // Will be populated based on miner data
-                  description: `Auto-assigned video for work: ${requestDetails.description}`,
-                  status: 'active' as const,
-                  priority: 'high' as const,
-                };
-
-                await VideoLibraryService.createAssignment(assignmentData);
-                console.log('✅ Assignment created for miner:', minerId);
-              } catch (assignmentError) {
-                console.error('❌ Failed to create assignment for miner:', minerId, assignmentError);
+                await VideoLibraryService.createNotification({
+                  userId: requestDetails.requestedBy,
+                  title: 'Video Generated & Assigned',
+                  message: `Video "${aiTitle}" has been generated and assigned to ${requestDetails.minerIds.length} miner(s) for the requested work.`,
+                  type: 'success',
+                  relatedId: videoId,
+                  actionUrl: '/supervisor/SmartWorkAssignment',
+                });
+                console.log('✅ Notification sent to supervisor');
+              } catch (notificationError) {
+                console.error('❌ Failed to send notification:', notificationError);
               }
             }
-            console.log('✅ All assignments created successfully');
 
-            // Notify the supervisor that video is ready and assignments created
-            try {
-              await VideoLibraryService.createNotification({
-                userId: requestDetails.requestedBy,
-                title: 'Video Generated & Assigned',
-                message: `Video "${aiTitle}" has been generated and assigned to ${requestDetails.minerIds.length} miner(s) for the requested work.`,
-                type: 'success',
-                relatedId: videoId,
-                actionUrl: '/supervisor/SmartWorkAssignment',
-              });
-              console.log('✅ Notification sent to supervisor');
-            } catch (notificationError) {
-              console.error('❌ Failed to send notification:', notificationError);
-            }
+            setCurrentRequestId(null); // Clear the request ID
+            
+            // Clear the pending request data only after successful completion
+            await AsyncStorage.removeItem('pendingVideoRequest');
+          } catch (requestError) {
+            console.error('❌ Failed to update video request:', requestError);
+            // Don't fail the whole process for this
           }
-
-          setCurrentRequestId(null); // Clear the request ID
-          
-          // Clear the pending request data only after successful completion
-          await AsyncStorage.removeItem('pendingVideoRequest');
-        } catch (requestError) {
-          console.error('❌ Failed to update video request:', requestError);
-          // Don't fail the whole process for this
         }
       }
 

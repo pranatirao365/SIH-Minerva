@@ -12,7 +12,6 @@ export default function SafetyOfficerLayout() {
       <Stack.Screen name="AlertMiners" />
       <Stack.Screen name="VideoGenerationModule" />
       <Stack.Screen name="VideoLibrary" />
-      <Stack.Screen name="HazardZoneHeatMap" />
       <Stack.Screen name="AnalyticsDashboard" />
       <Stack.Screen name="EmergencyProtocols" />
       <Stack.Screen name="ComplianceTracker" />

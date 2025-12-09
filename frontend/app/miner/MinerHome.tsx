@@ -51,6 +51,15 @@ interface HelmetData {
   emergency: boolean;
 }
 
+interface TrainingModule {
+  icon: React.ComponentType<any>;
+  label: string;
+  route: string;
+  completed: boolean;
+  locked: boolean;
+  isExternalGame?: boolean;
+}
+
 export default function MinerHome() {
   const router = useRouter();
   const { user, moduleProgress, safetyScore } = useRoleStore();
@@ -124,7 +133,7 @@ export default function MinerHome() {
     { icon: Camera, label: 'Hazard Scan', route: '/miner/HazardScan', color: COLORS.destructive },
   ];
 
-  const trainingModules = [
+  const trainingModules: TrainingModule[] = [
     { 
       icon: Video, 
       label: 'Watch Video', 
@@ -144,6 +153,21 @@ export default function MinerHome() {
       label: 'Play Game', 
       route: '/miner/SafetyGames', 
       completed: moduleProgress.game,
+      locked: true
+    },
+    { 
+      icon: Award, 
+      label: 'Silica Survivor', 
+      route: 'silica-game',
+      completed: false,
+      locked: false,
+      isExternalGame: true
+    },
+    { 
+      icon: Award, 
+      label: 'The Second Skin', 
+      route: '/miner/TheSecondSkinGame', 
+      completed: false,
       locked: false
     },
   ];

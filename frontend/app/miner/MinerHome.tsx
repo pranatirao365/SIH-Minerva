@@ -129,7 +129,6 @@ export default function MinerHome() {
     { icon: Award, label: 'Leaderboard', route: '/miner/ProgressTracker', color: '#FFD700' },
     { icon: User, label: 'Testimonials', route: '/miner/Testimonials', color: '#EC4899' },
     { icon: BookOpen, label: 'Case Studies', route: '/miner/CaseStudies', color: '#F59E0B' },
-    { icon: Map, label: 'Heat Map', route: '/miner/HeatMapView', color: COLORS.primary },
     { icon: Camera, label: 'Hazard Scan', route: '/miner/HazardScan', color: COLORS.destructive },
   ];
 

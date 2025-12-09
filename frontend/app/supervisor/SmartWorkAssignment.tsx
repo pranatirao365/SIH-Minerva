@@ -31,6 +31,7 @@ import {
   VideoDocument, 
   VideoRequestDocument 
 } from '@/services/videoLibraryService';
+import { QuizRequestService } from '@/services/quizRequestService';
 import { useRoleStore } from '@/hooks/useRoleStore';
 import { useSupervisor } from '@/contexts/SupervisorContext';
 
@@ -314,9 +315,16 @@ export default function SmartWorkAssignment() {
       return;
     }
 
+    // Miner selection is OPTIONAL for requests - can be assigned later by safety officer
+    const hasMinerSelection = selectedMiners.length > 0;
+    
     setIsRequesting(true);
+    console.log('🚀 Starting training content request process...');
+    console.log(`📊 Miners pre-selected: ${hasMinerSelection ? selectedMiners.length : 'None (will assign later)'}`);
+    
     try {
       // Check for existing pending/in-progress request
+      console.log('🔍 Checking for duplicate requests...');
       const allRequests = await VideoLibraryService.getAllVideoRequests();
       const duplicateRequest = allRequests.find(
         (req) =>
@@ -331,25 +339,78 @@ export default function SmartWorkAssignment() {
           `A similar video request is already ${duplicateRequest.status}. Topic: "${duplicateRequest.topic}". Please wait for it to be completed or modify your description.`,
           [{ text: 'OK' }]
         );
+        setIsRequesting(false);
         return;
       }
 
-      const requestData = {
-        topic: workDescription.substring(0, 100), // Limit topic length
+      const topic = workDescription.substring(0, 100);
+      console.log('📝 Request details:', {
+        topic,
+        language,
+        priority,
+        minerCount: hasMinerSelection ? selectedMiners.length : 0,
+        minerPreSelected: hasMinerSelection,
+        userId: user?.id,
+        userName: user?.name,
+      });
+
+      const requestData: any = {
+        topic,
         description: workDescription,
         language,
-        requestedBy: user?.id || 'unknown',
+        requestedBy: user?.id || user?.phone || 'unknown',
         requestedByName: user?.name || 'Supervisor',
         priority,
-        minerIds: selectedMiners, // Include selected miners for assignment
-        notes: `Auto-requested from Smart Work Assignment for date: ${workDate}`,
+        notes: `Auto-requested from Smart Work Assignment for date: ${workDate}${hasMinerSelection ? ` (${selectedMiners.length} miner(s) pre-selected)` : ' (miners to be selected by safety officer)'}`,
       };
+      
+      // Only include minerIds if miners are actually selected (Firebase doesn't accept undefined)
+      if (hasMinerSelection) {
+        requestData.minerIds = selectedMiners;
+      }
 
-      await VideoLibraryService.createVideoRequest(requestData);
+      console.log('📹 Creating video request...');
+      console.log('📝 Creating quiz request...');
+      
+      let videoRequestId, quizRequestId;
+      
+      try {
+        // Build quiz request data (omit minerIds if not selected)
+        const quizRequestData: any = {
+          topic,
+          description: workDescription,
+          language,
+          difficulty: 'medium',
+          targetAudience: 'miner',
+          questionsCount: 5,
+          requestedBy: user?.id || user?.phone || 'unknown',
+          requestedByName: user?.name || 'Supervisor',
+          priority,
+        };
+        
+        // Only include minerIds if miners are selected (Firebase doesn't accept undefined)
+        if (hasMinerSelection) {
+          quizRequestData.minerIds = selectedMiners;
+        }
+        
+        [videoRequestId, quizRequestId] = await Promise.all([
+          VideoLibraryService.createVideoRequest(requestData),
+          QuizRequestService.createQuizRequest(quizRequestData),
+        ]);
+        
+        console.log('✅ Both requests created successfully:', { videoRequestId, quizRequestId });
+      } catch (requestError: any) {
+        console.error('❌ Error creating requests:', requestError);
+        throw new Error(`Failed to create requests: ${requestError.message || requestError}`);
+      }
+
+      const assignmentInfo = hasMinerSelection 
+        ? `Content will be automatically assigned to ${selectedMiners.length} pre-selected miner(s) when ready.`
+        : 'Safety officers will assign miners after creating the content.';
 
       Alert.alert(
-        '📨 Video Request Sent',
-        'Safety officers have been notified to generate this video. You will be notified when it\'s ready.',
+        '📨 Training Content Requested',
+        `Successfully created both video and quiz requests!\n\nVideo ID: ${videoRequestId}\nQuiz ID: ${quizRequestId}\n\n${assignmentInfo}`,
         [
           {
             text: 'OK',
@@ -360,11 +421,16 @@ export default function SmartWorkAssignment() {
           },
         ]
       );
-    } catch (error) {
-      console.error('Error requesting video:', error);
-      Alert.alert('Error', 'Failed to send video request.');
+    } catch (error: any) {
+      console.error('❌ Error requesting training content:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error occurred';
+      Alert.alert(
+        'Error', 
+        `Failed to send training content request.\n\nDetails: ${errorMessage}\n\nPlease check your internet connection and try again.`
+      );
     } finally {
       setIsRequesting(false);
+      console.log('✅ Request process completed');
     }
   };
 

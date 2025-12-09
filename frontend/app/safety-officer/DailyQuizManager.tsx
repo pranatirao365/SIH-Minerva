@@ -26,6 +26,7 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../../config/firebase';
 import { useRoleStore } from '../../hooks/useRoleStore';
 import {
@@ -33,6 +34,7 @@ import {
     QUIZ_TOPICS
 } from '../../services/quizService';
 import { clearOldQuizzes } from '../../services/clearOldQuizzes';
+import { QuizRequestService } from '../../services/quizRequestService';
 
 interface Quiz {
   id: string;
@@ -65,9 +67,13 @@ export default function DailyQuizManager() {
   const [numQuestions, setNumQuestions] = useState('5');
   const [targetAudience, setTargetAudience] = useState<'miner' | 'supervisor' | 'all'>('miner');
   const [language, setLanguage] = useState('en');
+  
+  // Track current request being fulfilled (parallel to VideoGenerationModule)
+  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     loadQuizzes();
+    loadPendingRequest(); // Load any pending quiz request
   }, []);
 
   // Refresh quiz data when screen comes into focus to show updated response counts
@@ -123,6 +129,36 @@ export default function DailyQuizManager() {
     }
   };
 
+  // Load pending quiz request from AsyncStorage (parallel to VideoGenerationModule)
+  const loadPendingRequest = async () => {
+    try {
+      const pendingRequest = await AsyncStorage.getItem('pendingQuizRequest');
+      if (pendingRequest) {
+        const requestData = JSON.parse(pendingRequest);
+        console.log('📋 Loading pending quiz request:', requestData);
+        
+        // Auto-fill form with request data
+        setCustomTopic(requestData.topic || '');
+        setLanguage(requestData.language || 'en');
+        setDifficulty(requestData.difficulty || 'medium');
+        setNumQuestions(String(requestData.questionsCount || 5));
+        setTargetAudience(requestData.targetAudience || 'miner');
+        setCurrentRequestId(requestData.requestId || null);
+        
+        // Clear AsyncStorage after loading
+        await AsyncStorage.removeItem('pendingQuizRequest');
+        
+        Alert.alert(
+          'Request Auto-Filled',
+          `Quiz request from ${requestData.requestedByName || 'Supervisor'} has been loaded. Generate the quiz to fulfill this request.`,
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error loading pending quiz request:', error);
+    }
+  };
+
   const handleGenerateQuiz = async () => {
     const topic = customTopic.trim() || selectedTopic;
     const questionsNum = parseInt(numQuestions);
@@ -151,7 +187,7 @@ export default function DailyQuizManager() {
       });
 
       // Save to Firestore
-      await addDoc(collection(db, 'dailyQuizzes'), {
+      const quizDocRef = await addDoc(collection(db, 'dailyQuizzes'), {
         title: generatedQuiz.title,
         description: generatedQuiz.description,
         topic: generatedQuiz.topic,
@@ -165,6 +201,27 @@ export default function DailyQuizManager() {
         createdByName: user.name || 'Safety Officer',
         status: 'active',
       });
+
+      // If this quiz was generated from a request, mark request as completed
+      if (currentRequestId) {
+        try {
+          await QuizRequestService.completeQuizRequest(currentRequestId, quizDocRef.id);
+          console.log('✅ Quiz request marked as completed:', currentRequestId);
+          
+          // Check if paired video request is also completed for auto-assignment
+          const pairedStatus = await QuizRequestService.checkPairedRequests(currentRequestId);
+          if (pairedStatus.videoCompleted && pairedStatus.quizCompleted && pairedStatus.minerIds) {
+            // Both video and quiz are complete - auto-assign to miners
+            await QuizRequestService.autoAssignQuizToMiners(quizDocRef.id, pairedStatus.minerIds);
+            console.log('✅ Quiz auto-assigned to miners (both video and quiz complete)');
+          }
+          
+          setCurrentRequestId(null); // Clear request ID after completion
+        } catch (error) {
+          console.error('Error completing quiz request:', error);
+          // Don't fail the entire operation if request completion fails
+        }
+      }
 
       Alert.alert('Success', 'Quiz generated and published successfully!');
       loadQuizzes();
@@ -290,14 +347,6 @@ export default function DailyQuizManager() {
         </View>
       ) : (
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Workflow Info Banner */}
-          <View style={styles.infoBanner}>
-            <Text style={styles.infoBannerTitle}>🤖 AI-Powered Quiz Creation</Text>
-            <Text style={styles.infoBannerText}>
-              Create safety quizzes using Gemini AI. Assign to miners, and view their responses to track safety knowledge.
-            </Text>
-          </View>
-
           {/* Stats */}
           <View style={styles.statsContainer}>
             <View style={[styles.statCard, { backgroundColor: '#8B5CF620' }]}>

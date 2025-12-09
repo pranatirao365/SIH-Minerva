@@ -48,6 +48,9 @@ export const Settings = (props: any) => <Ionicons name="settings-outline" {...pr
 export const BarChart3 = (props: any) => <Ionicons name="bar-chart" {...props} />;
 export const Youtube = (props: any) => <Ionicons name="logo-youtube" {...props} />;
 export const Film = (props: any) => <Ionicons name="film" {...props} />;
+export const Eye = (props: any) => <Ionicons name="eye" {...props} />;
+export const UserPlus = (props: any) => <Ionicons name="person-add" {...props} />;
+export const UserCheck = (props: any) => <Ionicons name="person-circle" {...props} />;
 export const Search = (props: any) => <Ionicons name="search" {...props} />;
 export const Filter = (props: any) => <Ionicons name="filter" {...props} />;
 export const Clock = (props: any) => <Ionicons name="time-outline" {...props} />;
@@ -83,8 +86,6 @@ export const Bookmark = (props: any) => <Ionicons name="bookmark" {...props} />;
 export const Edit = (props: any) => <Ionicons name="create" {...props} />;
 export const Grid = (props: any) => <Ionicons name="grid" {...props} />;
 export const MoreVertical = (props: any) => <Ionicons name="ellipsis-vertical" {...props} />;
-export const UserPlus = (props: any) => <Ionicons name="person-add" {...props} />;
-export const UserCheck = (props: any) => <Ionicons name="person-add" {...props} />;
 export const Image = (props: any) => <Ionicons name="image" {...props} />;
 
 // Export all icons as a namespace for easier importing

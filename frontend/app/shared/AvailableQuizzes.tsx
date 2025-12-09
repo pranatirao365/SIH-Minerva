@@ -82,8 +82,6 @@ export default function AvailableQuizzes() {
         return isActive && isForCurrentUser;
       });
       
-      console.log(`📚 [AvailableQuizzes] Loaded ${filteredQuizzes.length} quizzes for ${user.role}`);
-      
       // Load user's completed quizzes
       const userIdentifier = user.phone || user.id || 'anonymous';
       const responsesQuery = query(

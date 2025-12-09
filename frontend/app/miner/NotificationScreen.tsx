@@ -123,11 +123,9 @@ export default function NotificationScreen() {
     if (notification.type === 'video_request' && user?.role === 'safety-officer') {
       // Navigate to Video Request Handler for safety officers
       router.push('/safety-officer/VideoRequestHandler' as any);
-    } else if (notification.type === 'video_request' && user?.role === 'safety_officer') {
-      router.push('/safety-officer/VideoRequestHandler' as any);
     } else if (notification.type === 'sos-alert' || notification.type === 'safety_alert') {
       // Navigate to SOS notifications for supervisors/safety officers
-      if (user?.role === 'safety-officer' || user?.role === 'safety_officer') {
+      if (user?.role === 'safety-officer') {
         router.push('/safety-officer/SOSNotifications' as any);
       }
     } else if (notification.type === 'video_assignment') {

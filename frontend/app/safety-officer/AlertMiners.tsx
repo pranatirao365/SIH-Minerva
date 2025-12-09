@@ -41,12 +41,12 @@ export default function AlertMiners() {
         };
 
         ws.onerror = (error) => {
-          console.warn('WebSocket connection error - ESP32 helmet may be offline');
+          console.log('WebSocket error (helmet may be offline)');
           setWsConnected(false);
         };
 
         ws.onclose = () => {
-          console.log('✗ WebSocket disconnected - will retry in 5 seconds');
+          console.log('WebSocket disconnected');
           setWsConnected(false);
           
           // Retry connection after delay
@@ -57,7 +57,7 @@ export default function AlertMiners() {
 
         wsRef.current = ws;
       } catch (error) {
-        console.warn('Failed to create WebSocket connection:', error);
+        console.log('WebSocket connection failed (will retry)');
         setWsConnected(false);
         
         // Retry after delay

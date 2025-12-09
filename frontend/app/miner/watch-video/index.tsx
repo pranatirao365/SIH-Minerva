@@ -16,8 +16,6 @@ import { useRoleStore } from '@/hooks/useRoleStore';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
-console.log('[WatchVideoModule] RENDERED file path: app/miner/watch-video/index.tsx');
-
 type TabType = 'training' | 'watched';
 
 interface CompletedVideoItem {
@@ -48,16 +46,11 @@ export default function WatchVideoScreen() {
   }, [activeTab, currentMinerId]);
 
   const loadCompletedVideos = async () => {
-    if (!currentMinerId) {
-      console.log('[WVM] ⚠️ No current miner ID');
-      return;
-    }
+    if (!currentMinerId) return;
 
     try {
       setLoading(true);
-      console.log('[WVM] 📥 Loading completed videos for miner:', currentMinerId);
 
-      // Query ALL assignments for this miner
       const assignmentsRef = collection(db, 'videoAssignments');
       const assignmentsQuery = query(
         assignmentsRef,
@@ -65,37 +58,20 @@ export default function WatchVideoScreen() {
       );
       
       const assignmentsSnapshot = await getDocs(assignmentsQuery);
-      console.log(`[WVM] 📋 assignments`, assignmentsSnapshot.size);
       
       const completed: CompletedVideoItem[] = [];
 
       for (const assignmentDoc of assignmentsSnapshot.docs) {
         const assignmentData = assignmentDoc.data();
         const assignmentId = assignmentDoc.id;
-        
-        console.log(`[WVM] 🔍 Processing assignment: ${assignmentId.substring(0, 8)}`);
 
-        // Check progress in assignmentProgress collection
         const progressId = `${assignmentId}_${currentMinerId}`;
         const progressDoc = await getDoc(doc(db, 'assignmentProgress', progressId));
         
-        if (!progressDoc.exists()) {
-          console.log('[WVM]   ⏭️ Skipping - no progress record');
-          continue;
-        }
+        if (!progressDoc.exists()) continue;
         
         const progressData = progressDoc.data();
         
-        // Log progress details for debugging
-        console.log('[WVM]   Progress data:', {
-          watched: progressData.watched,
-          status: progressData.status,
-          progress: progressData.progress,
-          watchedDuration: progressData.watchedDuration,
-          totalDuration: progressData.totalDuration
-        });
-        
-        // Check if completed (multiple conditions)
         const isCompleted = 
           progressData.watched === true ||
           progressData.status === 'completed' ||
@@ -103,25 +79,13 @@ export default function WatchVideoScreen() {
           (progressData.watchedDuration && progressData.totalDuration && 
            progressData.watchedDuration >= progressData.totalDuration);
 
-        if (!isCompleted) {
-          console.log('[WVM]   ⏭️ Skipping - NOT marked as completed');
-          continue;
-        }
+        if (!isCompleted) continue;
 
-        console.log('[WVM]   ✅ Video is completed!');
-
-        // 5. Fetch video details from videoLibrary
         const videoDoc = await getDoc(doc(db, 'videoLibrary', assignmentData.videoId));
-        if (!videoDoc.exists()) {
-          console.log('[WVM]   ⚠️ Video not found in library');
-          continue;
-        }
+        if (!videoDoc.exists()) continue;
 
         const videoData = videoDoc.data();
-        if (!videoData.videoUrl || !videoData.topic) {
-          console.log('[WVM]   ⚠️ Invalid video data');
-          continue;
-        }
+        if (!videoData.videoUrl || !videoData.topic) continue;
 
         // 6. Safe timestamp handling
         const completedAtDate = progressData.completedAt 
@@ -143,7 +107,6 @@ export default function WatchVideoScreen() {
         };
 
         completed.push(completedVideo);
-        console.log('[WVM]   ➕ Added to completed list:', completedVideo.videoTopic);
       }
 
       // 8. Sort by completion date (most recent first)
@@ -214,6 +177,30 @@ export default function WatchVideoScreen() {
       <Text style={styles.sectionDescription}>
         Access general safety training materials and educational resources.
       </Text>
+
+      {/* Blasting Safety Video Card - TEST MINER */}
+      <View style={styles.trainingCard}>
+        <View style={[styles.trainingIconContainer, { backgroundColor: COLORS.destructive + '20' }]}>
+          <VideoIcon size={32} color={COLORS.destructive} />
+        </View>
+        <Text style={styles.trainingCardTitle}>🎥 Blasting Safety Procedures</Text>
+        <Text style={styles.trainingCardDescription}>
+          Essential safety protocols for blasting operations including pre-blast checks, evacuation procedures, and post-blast inspection.
+        </Text>
+        <View style={styles.topicsList}>
+          <Text style={styles.topicItem}>• Safe Distance Requirements</Text>
+          <Text style={styles.topicItem}>• Explosive Handling</Text>
+          <Text style={styles.topicItem}>• Evacuation Protocols</Text>
+          <Text style={styles.topicItem}>• Post-Blast Inspection</Text>
+        </View>
+        <TouchableOpacity 
+          style={[styles.trainingButton, { backgroundColor: COLORS.destructive }]}
+          onPress={() => router.push('/miner/VideoPlayer?videoId=blasting-safety&topic=Blasting Safety Procedures')}
+        >
+          <Play size={20} color="#FFF" />
+          <Text style={styles.trainingButtonText}>Watch Video</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Safety Fundamentals Card */}
       <View style={styles.trainingCard}>
@@ -521,6 +508,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
   },
   trainingButtonText: {
     color: '#FFFFFF',

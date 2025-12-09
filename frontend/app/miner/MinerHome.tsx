@@ -77,36 +77,30 @@ export default function MinerHome() {
         
         ws.onopen = () => {
           setHelmetConnected(true);
+          console.log('✅ Smart Helmet connected');
         };
 
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data) as HelmetData;
             setHelmetData(data);
-
-            // Alert for emergency - Hardware button pressed
-            if (data.emergency) {
-              Alert.alert(
-                '🚨 SOS ALERT SENT', 
-                'Your emergency alert has been sent to Supervisors and Safety Officers. Help is on the way. Stay calm and follow safety protocols.',
-                [{ text: 'OK' }]
-              );
-            }
           } catch (error) {
-            console.error('Error parsing helmet data:', error);
+            // Silent error handling
           }
         };
 
-        ws.onerror = () => setHelmetConnected(false);
+        ws.onerror = (error) => {
+          setHelmetConnected(false);
+        };
+        
         ws.onclose = () => {
           setHelmetConnected(false);
-          // Retry connection after 5 seconds
           setTimeout(connectHelmet, 5000);
         };
 
         wsRef.current = ws;
       } catch (error) {
-        console.error('Failed to connect to helmet:', error);
+        setTimeout(connectHelmet, 5000);
       }
     };
 
@@ -127,8 +121,6 @@ export default function MinerHome() {
   const quickActions = [
     { icon: Heart, label: 'Health Monitor', route: '/miner/HealthMonitoring', color: '#EF4444' },
     { icon: Award, label: 'Leaderboard', route: '/miner/ProgressTracker', color: '#FFD700' },
-    { icon: User, label: 'Testimonials', route: '/miner/Testimonials', color: '#EC4899' },
-    { icon: BookOpen, label: 'Case Studies', route: '/miner/CaseStudies', color: '#F59E0B' },
     { icon: Camera, label: 'Hazard Scan', route: '/miner/HazardScan', color: COLORS.destructive },
   ];
 
@@ -136,7 +128,7 @@ export default function MinerHome() {
     { 
       icon: Video, 
       label: 'Watch Video', 
-      route: '/miner/SafetyVideoPlayer', 
+      route: '/miner/AssignedVideos', 
       completed: moduleProgress.video,
       locked: false
     },
@@ -152,21 +144,6 @@ export default function MinerHome() {
       label: 'Play Game', 
       route: '/miner/SafetyGames', 
       completed: moduleProgress.game,
-      locked: true
-    },
-    { 
-      icon: Award, 
-      label: 'Silica Survivor', 
-      route: 'silica-game',
-      completed: false,
-      locked: false,
-      isExternalGame: true
-    },
-    { 
-      icon: Award, 
-      label: 'The Second Skin', 
-      route: '/miner/TheSecondSkinGame', 
-      completed: false,
       locked: false
     },
   ];
@@ -178,8 +155,25 @@ export default function MinerHome() {
       <ScrollView style={styles.scrollView}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.userName}>{user.name || 'Miner'}</Text>
+          <View style={styles.headerTop}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.welcomeText}>Welcome back,</Text>
+              <Text style={styles.userName}>{user.name || 'Miner'}</Text>
+            </View>
+            
+            {/* Notification Icon - Top Right */}
+            <TouchableOpacity 
+              onPress={() => router.push('/miner/NotificationsScreen' as any)}
+              style={styles.notificationIconButton}
+            >
+              <View style={styles.notificationIconContainer}>
+                <Bell size={24} color={COLORS.primary} />
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>1</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
           
           {/* Safety Score */}
           <View style={styles.scoreCard}>
@@ -274,26 +268,7 @@ export default function MinerHome() {
           </View>
         </View>
 
-        {/* Assigned Videos Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mandatory Videos</Text>
-          <TouchableOpacity
-            onPress={() => router.push('/miner/AssignedVideos' as any)}
-            style={styles.assignedVideosCard}
-            activeOpacity={0.7}
-          >
-            <View style={styles.assignedVideosContent}>
-              <Video size={32} color={COLORS.primary} />
-              <View style={styles.assignedVideosInfo}>
-                <Text style={styles.assignedVideosTitle}>View Assigned Videos</Text>
-                <Text style={styles.assignedVideosSubtitle}>
-                  Watch mandatory training videos before entering work routes
-                </Text>
-              </View>
-              <Lock size={20} color={COLORS.textMuted} />
-            </View>
-          </TouchableOpacity>
-        </View>
+        {/* Assigned Videos Section - Hidden, accessible via Watch Video in Safety Training */}
 
         {/* Quick Actions */}
         <View style={styles.section}>
@@ -441,24 +416,7 @@ export default function MinerHome() {
           </View>
         </View>
 
-        {/* Recent Notifications */}
-        <View style={[styles.section, styles.lastSection]}>
-          <TouchableOpacity 
-            onPress={() => router.push('/miner/NotificationsScreen' as any)}
-            style={styles.notificationHeader}
-          >
-            <Text style={styles.sectionTitle}>Recent Updates</Text>
-            <Bell size={20} color={COLORS.primary} />
-          </TouchableOpacity>
-          
-          <View style={styles.notificationCard}>
-            <Text style={styles.notificationTitle}>Safety Alert</Text>
-            <Text style={styles.notificationText}>
-              Complete your weekly training module
-            </Text>
-            <Text style={styles.notificationTime}>2 hours ago</Text>
-          </View>
-        </View>
+
       </ScrollView>
 
       <EmergencyButton />
@@ -483,6 +441,52 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  notificationIconButton: {
+    padding: 8,
+  },
+  notificationIconContainer: {
+    position: 'relative',
+    width: 40,
+    height: 40,
+    backgroundColor: COLORS.background,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: COLORS.destructive,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.card,
+  },
+  notificationBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFF',
   },
   inspectionSection: {
     marginTop: -98,

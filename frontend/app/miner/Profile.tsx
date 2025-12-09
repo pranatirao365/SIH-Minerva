@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -8,6 +8,7 @@ import {
     ScrollView,
     Image,
     Dimensions,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -26,6 +27,9 @@ import {
     Edit
 } from '../../components/Icons';
 import { MinerFooter } from '../../components/BottomNav';
+import { getUserProfile, initializeSocialProfile } from '../../services/socialService';
+import { collection, query, where, getDocs, doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 48) / 3; // 3 columns with padding
@@ -36,6 +40,97 @@ export default function MinerProfileScreen() {
     const router = useRouter();
     const { user, logout, safetyScore } = useRoleStore();
     const [activeTab, setActiveTab] = useState<TabType>('posts');
+    const [profileData, setProfileData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    const currentUserId = user?.id || user?.phone || '';
+
+    // Load profile data
+    useEffect(() => {
+        loadProfileData();
+    }, [currentUserId]);
+
+    // Real-time listener for profile updates (followers, following, etc.)
+    useEffect(() => {
+        if (!currentUserId) return;
+
+        console.log('👤 Setting up real-time profile listener for:', currentUserId);
+        
+        const userDocRef = doc(db, 'users', currentUserId);
+        const unsubscribe = onSnapshot(userDocRef, async (docSnapshot) => {
+            if (docSnapshot.exists()) {
+                const userData = docSnapshot.data();
+                
+                // Count user's posts
+                const postsQuery = query(
+                    collection(db, 'posts'),
+                    where('userId', '==', currentUserId)
+                );
+                const postsSnapshot = await getDocs(postsQuery);
+                const postsCount = postsSnapshot.size;
+                
+                setProfileData({
+                    id: docSnapshot.id,
+                    name: userData.name || 'Unknown User',
+                    phone: userData.phone || '',
+                    role: userData.role || 'miner',
+                    avatar: userData.avatar,
+                    bio: userData.bio || '',
+                    department: userData.department,
+                    followers: userData.followers || [],
+                    following: userData.following || [],
+                    postsCount: postsCount,
+                    followersCount: userData.followersCount || 0,
+                    followingCount: userData.followingCount || 0,
+                    likesCount: userData.likesCount || 0,
+                });
+                
+                console.log('🔄 Profile updated:', {
+                    followers: userData.followersCount || 0,
+                    following: userData.followingCount || 0,
+                    posts: postsCount
+                });
+            }
+        }, (error) => {
+            console.error('Error listening to profile updates:', error);
+        });
+
+        return () => {
+            console.log('🔌 Unsubscribing from profile listener');
+            unsubscribe();
+        };
+    }, [currentUserId]);
+
+    const loadProfileData = async () => {
+        if (!currentUserId) return;
+
+        try {
+            setLoading(true);
+            
+            // Initialize social profile if needed
+            await initializeSocialProfile(currentUserId);
+            
+            // Get user profile
+            const profile = await getUserProfile(currentUserId);
+            
+            // Count user's posts
+            const postsQuery = query(
+                collection(db, 'posts'),
+                where('userId', '==', currentUserId)
+            );
+            const postsSnapshot = await getDocs(postsQuery);
+            const postsCount = postsSnapshot.size;
+            
+            setProfileData({
+                ...profile,
+                postsCount,
+            });
+        } catch (error) {
+            console.error('Error loading profile:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleLogout = () => {
         Alert.alert(
@@ -48,7 +143,10 @@ export default function MinerProfileScreen() {
                     style: 'destructive',
                     onPress: () => {
                         logout();
-                        router.replace('/auth/LanguageSelect' as any);
+                        // Use push with a small delay to ensure state is cleared
+                        setTimeout(() => {
+                            router.push('/auth/PhoneLogin' as any);
+                        }, 100);
                     },
                 },
             ]
@@ -65,14 +163,13 @@ export default function MinerProfileScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.username}>{user.name || 'Miner'}</Text>
-                    <View style={styles.headerActions}>
-                        <TouchableOpacity style={styles.headerButton}>
-                            <Settings size={24} color={COLORS.text} />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.headerButton}>
-                            <MoreVertical size={24} color={COLORS.text} />
-                        </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity 
+                        style={styles.logoutButton}
+                        onPress={handleLogout}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles.logoutButtonText}>Logout</Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Profile Info */}
@@ -92,7 +189,9 @@ export default function MinerProfileScreen() {
                         {/* Stats */}
                         <View style={styles.stats}>
                             <TouchableOpacity style={styles.statItem}>
-                                <Text style={styles.statNumber}>0</Text>
+                                <Text style={styles.statNumber}>
+                                    {loading ? '-' : (profileData?.postsCount || 0)}
+                                </Text>
                                 <Text style={styles.statLabel}>Posts</Text>
                             </TouchableOpacity>
                             <TouchableOpacity 
@@ -100,7 +199,9 @@ export default function MinerProfileScreen() {
                                 onPress={() => router.push('/miner/Friends')}
                                 activeOpacity={0.7}
                             >
-                                <Text style={styles.statNumber}>0</Text>
+                                <Text style={styles.statNumber}>
+                                    {loading ? '-' : (profileData?.followersCount || 0)}
+                                </Text>
                                 <Text style={styles.statLabel}>Crew</Text>
                             </TouchableOpacity>
                             <TouchableOpacity 
@@ -108,7 +209,9 @@ export default function MinerProfileScreen() {
                                 onPress={() => router.push('/miner/Friends')}
                                 activeOpacity={0.7}
                             >
-                                <Text style={styles.statNumber}>0</Text>
+                                <Text style={styles.statNumber}>
+                                    {loading ? '-' : (profileData?.followingCount || 0)}
+                                </Text>
                                 <Text style={styles.statLabel}>Following</Text>
                             </TouchableOpacity>
                         </View>
@@ -128,12 +231,6 @@ export default function MinerProfileScreen() {
 
                     {/* Action Buttons */}
                     <View style={styles.actionButtons}>
-                        <TouchableOpacity style={styles.editButton}>
-                            <Text style={styles.editButtonText}>Edit Profile</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.shareButton}>
-                            <Text style={styles.shareButtonText}>Share Profile</Text>
-                        </TouchableOpacity>
                         <TouchableOpacity style={styles.iconButton}>
                             <User size={18} color={COLORS.text} />
                         </TouchableOpacity>
@@ -145,8 +242,8 @@ export default function MinerProfileScreen() {
                         onPress={() => router.push('/miner/UploadContent')}
                         activeOpacity={0.8}
                     >
-                        <Edit size={20} color={COLORS.primary} />
-                        <Text style={styles.uploadButtonText}>Upload Photo/Video</Text>
+                        <Edit size={20} color="#FFF" />
+                        <Text style={styles.uploadButtonText}>Upload</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -185,7 +282,6 @@ export default function MinerProfileScreen() {
                 <View style={styles.contentContainer}>
                     {activeTab === 'posts' && (
                         <View style={styles.emptyState}>
-                            <Text style={styles.emptyStateEmoji}>📷</Text>
                             <Text style={styles.emptyStateText}>No posts yet</Text>
                             <Text style={styles.emptyStateSubtext}>Your uploaded photos will appear here</Text>
                         </View>
@@ -193,7 +289,6 @@ export default function MinerProfileScreen() {
                     
                     {activeTab === 'reels' && (
                         <View style={styles.emptyState}>
-                            <Text style={styles.emptyStateEmoji}>📹</Text>
                             <Text style={styles.emptyStateText}>No videos yet</Text>
                             <Text style={styles.emptyStateSubtext}>Your uploaded videos will appear here</Text>
                         </View>
@@ -285,21 +380,21 @@ const styles = StyleSheet.create({
         marginRight: 28,
     },
     avatar: {
-        width: 76,
-        height: 76,
-        borderRadius: 38,
-        backgroundColor: COLORS.primary,
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        backgroundColor: '#52525B',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 2,
-        borderColor: COLORS.accent,
+        borderColor: '#71717A',
     },
     roleBadge: {
         position: 'absolute',
         bottom: -8,
         left: 0,
         right: 0,
-        backgroundColor: COLORS.primary,
+        backgroundColor: '#52525B',
         paddingVertical: 4,
         paddingHorizontal: 8,
         borderRadius: 12,
@@ -419,11 +514,11 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         gap: 8,
         marginTop: 12,
-        borderWidth: 2,
-        borderColor: COLORS.primary,
+        borderWidth: 1,
+        borderColor: COLORS.border,
     },
     uploadButtonText: {
-        color: COLORS.primary,
+        color: '#FFF',
         fontSize: 14,
         fontWeight: '700',
         letterSpacing: 0.5,
@@ -443,7 +538,7 @@ const styles = StyleSheet.create({
         borderBottomColor: 'transparent',
     },
     activeTab: {
-        borderBottomColor: COLORS.primary,
+        borderBottomColor: '#71717A',
     },
     contentContainer: {
         paddingTop: 2,
@@ -526,13 +621,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        marginHorizontal: 16,
-        marginTop: 16,
-        paddingVertical: 11,
-        backgroundColor: COLORS.card,
-        borderRadius: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        backgroundColor: COLORS.destructive,
+        borderRadius: 10,
         borderWidth: 1,
-        borderColor: COLORS.destructive + '40',
+        borderColor: COLORS.destructive,
+    },
+    logoutButtonText: {
+        color: '#FFF',
+        fontSize: 14,
+        fontWeight: '700',
     },
     logoutText: {
         color: COLORS.destructive,

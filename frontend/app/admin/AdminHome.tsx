@@ -816,6 +816,15 @@ export default function AdminHome() {
         role: selectedRole,
         createdAt: new Date().toISOString(),
         createdBy: auth.currentUser?.phoneNumber || 'admin',
+        // Social profile fields
+        followers: [],
+        following: [],
+        postsCount: 0,
+        followersCount: 0,
+        followingCount: 0,
+        likesCount: 0,
+        bio: '',
+        avatar: null,
       };
 
       // Generate employee ID for certain roles

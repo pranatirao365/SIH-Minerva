@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Icons } from '../../components/Icons';
 import AppHeader from '../../components/AppHeader';
+import { MinerFooter } from '../../components/BottomNav';
 import { useRoleStore } from '../../hooks/useRoleStore';
 
 const { width } = Dimensions.get('window');
@@ -28,6 +29,13 @@ const TRAINING_WORLDS = [
     subtitle: 'Underground Detection',
     levels: 5,
     depth: '50m',
+    levelNames: [
+      'Basic hazards every miner must see',
+      'Roof and side danger signs',
+      'Mechanical danger zones',
+      'Slip, trip and fall hazards',
+      'Gas and ventilation hazard indicators'
+    ]
   },
   {
     id: 2,
@@ -39,6 +47,13 @@ const TRAINING_WORLDS = [
     subtitle: 'Tool Mastery',
     levels: 5,
     depth: '100m',
+    levelNames: [
+      'PPE basics',
+      'Tool handling basics',
+      'Machine movement awareness',
+      'Pre shift equipment checks',
+      'How to report faulty equipment'
+    ]
   },
   {
     id: 3,
@@ -50,6 +65,13 @@ const TRAINING_WORLDS = [
     subtitle: 'Critical Thinking',
     levels: 5,
     depth: '150m',
+    levelNames: [
+      'What to do during blasting',
+      'Safe behavior around moving machinery',
+      'Roof scaling safety',
+      'Low visibility movement safety',
+      'Poor ventilation and emergency steps'
+    ]
   },
   {
     id: 4,
@@ -61,6 +83,13 @@ const TRAINING_WORLDS = [
     subtitle: 'Life or Death',
     levels: 5,
     depth: '200m',
+    levelNames: [
+      'How to react when something goes wrong',
+      'Escape route understanding',
+      'Fire emergency basics',
+      'Gas exposure immediate steps',
+      'Helping an injured coworker safely'
+    ]
   },
   {
     id: 5,
@@ -72,6 +101,13 @@ const TRAINING_WORLDS = [
     subtitle: 'Expert Knowledge',
     levels: 5,
     depth: '250m',
+    levelNames: [
+      'Why shortcuts kill',
+      'Overconfidence traps',
+      'Team accountability',
+      'Ignoring PPE consequences',
+      'How to build a safe daily routine'
+    ]
   },
 ];
 
@@ -79,17 +115,13 @@ export default function TrainingModule() {
   const router = useRouter();
   const { user } = useRoleStore();
   const [completedLevels, setCompletedLevels] = useState<{ [key: number]: number[] }>({});
-  const [totalXP, setTotalXP] = useState(2450);
-  const [streak, setStreak] = useState(7);
 
   const handleLevelPress = (worldId: number, level: number) => {
-    const isUnlocked = level === 1 || completedLevels[worldId]?.includes(level - 1);
-    if (isUnlocked) {
-      router.push({
-        pathname: '/miner/TrainingLevel',
-        params: { worldId, levelNumber: level },
-      });
-    }
+    // All levels are unlocked - direct access to any level
+    router.push({
+      pathname: '/miner/TrainingLevel',
+      params: { worldId, levelNumber: level },
+    });
   };
 
   return (
@@ -104,27 +136,7 @@ export default function TrainingModule() {
       <View style={[StyleSheet.absoluteFill, styles.textureOverlay]} />
       
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        {/* App Header with Notification & Profile */}
-        <AppHeader 
-          userName={user.name || 'Miner'}
-          showBack={true}
-          showNotifications={true}
-          showProfile={true}
-        />
-        
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {/* Stats Bar */}
-          <View style={styles.statsBar}>
-            <View style={styles.statContainer}>
-              <Icons.Award size={12} color="#FCD34D" />
-              <Text style={styles.statValue}>{totalXP}</Text>
-            </View>
-            <View style={styles.statContainer}>
-              <Text style={styles.flameIcon}>🔥</Text>
-              <Text style={styles.statValue}>{streak}</Text>
-            </View>
-          </View>
-
           {/* Training Zones with Mining Theme */}
           {TRAINING_WORLDS.map((world, worldIndex) => (
             <View key={world.id} style={styles.worldContainer}>
@@ -177,7 +189,7 @@ export default function TrainingModule() {
                 {Array.from({ length: world.levels }).map((_, levelIndex) => {
                   const level = levelIndex + 1;
                   const isCompleted = completedLevels[world.id]?.includes(level);
-                  const isUnlocked = level === 1 || completedLevels[world.id]?.includes(level - 1);
+                  const isUnlocked = true; // All levels unlocked
                   
                   // Zigzag tunnel path with extra spacing for first level
                   const xOffset = levelIndex % 2 === 0 ? 40 : width - 110;
@@ -218,12 +230,10 @@ export default function TrainingModule() {
                       {/* Mining Cart Station Node */}
                       <TouchableOpacity
                         onPress={() => handleLevelPress(world.id, level)}
-                        disabled={!isUnlocked}
                         activeOpacity={0.7}
                         style={[
                           styles.miningCart,
                           { left: xOffset },
-                          !isUnlocked && styles.cartLocked,
                         ]}
                       >
                         {/* Cart body with gradient */}
@@ -300,6 +310,9 @@ export default function TrainingModule() {
                           <View style={styles.signPost} />
                           <View style={styles.signContent}>
                             <Text style={styles.stationNumber}>STATION {level}</Text>
+                            <Text style={styles.levelDescription} numberOfLines={2}>
+                              {world.levelNames[levelIndex]}
+                            </Text>
                             <View style={styles.signStatus}>
                               {isCompleted ? (
                                 <>
@@ -337,6 +350,8 @@ export default function TrainingModule() {
           ))}
         </ScrollView>
       </SafeAreaView>
+      
+      <MinerFooter activeTab="training" />
     </View>
   );
 }
@@ -725,6 +740,13 @@ const styles = StyleSheet.create({
     color: '#FCD34D',
     letterSpacing: 0.8,
     marginBottom: 4,
+  },
+  levelDescription: {
+    fontSize: 9,
+    color: '#A1A1AA',
+    fontWeight: '500',
+    marginBottom: 6,
+    lineHeight: 12,
   },
   signStatus: {
     flexDirection: 'row',

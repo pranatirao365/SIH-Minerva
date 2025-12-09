@@ -110,6 +110,8 @@ export const verifyOTP = async (verificationId: string, code: string) => {
     // Test data OTP mapping
     const testOTPs: { [key: string]: string } = {
       '9032017652': '123456', // Custom test number
+      '1234567892': '111111', // Test supervisor
+      '1234567890': '222222', // Test miner
       '900000001': '123456', // Ravi
       '900000002': '234567', // Suresh
       '800000001': '345678', // Arun

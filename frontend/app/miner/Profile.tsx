@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -8,6 +8,7 @@ import {
     ScrollView,
     Image,
     Dimensions,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -26,6 +27,9 @@ import {
     Edit
 } from '../../components/Icons';
 import { MinerFooter } from '../../components/BottomNav';
+import { getUserProfile, initializeSocialProfile } from '../../services/socialService';
+import { collection, query, where, getDocs, doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 48) / 3; // 3 columns with padding
@@ -36,6 +40,97 @@ export default function MinerProfileScreen() {
     const router = useRouter();
     const { user, logout, safetyScore } = useRoleStore();
     const [activeTab, setActiveTab] = useState<TabType>('posts');
+    const [profileData, setProfileData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    const currentUserId = user?.id || user?.phone || '';
+
+    // Load profile data
+    useEffect(() => {
+        loadProfileData();
+    }, [currentUserId]);
+
+    // Real-time listener for profile updates (followers, following, etc.)
+    useEffect(() => {
+        if (!currentUserId) return;
+
+        console.log('👤 Setting up real-time profile listener for:', currentUserId);
+        
+        const userDocRef = doc(db, 'users', currentUserId);
+        const unsubscribe = onSnapshot(userDocRef, async (docSnapshot) => {
+            if (docSnapshot.exists()) {
+                const userData = docSnapshot.data();
+                
+                // Count user's posts
+                const postsQuery = query(
+                    collection(db, 'posts'),
+                    where('userId', '==', currentUserId)
+                );
+                const postsSnapshot = await getDocs(postsQuery);
+                const postsCount = postsSnapshot.size;
+                
+                setProfileData({
+                    id: docSnapshot.id,
+                    name: userData.name || 'Unknown User',
+                    phone: userData.phone || '',
+                    role: userData.role || 'miner',
+                    avatar: userData.avatar,
+                    bio: userData.bio || '',
+                    department: userData.department,
+                    followers: userData.followers || [],
+                    following: userData.following || [],
+                    postsCount: postsCount,
+                    followersCount: userData.followersCount || 0,
+                    followingCount: userData.followingCount || 0,
+                    likesCount: userData.likesCount || 0,
+                });
+                
+                console.log('🔄 Profile updated:', {
+                    followers: userData.followersCount || 0,
+                    following: userData.followingCount || 0,
+                    posts: postsCount
+                });
+            }
+        }, (error) => {
+            console.error('Error listening to profile updates:', error);
+        });
+
+        return () => {
+            console.log('🔌 Unsubscribing from profile listener');
+            unsubscribe();
+        };
+    }, [currentUserId]);
+
+    const loadProfileData = async () => {
+        if (!currentUserId) return;
+
+        try {
+            setLoading(true);
+            
+            // Initialize social profile if needed
+            await initializeSocialProfile(currentUserId);
+            
+            // Get user profile
+            const profile = await getUserProfile(currentUserId);
+            
+            // Count user's posts
+            const postsQuery = query(
+                collection(db, 'posts'),
+                where('userId', '==', currentUserId)
+            );
+            const postsSnapshot = await getDocs(postsQuery);
+            const postsCount = postsSnapshot.size;
+            
+            setProfileData({
+                ...profile,
+                postsCount,
+            });
+        } catch (error) {
+            console.error('Error loading profile:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleLogout = () => {
         Alert.alert(
@@ -48,7 +143,10 @@ export default function MinerProfileScreen() {
                     style: 'destructive',
                     onPress: () => {
                         logout();
-                        router.replace('/auth/LanguageSelect' as any);
+                        // Use push with a small delay to ensure state is cleared
+                        setTimeout(() => {
+                            router.push('/auth/PhoneLogin' as any);
+                        }, 100);
                     },
                 },
             ]
@@ -92,7 +190,9 @@ export default function MinerProfileScreen() {
                         {/* Stats */}
                         <View style={styles.stats}>
                             <TouchableOpacity style={styles.statItem}>
-                                <Text style={styles.statNumber}>0</Text>
+                                <Text style={styles.statNumber}>
+                                    {loading ? '-' : (profileData?.postsCount || 0)}
+                                </Text>
                                 <Text style={styles.statLabel}>Posts</Text>
                             </TouchableOpacity>
                             <TouchableOpacity 
@@ -100,7 +200,9 @@ export default function MinerProfileScreen() {
                                 onPress={() => router.push('/miner/Friends')}
                                 activeOpacity={0.7}
                             >
-                                <Text style={styles.statNumber}>0</Text>
+                                <Text style={styles.statNumber}>
+                                    {loading ? '-' : (profileData?.followersCount || 0)}
+                                </Text>
                                 <Text style={styles.statLabel}>Crew</Text>
                             </TouchableOpacity>
                             <TouchableOpacity 
@@ -108,7 +210,9 @@ export default function MinerProfileScreen() {
                                 onPress={() => router.push('/miner/Friends')}
                                 activeOpacity={0.7}
                             >
-                                <Text style={styles.statNumber}>0</Text>
+                                <Text style={styles.statNumber}>
+                                    {loading ? '-' : (profileData?.followingCount || 0)}
+                                </Text>
                                 <Text style={styles.statLabel}>Following</Text>
                             </TouchableOpacity>
                         </View>

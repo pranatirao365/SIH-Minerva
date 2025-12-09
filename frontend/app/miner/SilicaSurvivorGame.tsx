@@ -1,8 +1,10 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
 import { ArrowLeft } from '../../components/Icons';
 import { COLORS } from '../../constants/styles';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface GameState {
   isRunning: boolean;
@@ -19,8 +21,9 @@ interface GasCloud {
   type: 'eye' | 'lung';
 }
 
-const GAME_WIDTH = 400;
-const GAME_HEIGHT = 600;
+// Responsive game dimensions
+const GAME_WIDTH = Math.min(SCREEN_WIDTH - 32, 400);
+const GAME_HEIGHT = Math.min(SCREEN_HEIGHT * 0.65, 600);
 const PLAYER_WIDTH = 40;
 const PLAYER_HEIGHT = 40;
 const GAS_SIZE = 40;

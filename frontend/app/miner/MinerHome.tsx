@@ -137,7 +137,7 @@ export default function MinerHome() {
     { 
       icon: Video, 
       label: 'Watch Video', 
-      route: '/miner/SafetyVideoPlayer', 
+      route: '/miner/AssignedVideos', 
       completed: moduleProgress.video,
       locked: false
     },
@@ -153,21 +153,6 @@ export default function MinerHome() {
       label: 'Play Game', 
       route: '/miner/SafetyGames', 
       completed: moduleProgress.game,
-      locked: true
-    },
-    { 
-      icon: Award, 
-      label: 'Silica Survivor', 
-      route: 'silica-game',
-      completed: false,
-      locked: false,
-      isExternalGame: true
-    },
-    { 
-      icon: Award, 
-      label: 'The Second Skin', 
-      route: '/miner/TheSecondSkinGame', 
-      completed: false,
       locked: false
     },
   ];
@@ -275,26 +260,7 @@ export default function MinerHome() {
           </View>
         </View>
 
-        {/* Assigned Videos Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mandatory Videos</Text>
-          <TouchableOpacity
-            onPress={() => router.push('/miner/AssignedVideos' as any)}
-            style={styles.assignedVideosCard}
-            activeOpacity={0.7}
-          >
-            <View style={styles.assignedVideosContent}>
-              <Video size={32} color={COLORS.primary} />
-              <View style={styles.assignedVideosInfo}>
-                <Text style={styles.assignedVideosTitle}>View Assigned Videos</Text>
-                <Text style={styles.assignedVideosSubtitle}>
-                  Watch mandatory training videos before entering work routes
-                </Text>
-              </View>
-              <Lock size={20} color={COLORS.textMuted} />
-            </View>
-          </TouchableOpacity>
-        </View>
+        {/* Assigned Videos Section - Hidden, accessible via Watch Video in Safety Training */}
 
         {/* Quick Actions */}
         <View style={styles.section}>

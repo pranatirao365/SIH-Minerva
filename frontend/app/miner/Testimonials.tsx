@@ -337,7 +337,7 @@ export default function Testimonials() {
         <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Miner Testimonials</Text>
+        <Text style={styles.headerTitle}>Share Your Experience</Text>
         <TouchableOpacity
           onPress={() => setShowMyTestimonials(true)}
           style={styles.headerButton}
@@ -346,52 +346,73 @@ export default function Testimonials() {
         </TouchableOpacity>
       </View>
 
-      {/* Testimonials Feed (Instagram Reels Style) */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading testimonials...</Text>
-        </View>
-      ) : testimonials.length === 0 ? (
-        <View style={styles.emptyState}>
-          <VideoIcon size={64} color={COLORS.textMuted} />
-          <Text style={styles.emptyStateText}>No Testimonials Yet</Text>
-          <Text style={styles.emptyStateSubtext}>
-            Be the first to share your safety experience!
+      {/* Upload Section */}
+      <ScrollView style={styles.uploadSection} contentContainerStyle={styles.uploadSectionContent}>
+        <View style={styles.uploadHero}>
+          <VideoIcon size={80} color={COLORS.primary} />
+          <Text style={styles.uploadTitle}>Share Your Safety Story</Text>
+          <Text style={styles.uploadSubtitle}>
+            Record your experiences, near-misses, or safety insights.
+            Your testimonial will be reviewed by the Safety Officer and analyzed by AI.
           </Text>
-          <TouchableOpacity
-            style={styles.submitButton}
-            onPress={() => setShowUploadModal(true)}
-          >
-            <Text style={styles.submitButtonText}>Share Your Story</Text>
-          </TouchableOpacity>
         </View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={testimonials}
-          renderItem={renderTestimonial}
-          keyExtractor={item => item.id || ''}
-          pagingEnabled
-          showsVerticalScrollIndicator={false}
-          snapToAlignment="start"
-          decelerationRate="fast"
-          onScroll={(e) => {
-            const index = Math.round(e.nativeEvent.contentOffset.y / height);
-            setCurrentIndex(index);
-          }}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-        />
-      )}
 
-      {/* Upload Button */}
-      <TouchableOpacity
-        style={styles.uploadButton}
-        onPress={() => setShowUploadModal(true)}
-      >
-        <Upload size={24} color="#FFFFFF" />
-      </TouchableOpacity>
+        <View style={styles.benefitsSection}>
+          <Text style={styles.benefitsTitle}>Why Share?</Text>
+          <View style={styles.benefitItem}>
+            <CheckCircle size={24} color={COLORS.primary} />
+            <Text style={styles.benefitText}>Help prevent future incidents</Text>
+          </View>
+          <View style={styles.benefitItem}>
+            <CheckCircle size={24} color={COLORS.primary} />
+            <Text style={styles.benefitText}>Share valuable safety insights</Text>
+          </View>
+          <View style={styles.benefitItem}>
+            <CheckCircle size={24} color={COLORS.primary} />
+            <Text style={styles.benefitText}>AI-powered analysis for safety improvements</Text>
+          </View>
+          <View style={styles.benefitItem}>
+            <CheckCircle size={24} color={COLORS.primary} />
+            <Text style={styles.benefitText}>Reviewed by Safety Officer</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.largeUploadButton}
+          onPress={() => setShowUploadModal(true)}
+        >
+          <Upload size={24} color="#FFFFFF" />
+          <Text style={styles.uploadButtonText}>Upload Testimonial</Text>
+        </TouchableOpacity>
+
+        {/* Recent Uploads */}
+        {myTestimonials.length > 0 && (
+          <View style={styles.recentUploadsSection}>
+            <Text style={styles.recentUploadsTitle}>Your Recent Testimonials</Text>
+            {myTestimonials.slice(0, 3).map((testimonial) => (
+              <View key={testimonial.id} style={styles.recentUploadItem}>
+                <View style={styles.recentUploadInfo}>
+                  <Text style={styles.recentUploadCaption} numberOfLines={2}>
+                    {testimonial.caption}
+                  </Text>
+                  <Text style={styles.recentUploadDate}>
+                    {formatTimestamp(testimonial.timestamp)}
+                  </Text>
+                </View>
+                <View style={styles.recentUploadStatus}>
+                  {getStatusIcon(testimonial.status)}
+                  <Text style={[styles.recentUploadStatusText, {
+                    color: testimonial.status === 'approved' ? '#10B981' :
+                           testimonial.status === 'pending' ? '#F59E0B' : '#EF4444'
+                  }]}>
+                    {testimonial.status.charAt(0).toUpperCase() + testimonial.status.slice(1)}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
 
       {/* Upload Modal */}
       <Modal
@@ -810,6 +831,114 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginTop: 8,
     textAlign: 'center',
+  },
+  uploadSection: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  uploadSectionContent: {
+    padding: 20,
+  },
+  uploadHero: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  uploadTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: 20,
+    textAlign: 'center',
+  },
+  uploadSubtitle: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginTop: 12,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  benefitsSection: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  benefitsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 16,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  benefitText: {
+    fontSize: 15,
+    color: COLORS.text,
+    flex: 1,
+  },
+  largeUploadButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginBottom: 24,
+  },
+  uploadButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  recentUploadsSection: {
+    marginTop: 8,
+  },
+  recentUploadsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 16,
+  },
+  recentUploadItem: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  recentUploadInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  recentUploadCaption: {
+    fontSize: 14,
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  recentUploadDate: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  recentUploadStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  recentUploadStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   myTestimonialCard: {
     backgroundColor: COLORS.card,

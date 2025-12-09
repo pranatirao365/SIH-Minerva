@@ -21,6 +21,7 @@ import { ArrowLeft, Camera, Video as VideoIcon, Upload, X, ImageIcon } from '../
 import { MinerFooter } from '../../components/BottomNav';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 type MediaType = 'photo' | 'video' | null;
 
@@ -32,6 +33,7 @@ export default function UploadContent() {
     const [caption, setCaption] = useState('');
     const [hashtags, setHashtags] = useState('');
     const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     const requestPermissions = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -126,48 +128,132 @@ export default function UploadContent() {
         }
 
         setUploading(true);
+        setUploadProgress(0);
 
         try {
-            // Create post document in Firestore
-            const postData = {
-                userId: user.id || user.phone,
-                userName: user.name || 'Unknown Miner',
-                userRole: user.role,
-                mediaType,
-                mediaUri, // In production, upload to Firebase Storage and save URL
-                caption: caption.trim(),
-                hashtags: hashtags.trim(),
-                likes: 0,
-                comments: 0,
-                shares: 0,
-                createdAt: serverTimestamp(),
-                status: 'active',
-            };
-
-            await addDoc(collection(db, 'posts'), postData);
-
-            Alert.alert(
-                'Success! 🎉',
-                'Your post has been uploaded and will be visible to all miners.',
-                [
-                    {
-                        text: 'View Feed',
-                        onPress: () => router.push('/miner/Reels'),
-                    },
-                    {
-                        text: 'Upload Another',
-                        onPress: () => {
-                            setMediaUri(null);
-                            setMediaType(null);
-                            setCaption('');
-                            setHashtags('');
+            console.log('📤 Starting upload to Firebase Storage...');
+            
+            let downloadURL = mediaUri;
+            
+            // Try Firebase Storage upload
+            try {
+                // Get file info
+                const response = await fetch(mediaUri);
+                const blob = await response.blob();
+                
+                // Create unique filename
+                const timestamp = Date.now();
+                const userId = user.id || user.phone || 'unknown';
+                const fileExtension = mediaType === 'video' ? 'mp4' : 'jpg';
+                const fileName = `${mediaType}s/${userId}_${timestamp}.${fileExtension}`;
+                
+                // Upload to Firebase Storage
+                const storage = getStorage();
+                const storageRef = ref(storage, fileName);
+                const uploadTask = uploadBytesResumable(storageRef, blob);
+                
+                // Monitor upload progress
+                downloadURL = await new Promise<string>((resolve, reject) => {
+                    uploadTask.on(
+                        'state_changed',
+                        (snapshot) => {
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            setUploadProgress(progress);
+                            console.log(`Upload is ${progress.toFixed(0)}% done`);
                         },
-                    },
-                ]
-            );
+                        (error) => {
+                            console.error('Upload error:', error);
+                            reject(error);
+                        },
+                        async () => {
+                            // Upload complete, get download URL
+                            const url = await getDownloadURL(uploadTask.snapshot.ref);
+                            console.log('✅ File uploaded successfully:', url);
+                            resolve(url);
+                        }
+                    );
+                });
+            } catch (storageError: any) {
+                console.error('❌ Firebase Storage error:', storageError);
+                
+                // Check if it's the service account error
+                if (storageError.code === 'storage/unauthorized' || 
+                    storageError.message?.includes('service account')) {
+                    console.warn('⚠️ Firebase Storage not configured, using local URL');
+                    Alert.alert(
+                        'Storage Setup Required',
+                        'Firebase Storage needs configuration. Post will be saved with local reference. Please configure Firebase Storage in Console.',
+                        [{ text: 'OK' }]
+                    );
+                    // Continue with local URI
+                    downloadURL = mediaUri;
+                } else {
+                    throw storageError;
+                }
+            }
+            
+            // Create post document in Firestore (works even if Storage fails)
+            (async () => {
+            // Create post document in Firestore (works even if Storage fails)
+            (async () => {
+                // Extract hashtags from caption and hashtags field
+                const allHashtags = [...new Set([
+                    ...caption.match(/#[\w]+/g) || [],
+                    ...hashtags.split(/[\s,]+/).filter(tag => tag.startsWith('#'))
+                ])].map(tag => tag.replace('#', ''));
+
+                // Create post document in Firestore
+                const postData = {
+                    userId: user.id || user.phone,
+                    userName: user.name || 'Unknown Miner',
+                    userRole: user.role,
+                    userPhone: user.phone,
+                    videoType: mediaType === 'video' ? 'video' : 'photo',
+                    videoUrl: downloadURL, // Public URL from Firebase Storage or local URI
+                    mediaUrl: downloadURL, // Backward compatibility
+                    caption: caption.trim(),
+                    hashtags: allHashtags,
+                    likedBy: [],
+                    savedBy: [],
+                    comments: [],
+                    shares: 0,
+                    views: 0,
+                    timestamp: serverTimestamp(),
+                    createdAt: serverTimestamp(),
+                    status: 'active',
+                };
+
+                await addDoc(collection(db, 'posts'), postData);
+                console.log('✅ Post created in Firestore');
+
+                Alert.alert(
+                    'Success! 🎉',
+                    'Your post has been uploaded and is now visible to all miners.',
+                    [
+                        {
+                            text: 'View Feed',
+                            onPress: () => router.push('/miner/Reels'),
+                        },
+                        {
+                            text: 'Upload Another',
+                            onPress: () => {
+                                setMediaUri(null);
+                                setMediaType(null);
+                                setCaption('');
+                                setHashtags('');
+                                setUploadProgress(0);
+                            },
+                        },
+                    ]
+                );
+            })();
+            });
         } catch (error) {
             console.error('Error uploading post:', error);
-            Alert.alert('Upload Failed', 'Could not upload your post. Please try again.');
+            Alert.alert(
+                'Upload Failed',
+                'Could not upload your post. Please check your internet connection and try again.'
+            );
         } finally {
             setUploading(false);
         }
@@ -298,24 +384,40 @@ export default function UploadContent() {
 
                     {/* Upload Button */}
                     {mediaUri && (
-                        <TouchableOpacity
-                            style={[styles.uploadButton, uploading && styles.uploadButtonDisabled]}
-                            onPress={handleUpload}
-                            disabled={uploading}
-                            activeOpacity={0.8}
-                        >
-                            {uploading ? (
-                                <>
-                                    <ActivityIndicator color="#FFF" />
-                                    <Text style={styles.uploadButtonText}>Uploading...</Text>
-                                </>
-                            ) : (
-                                <>
-                                    <Upload size={20} color="#FFF" />
-                                    <Text style={styles.uploadButtonText}>Share with Community</Text>
-                                </>
+                        <>
+                            <TouchableOpacity
+                                style={[styles.uploadButton, uploading && styles.uploadButtonDisabled]}
+                                onPress={handleUpload}
+                                disabled={uploading}
+                                activeOpacity={0.8}
+                            >
+                                {uploading ? (
+                                    <>
+                                        <ActivityIndicator color="#FFF" />
+                                        <Text style={styles.uploadButtonText}>
+                                            Uploading {uploadProgress.toFixed(0)}%
+                                        </Text>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Upload size={20} color="#FFF" />
+                                        <Text style={styles.uploadButtonText}>Share with Community</Text>
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                            
+                            {/* Progress Bar */}
+                            {uploading && (
+                                <View style={styles.progressBarContainer}>
+                                    <View 
+                                        style={[
+                                            styles.progressBarFill, 
+                                            { width: `${uploadProgress}%` }
+                                        ]} 
+                                    />
+                                </View>
                             )}
-                        </TouchableOpacity>
+                        </>
                     )}
 
                     {/* Guidelines */}
@@ -525,6 +627,19 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '700',
         color: '#FFF',
+    },
+    progressBarContainer: {
+        height: 4,
+        backgroundColor: COLORS.border,
+        borderRadius: 2,
+        marginTop: -16,
+        marginBottom: 24,
+        overflow: 'hidden',
+    },
+    progressBarFill: {
+        height: '100%',
+        backgroundColor: COLORS.primary,
+        borderRadius: 2,
     },
     guidelinesCard: {
         backgroundColor: COLORS.card,

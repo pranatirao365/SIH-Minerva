@@ -54,6 +54,17 @@ const GAMES = [
     difficulty: 'Beginner',
     duration: '5-8 min',
   },
+  {
+    id: 'silica-survivor',
+    title: 'Silica Survivor',
+    icon: '😷',
+    description: 'Avoid silica dust clouds and protect your health',
+    route: '/miner/SilicaSurvivorGame',
+    color: '#8B5CF6',
+    gradient: ['#A78BFA', '#8B5CF6'],
+    difficulty: 'Intermediate',
+    duration: '5-10 min',
+  },
 ];
 
 export default function SafetyGames() {
@@ -96,12 +107,12 @@ export default function SafetyGames() {
           {/* Stats Bar */}
           <View style={styles.statsBar}>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>4</Text>
+              <Text style={styles.statNumber}>5</Text>
               <Text style={styles.statLabel}>Games</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>100+</Text>
+              <Text style={styles.statNumber}>150+</Text>
               <Text style={styles.statLabel}>XP Available</Text>
             </View>
             <View style={styles.statDivider} />

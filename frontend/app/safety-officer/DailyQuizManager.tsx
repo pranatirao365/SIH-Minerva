@@ -423,7 +423,7 @@ export default function DailyQuizManager() {
                   </View>
                 )}
 
-                <View style={styles.quizHeader}>
+                <View style={[styles.quizHeader, quiz.status === 'active' && { marginTop: 28 }]}>
                   <View style={styles.quizHeaderLeft}>
                     <View style={[
                       styles.audienceIconContainer,
@@ -923,7 +923,7 @@ const styles = StyleSheet.create({
   activeBadge: {
     position: 'absolute',
     top: 12,
-    right: 12,
+    left: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,

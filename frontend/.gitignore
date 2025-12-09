@@ -28,6 +28,9 @@ audio/*.mp3
 output/*.mp4
 scripts/scene_breakdown.json
 
+# Training videos - keep locally, don't push
+assets/videos/training/*.mp4
+
 # Keep directories but ignore contents
 !images/.gitkeep
 !animations/.gitkeep

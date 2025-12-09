@@ -23,10 +23,31 @@ const TRAINING_WORLDS = [
 ];
 
 // Video mapping: worldId_levelNumber -> video file
-// Videos are currently placeholders - add actual video files to assets/videos/training/
 const TRAINING_VIDEOS: { [key: string]: any } = {
-  // Videos disabled until files are added
-  // Uncomment and add files as: w1l1.mp4, w1l2.mp4, etc.
+  // World 1: Hazard Spotting
+  '1_1': require('@/assets/videos/training/w1l1.mp4'),
+  '1_2': require('@/assets/videos/training/w1l2.mp4'),
+  '1_4': require('@/assets/videos/training/w1l4.mp4'),
+  
+  // World 2: Equipment Handling
+  '2_1': require('@/assets/videos/training/w2l1.mp4'),
+  '2_2': require('@/assets/videos/training/w2l2.mp4'),
+  '2_3': require('@/assets/videos/training/w2l3.mp4'),
+  '2_4': require('@/assets/videos/training/w2l4.mp4'),
+  
+  // World 3: Situational Safety
+  '3_1': require('@/assets/videos/training/w3l1.mp4'),
+  '3_2': require('@/assets/videos/training/w3l2.mp4'),
+  '3_3': require('@/assets/videos/training/w3l3.mp4'),
+  
+  // World 4: Emergency Response
+  '4_1': require('@/assets/videos/training/w4l1.mp4'),
+  '4_2': require('@/assets/videos/training/w4l2.mp4'),
+  '4_3': require('@/assets/videos/training/w4l3.mp4'),
+  
+  // World 5: Safety Mindset
+  '5_1': require('@/assets/videos/training/w5l1.mp4'),
+  '5_2': require('@/assets/videos/training/w5l2.mp4'),
 };
 
 export default function TrainingLevel() {

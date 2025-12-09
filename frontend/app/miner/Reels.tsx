@@ -241,6 +241,32 @@ export default function Reels() {
                     });
                 });
                 
+                // Add test miner's blasting safety reel if not already present
+                const testMinerPhone = '+1234567890';
+                const hasBlastingReel = loadedReels.some(r => 
+                    r.userId === testMinerPhone && r.caption.includes('Blasting Safety')
+                );
+                
+                if (!hasBlastingReel) {
+                    loadedReels.unshift({
+                        id: 'test_miner_blasting_reel',
+                        userId: testMinerPhone,
+                        userName: 'Test Miner',
+                        userPhone: testMinerPhone,
+                        caption: '🧨 Blasting Safety Procedures - Essential safety protocols for mining blast operations! Minimum safe distance, proper evacuation, and licensed handling only. Stay safe! 💥 #BlastingSafety #Mining #SafetyFirst',
+                        videoUrl: require('@/assets/videos/reels/VID-20251209-WA0001.mp4'),
+                        videoType: 'video',
+                        likedBy: [],
+                        savedBy: [],
+                        comments: [],
+                        shares: 0,
+                        views: 0,
+                        timestamp: new Date(),
+                        hashtags: ['BlastingSafety', 'Mining', 'SafetyFirst'],
+                        isAssetVideo: true,
+                    });
+                }
+                
                 console.log(`✅ Loaded ${loadedReels.length} reels from Firebase`);
                 setReels(loadedReels);
                 setLoading(false);

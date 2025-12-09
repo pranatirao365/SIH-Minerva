@@ -321,15 +321,7 @@ export default function MinerProfileScreen() {
                     )}
                 </View>
 
-                {/* Logout Button */}
-                <TouchableOpacity 
-                    style={styles.logoutButton}
-                    onPress={handleLogout}
-                    activeOpacity={0.8}
-                >
-                    <LogOut size={20} color={COLORS.destructive} />
-                    <Text style={styles.logoutText}>Logout</Text>
-                </TouchableOpacity>
+                
             </ScrollView>
 
             <MinerFooter activeTab="profile" />

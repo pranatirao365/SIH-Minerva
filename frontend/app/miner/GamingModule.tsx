@@ -38,6 +38,15 @@ const GAMES = [
     gradient: ['#A16207', '#7C2D12'],
   },
   {
+    id: 'silica-survivor',
+    title: 'Silica Survivor',
+    icon: '💨',
+    description: 'Learn about silica dust hazards',
+    route: '/miner/SilicaSurvivorGame',
+    color: '#6B7280',
+    gradient: ['#9CA3AF', '#6B7280'],
+  },
+  {
     id: 'second-skin',
     title: 'Second Skin',
     icon: '🦺',

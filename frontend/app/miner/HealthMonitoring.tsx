@@ -111,17 +111,17 @@ export default function HealthMonitoring() {
 
           saveReading(newReading);
         } catch (error) {
-          console.error('Error parsing WebSocket data:', error);
+          // Silent error handling
         }
       };
 
       ws.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        // Silent error handling
         setConnected(false);
       };
 
       ws.current.onclose = () => {
-        console.log('WebSocket closed');
+        // Silent close handling
         setConnected(false);
         
         // Try to reconnect after 5 seconds
@@ -130,7 +130,7 @@ export default function HealthMonitoring() {
         }, 5000);
       };
     } catch (error) {
-      console.error('Error connecting WebSocket:', error);
+      // Silent connection error handling
       setConnected(false);
     }
   };

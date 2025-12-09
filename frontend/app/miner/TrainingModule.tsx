@@ -21,24 +21,6 @@ const { width } = Dimensions.get('window');
 const TRAINING_WORLDS = [
   {
     id: 1,
-    name: 'Hazard Spotting',
-    icon: '⛏',
-    color: '#D97706',
-    gradient: ['#854D0E', '#D97706', '#92400E'],
-    description: 'Identify dangers in the dark tunnels',
-    subtitle: 'Underground Detection',
-    levels: 5,
-    depth: '50m',
-    levelNames: [
-      'Basic hazards every miner must see',
-      'Roof and side danger signs',
-      'Mechanical danger zones',
-      'Slip, trip and fall hazards',
-      'Gas and ventilation hazard indicators'
-    ]
-  },
-  {
-    id: 2,
     name: 'Equipment Handling',
     icon: '⚙',
     color: '#0369A1',
@@ -46,13 +28,31 @@ const TRAINING_WORLDS = [
     description: 'Master underground machinery safely',
     subtitle: 'Tool Mastery',
     levels: 5,
-    depth: '100m',
+    depth: '50m',
     levelNames: [
-      'PPE basics',
-      'Tool handling basics',
-      'Machine movement awareness',
-      'Pre shift equipment checks',
+      'PPE and Basic Tools',
+      'Blasting Equipment',
+      'Drilling Equipment',
+      'Heavy Machinery',
       'How to report faulty equipment'
+    ]
+  },
+  {
+    id: 2,
+    name: 'Hazard Spotting',
+    icon: '⛏',
+    color: '#D97706',
+    gradient: ['#854D0E', '#D97706', '#92400E'],
+    description: 'Identify dangers in the dark tunnels',
+    subtitle: 'Underground Detection',
+    levels: 5,
+    depth: '250m',
+    levelNames: [
+      'Basic hazards every miner must see',
+      'Roof and side danger signs',
+      'Mechanical danger zones',
+      'Slip, trip and fall hazards',
+      'Gas and ventilation hazard indicators'
     ]
   },
   {
@@ -64,7 +64,7 @@ const TRAINING_WORLDS = [
     description: 'Survive cave-ins and gas leaks',
     subtitle: 'Critical Thinking',
     levels: 5,
-    depth: '150m',
+    depth: '100m',
     levelNames: [
       'What to do during blasting',
       'Safe behavior around moving machinery',
@@ -82,7 +82,7 @@ const TRAINING_WORLDS = [
     description: 'Escape routes & rescue protocols',
     subtitle: 'Life or Death',
     levels: 5,
-    depth: '200m',
+    depth: '150m',
     levelNames: [
       'How to react when something goes wrong',
       'Escape route understanding',
@@ -100,7 +100,7 @@ const TRAINING_WORLDS = [
     description: 'Think like a veteran miner',
     subtitle: 'Expert Knowledge',
     levels: 5,
-    depth: '250m',
+    depth: '200m',
     levelNames: [
       'Why shortcuts kill',
       'Overconfidence traps',

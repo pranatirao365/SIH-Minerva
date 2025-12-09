@@ -62,6 +62,8 @@ export const Award = (props: any) => <Ionicons name="ribbon" {...props} />;
 export const Droplets = (props: any) => <Ionicons name="water" {...props} />;
 export const ChevronRight = (props: any) => <Ionicons name="chevron-forward" {...props} />;
 export const ChevronLeft = (props: any) => <Ionicons name="chevron-back" {...props} />;
+export const ChevronDown = (props: any) => <Ionicons name="chevron-down" {...props} />;
+export const ChevronUp = (props: any) => <Ionicons name="chevron-up" {...props} />;
 export const CheckSquare = (props: any) => <Ionicons name="checkbox" {...props} />;
 export const Volume2 = (props: any) => <Ionicons name="volume-high" {...props} />;
 export const Mail = (props: any) => <Ionicons name="mail" {...props} />;
@@ -146,6 +148,8 @@ export const Icons = {
   Droplets,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   CheckSquare,
   Volume2,
   Mail,

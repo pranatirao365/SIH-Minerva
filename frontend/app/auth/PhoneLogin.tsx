@@ -33,7 +33,7 @@ const TEST_PHONES = [
   '+919876543210',  // miner-1 (Blasting Department) - Test OTP: 123456
   '+919876543211'   // miner-2 (Equipment Maintenance) - Test OTP: 123456
 ];
-const IS_TEST_MODE = false; // Set to false in production
+const IS_TEST_MODE = true; // Set to false in production (TEST MODE ENABLED for development)
 
 export default function PhoneLogin() {
   const router = useRouter();
@@ -112,6 +112,37 @@ export default function PhoneLogin() {
       // 📱 PRODUCTION MODE: Real Firebase Phone Authentication
       console.log('📱 Production Mode: Sending real SMS OTP to', phone);
       
+      // Important: For React Native, phone authentication requires:
+      // 1. Firebase App Check (for security)
+      // 2. Platform-specific reCAPTCHA handling
+      // 3. Proper Firebase project configuration
+      
+      Alert.alert(
+        '⚠️ Production Mode Not Available',
+        'Phone authentication in React Native requires additional setup:\n\n' +
+        '1. Firebase App Check configuration\n' +
+        '2. Native module setup for reCAPTCHA\n' +
+        '3. iOS/Android specific implementations\n\n' +
+        'Please use TEST MODE for development or set up Firebase Phone Auth properly.\n\n' +
+        'To enable TEST MODE, set IS_TEST_MODE = true in PhoneLogin.tsx',
+        [
+          {
+            text: 'Use Test Mode',
+            onPress: () => {
+              setLoading(false);
+              Alert.alert(
+                'Switch to Test Mode',
+                'Please set IS_TEST_MODE = true in the code, then restart the app.',
+                [{ text: 'OK' }]
+              );
+            }
+          }
+        ]
+      );
+      setLoading(false);
+      return;
+      
+      /* Original production code - requires proper Firebase Phone Auth setup
       try {
         // Create invisible reCAPTCHA verifier for web
         // Note: This works best with Expo Development Build or Production Build
@@ -174,6 +205,7 @@ export default function PhoneLogin() {
           throw new Error(error.message || 'Failed to send OTP. Please check Firebase configuration.');
         }
       }
+      */
     } catch (err: any) {
       console.error('❌ Error sending OTP:', err);
       

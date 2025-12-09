@@ -139,26 +139,6 @@ export default function PPEScanScreen() {
     fetchDepartment();
   }, [user]);
 
-  const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (permissionResult.granted === false) {
-      Alert.alert('Permission Required', 'Permission to access camera roll is required!');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 1,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setSelectedImage(result.assets[0].uri);
-      setPpeElements([]);
-    }
-  };
-
   const takePhoto = async () => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
@@ -321,30 +301,17 @@ export default function PPEScanScreen() {
       >
         {/* Action Buttons */}
         <View style={styles.actionSection}>
-          <Text style={styles.sectionLabel}>Image Source</Text>
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={[styles.button, styles.secondaryButton]} 
-              onPress={pickImage}
-              activeOpacity={0.8}
-            >
-              <View style={styles.buttonIconContainer}>
-                <Text style={styles.buttonIcon}>□</Text>
-              </View>
-              <Text style={styles.buttonText}>Gallery</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.button, styles.primaryButton]} 
-              onPress={takePhoto}
-              activeOpacity={0.8}
-            >
-              <View style={styles.buttonIconContainer}>
-                <Text style={styles.buttonIcon}>○</Text>
-              </View>
-              <Text style={styles.buttonText}>Camera</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.sectionLabel}>Capture Image</Text>
+          <TouchableOpacity 
+            style={[styles.button, styles.primaryButton, { width: '100%' }]} 
+            onPress={takePhoto}
+            activeOpacity={0.8}
+          >
+            <View style={styles.buttonIconContainer}>
+              <Text style={styles.buttonIcon}>○</Text>
+            </View>
+            <Text style={styles.buttonText}>Take Photo with Camera</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Image Preview Section */}

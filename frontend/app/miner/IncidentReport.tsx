@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
-import { ArrowLeft, Upload, Camera, Video, Mic, X, Pause } from '../../components/Icons';
+import { ArrowLeft, Camera, Video, Mic, X, Pause } from '../../components/Icons';
 import { submitIncident } from '../../services/incidentService';
 import { useRoleStore } from '../../hooks/useRoleStore';
 
@@ -13,8 +13,6 @@ export default function IncidentReport() {
   const { user } = useRoleStore();
   
   // Form state
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [language, setLanguage] = useState<'en' | 'hi' | 'te'>('en');
   
   // Media state
@@ -29,7 +27,7 @@ export default function IncidentReport() {
   
   // Transcript confirmation state
   const [transcript, setTranscript] = useState('');
-  const [showTranscriptModal, setShowTranscriptModal] = useState(false);
+  const [showTranscriptModal, setShowTranscriptModal] = useState(false); // Keep for logic, modal hidden from UI
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [editableTranscript, setEditableTranscript] = useState('');
   
@@ -51,58 +49,7 @@ export default function IncidentReport() {
   const languageOptions = [
     { code: 'en' as const, label: 'English', nativeLabel: 'English', flag: '🇬🇧', region: 'en-IN', description: 'Speak in English' },
     { code: 'hi' as const, label: 'हिंदी (Hindi)', nativeLabel: 'हिंदी', flag: '🇮🇳', region: 'hi-IN', description: 'हिंदी में बोलें' },
-    { code: 'te' as const, label: 'తెలుగు (Telugu)', nativeLabel: 'తెలుగు', flag: '🇮🇳', region: 'te-IN', description: 'తెలుగులో మాట్లాడండి' },
   ];
-
-  const pickImage = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (!permissionResult.granted) {
-        Alert.alert('Permission Required', 'Permission to access gallery is required!');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setMediaUri(result.assets[0].uri);
-        setMediaType('photo');
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
-    }
-  };
-
-  const pickVideo = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (!permissionResult.granted) {
-        Alert.alert('Permission Required', 'Permission to access gallery is required!');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-        allowsEditing: true,
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setMediaUri(result.assets[0].uri);
-        setMediaType('video');
-      }
-    } catch (error) {
-      console.error('Error picking video:', error);
-      Alert.alert('Error', 'Failed to pick video');
-    }
-  };
 
   const startRecording = async () => {
     try {
@@ -485,45 +432,11 @@ export default function IncidentReport() {
     }
   };
 
-  const recordVideo = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-
-      if (!permissionResult.granted) {
-        Alert.alert('Permission Required', 'Permission to access camera is required!');
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-        allowsEditing: true,
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setMediaUri(result.assets[0].uri);
-        setMediaType('video');
-      }
-    } catch (error) {
-      console.error('Error recording video:', error);
-      Alert.alert('Error', 'Failed to record video');
-    }
-  };
-
   const handleSubmit = async () => {
-    // MANDATORY: Title must be filled
-    if (!title.trim()) {
-      Alert.alert('Required Field', 'Incident Title is mandatory. Please provide a brief title.');
-      return;
-    }
-
-    // Description is optional
-    const finalTitle = title.trim();
-
     setLoading(true);
 
     try {
-      const minerId = user.phoneNumber || user.id || user.phone?.replace(/[^0-9]/g, '');
+      const minerId = user.id || user.phone?.replace(/[^0-9]/g, '');
       const minerName = user.name || 'Unknown Miner';
 
       console.log('\n📋 ===== PREPARING INCIDENT SUBMISSION =====');
@@ -557,8 +470,6 @@ export default function IncidentReport() {
         minerId,
         minerName,
         type: finalType,
-        title: finalTitle,
-        hasDescription: !!description,
         hasMedia: !!finalMediaUri,
         hasTranscript: !!finalTranscript,
         language
@@ -568,8 +479,8 @@ export default function IncidentReport() {
         minerId,
         minerName,
         finalType,
-        finalTitle,
-        description,
+        '', // No title field
+        '', // No description field
         'Medium', // Default severity
         finalMediaUri || undefined,
         finalTranscript,
@@ -609,69 +520,6 @@ export default function IncidentReport() {
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
-        {/* Info Banner */}
-        <View style={{ backgroundColor: '#EF4444' + '15', borderRadius: 12, borderLeftWidth: 4, borderLeftColor: '#EF4444', padding: 16, marginBottom: 24 }}>
-          <Text style={{ color: '#EF4444', fontSize: 15, fontWeight: '700', marginBottom: 6 }}>
-            Safety First - Report Immediately
-          </Text>
-          <Text style={{ color: '#E5E5E5', fontSize: 13, lineHeight: 20 }}>
-            Incident Title is mandatory. Description and evidence (photo/video/audio) are optional but recommended.
-          </Text>
-        </View>
-
-        {/* Title Input (MANDATORY) */}
-        <View style={{ marginBottom: 20 }}>
-          <Text style={{ color: '#E5E5E5', fontSize: 14, fontWeight: '700', marginBottom: 10, letterSpacing: 0.3 }}>
-            Incident Title <Text style={{ color: '#EF4444' }}>*</Text>
-          </Text>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Brief summary (e.g., Gas leak in Shaft A) (required)"
-            placeholderTextColor="#525252"
-            style={{
-              backgroundColor: '#1A1A1A',
-              borderWidth: 2,
-              borderColor: title.trim() ? '#2A2A2A' : '#EF4444',
-              borderRadius: 10,
-              padding: 14,
-              color: '#FFFFFF',
-              fontSize: 15
-            }}
-          />
-          {!title.trim() && (
-            <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 6 }}>
-              This field is required
-            </Text>
-          )}
-        </View>
-
-        {/* Description Input (Optional) */}
-        <View style={{ marginBottom: 20 }}>
-          <Text style={{ color: '#E5E5E5', fontSize: 14, fontWeight: '700', marginBottom: 10, letterSpacing: 0.3 }}>
-            Description <Text style={{ color: '#737373', fontWeight: '400' }}>(Optional)</Text>
-          </Text>
-          <TextInput
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Describe what happened in detail"
-            placeholderTextColor="#525252"
-            multiline
-            numberOfLines={5}
-            style={{
-              backgroundColor: '#1A1A1A',
-              borderWidth: 1,
-              borderColor: '#2A2A2A',
-              borderRadius: 10,
-              padding: 14,
-              color: '#FFFFFF',
-              fontSize: 15,
-              height: 130,
-              textAlignVertical: 'top'
-            }}
-          />
-        </View>
-
         {/* Media Attachment Section (OPTIONAL) */}
         <View style={{ marginBottom: 24 }}>
           <Text style={{ color: '#E5E5E5', fontSize: 14, fontWeight: '700', marginBottom: 14, letterSpacing: 0.3 }}>
@@ -762,167 +610,161 @@ export default function IncidentReport() {
           )}
         </View>
 
-        {/* Media Options */}
-        <View style={{ gap: 10, marginBottom: 28 }}>
-          {/* Row 1: Take Photo, Select Image */}
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity 
-              onPress={takePhoto}
-              disabled={loading}
-              style={{
-                flex: 1,
-                backgroundColor: '#1A1A1A',
-                borderWidth: 1,
-                borderColor: '#2A2A2A',
-                borderRadius: 12,
-                paddingVertical: 16,
-                paddingHorizontal: 12,
-                alignItems: 'center',
-                opacity: loading ? 0.5 : 1
-              }}
-            >
-              <Camera size={24} color="#FF6B00" />
-              <Text style={{ color: '#E5E5E5', fontSize: 12, fontWeight: '600', marginTop: 8, textAlign: 'center' }}>
-                Take Photo
+      {/* PRIMARY ACTION: Record Audio - Main Central Feature */}
+      <View style={{ 
+        marginBottom: 32,
+        padding: 24,
+        backgroundColor: 'rgba(255, 107, 0, 0.05)',
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: 'rgba(255, 107, 0, 0.3)'
+      }}>
+        <Text style={{ 
+          color: '#FF6B00', 
+          fontSize: 16, 
+          fontWeight: '700', 
+          textAlign: 'center',
+          marginBottom: 20,
+          letterSpacing: 0.5
+        }}>
+          🎤 VOICE REPORT
+        </Text>
+        
+        {isRecording ? (
+          <TouchableOpacity 
+            onPress={stopRecording}
+            style={{
+              backgroundColor: '#EF4444',
+              borderWidth: 3,
+              borderColor: '#DC2626',
+              borderRadius: 20,
+              paddingVertical: 32,
+              paddingHorizontal: 24,
+              alignItems: 'center',
+              shadowColor: '#EF4444',
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.5,
+              shadowRadius: 16,
+              elevation: 10
+            }}
+          >
+            <Pause size={48} color="#FFFFFF" />
+            <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '700', marginTop: 16, textAlign: 'center' }}>
+              Stop Recording
+            </Text>
+            <View style={{ 
+              marginTop: 12,
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              paddingHorizontal: 16,
+              paddingVertical: 6,
+              borderRadius: 20
+            }}>
+              <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '600' }}>
+                Recording in progress...
               </Text>
-            </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            onPress={recordAudio}
+            disabled={loading}
+            style={{
+              backgroundColor: '#FF6B00',
+              borderWidth: 3,
+              borderColor: '#FF8533',
+              borderRadius: 20,
+              paddingVertical: 32,
+              paddingHorizontal: 24,
+              alignItems: 'center',
+              opacity: loading ? 0.5 : 1,
+              shadowColor: '#FF6B00',
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.5,
+              shadowRadius: 16,
+              elevation: 10
+            }}
+          >
+            <View style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 16
+            }}>
+              <Mic size={42} color="#FFFFFF" />
+            </View>
+            <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '700', textAlign: 'center' }}>
+              Start Voice Recording
+            </Text>
+            <Text style={{ color: '#FFE5D9', fontSize: 13, marginTop: 8, textAlign: 'center', lineHeight: 18 }}>
+              Tap to record your incident report{'\n'}in your preferred language
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
-            <TouchableOpacity 
-              onPress={pickImage}
-              disabled={loading}
-              style={{
-                flex: 1,
-                backgroundColor: '#1A1A1A',
-                borderWidth: 1,
-                borderColor: '#2A2A2A',
-                borderRadius: 12,
-                paddingVertical: 16,
-                paddingHorizontal: 12,
-                alignItems: 'center',
-                opacity: loading ? 0.5 : 1
-              }}
-            >
-              <Upload size={24} color="#FF6B00" />
-              <Text style={{ color: '#E5E5E5', fontSize: 12, fontWeight: '600', marginTop: 8, textAlign: 'center' }}>
-                Select Image
-              </Text>
-            </TouchableOpacity>
-          </View>
+      {/* SECONDARY ACTION: Take Photo - Optional */}
+      <TouchableOpacity 
+        onPress={takePhoto}
+        disabled={loading}
+        style={{
+          backgroundColor: '#1A1A1A',
+          borderWidth: 1,
+          borderColor: '#3A3A3A',
+          borderRadius: 12,
+          paddingVertical: 16,
+          paddingHorizontal: 20,
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: 10,
+          opacity: loading ? 0.5 : 1,
+          marginBottom: 24
+        }}
+      >
+        <Camera size={22} color="#A0A0A0" />
+        <Text style={{ color: '#A0A0A0', fontSize: 15, fontWeight: '600' }}>
+          Take Photo (Optional)
+        </Text>
+      </TouchableOpacity>
 
-          {/* Row 2: Record Video, Select Video */}
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity 
-              onPress={recordVideo}
-              disabled={loading}
-              style={{
-                flex: 1,
-                backgroundColor: '#1A1A1A',
-                borderWidth: 1,
-                borderColor: '#2A2A2A',
-                borderRadius: 12,
-                paddingVertical: 16,
-                paddingHorizontal: 12,
-                alignItems: 'center',
-                opacity: loading ? 0.5 : 1
-              }}
-            >
-              <Video size={24} color="#FF6B00" />
-              <Text style={{ color: '#E5E5E5', fontSize: 12, fontWeight: '600', marginTop: 8, textAlign: 'center' }}>
-                Record Video
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={pickVideo}
-              disabled={loading}
-              style={{
-                flex: 1,
-                backgroundColor: '#1A1A1A',
-                borderWidth: 1,
-                borderColor: '#2A2A2A',
-                borderRadius: 12,
-                paddingVertical: 16,
-                paddingHorizontal: 12,
-                alignItems: 'center',
-                opacity: loading ? 0.5 : 1
-              }}
-            >
-              <Upload size={24} color="#FF6B00" />
-              <Text style={{ color: '#E5E5E5', fontSize: 12, fontWeight: '600', marginTop: 8, textAlign: 'center' }}>
-                Select Video
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Row 3: Record/Stop Audio */}
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            {isRecording ? (
-              <TouchableOpacity 
-                onPress={stopRecording}
-                style={{
-                  flex: 1,
-                  backgroundColor: '#EF4444',
-                  borderWidth: 1,
-                  borderColor: '#DC2626',
-                  borderRadius: 12,
-                  paddingVertical: 16,
-                  paddingHorizontal: 12,
-                  alignItems: 'center'
-                }}
-              >
-                <Pause size={24} color="#FFFFFF" />
-                <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '600', marginTop: 8, textAlign: 'center' }}>
-                  Stop Recording
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity 
-                onPress={recordAudio}
-                disabled={loading}
-                style={{
-                  flex: 1,
-                  backgroundColor: '#1A1A1A',
-                  borderWidth: 1,
-                  borderColor: '#2A2A2A',
-                  borderRadius: 12,
-                  paddingVertical: 16,
-                  paddingHorizontal: 12,
-                  alignItems: 'center',
-                  opacity: loading ? 0.5 : 1
-                }}
-              >
-                <Mic size={24} color="#FF6B00" />
-                <Text style={{ color: '#E5E5E5', fontSize: 12, fontWeight: '600', marginTop: 8, textAlign: 'center' }}>
-                  Record Audio
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        {/* Submit Button */}
-        <TouchableOpacity
+      {/* PRIMARY SUBMIT BUTTON - Bottom */}
+      <TouchableOpacity
           onPress={handleSubmit}
-          disabled={loading || !title.trim()}
+          disabled={loading}
           style={{
-            backgroundColor: title.trim() && !loading ? '#FF6B00' : '#3A3A3A',
-            borderRadius: 12,
-            padding: 18,
+            backgroundColor: !loading ? '#FF6B00' : '#3A3A3A',
+            borderRadius: 16,
+            padding: 20,
             alignItems: 'center',
             marginBottom: 24,
             shadowColor: '#FF6B00',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: title.trim() ? 0.3 : 0,
-            shadowRadius: 8,
-            elevation: title.trim() ? 4 : 0
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.4,
+            shadowRadius: 10,
+            elevation: 6,
+            borderWidth: 2,
+            borderColor: !loading ? '#FF8533' : '#2A2A2A'
           }}
         >
           {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <ActivityIndicator color="#FFFFFF" />
+              <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
+                Submitting...
+              </Text>
+            </View>
           ) : (
-            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>
-              Submit Report
-            </Text>
+            <>
+              <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700', marginBottom: 4 }}>
+                Submit Report
+              </Text>
+              <Text style={{ color: '#FFE5D9', fontSize: 12 }}>
+                Send your incident report
+              </Text>
+            </>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -988,9 +830,9 @@ export default function IncidentReport() {
         </View>
       </Modal>
 
-      {/* Transcript Confirmation Modal */}
+      {/* Transcript Confirmation Modal - Hidden from user but logic preserved */}
       <Modal
-        visible={showTranscriptModal}
+        visible={false}
         animationType="slide"
         transparent={true}
         onRequestClose={() => skipTranscript()}

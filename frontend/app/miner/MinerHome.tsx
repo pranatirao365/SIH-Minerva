@@ -50,6 +50,15 @@ interface HelmetData {
   emergency: boolean;
 }
 
+interface TrainingModule {
+  icon: React.ComponentType<any>;
+  label: string;
+  route: string;
+  completed: boolean;
+  locked: boolean;
+  isExternalGame?: boolean;
+}
+
 export default function MinerHome() {
   const router = useRouter();
   const { user, moduleProgress, safetyScore } = useRoleStore();
@@ -128,7 +137,7 @@ export default function MinerHome() {
     { icon: Trophy, label: 'Roof Fall', route: '/miner/RoofInstabilityGame', color: '#7C2D12' },
   ];
 
-  const trainingModules = [
+  const trainingModules: TrainingModule[] = [
     { 
       icon: Video, 
       label: 'Watch Video', 
@@ -163,6 +172,14 @@ export default function MinerHome() {
       route: '/miner/GamingModule', 
       completed: moduleProgress.game,
       locked: true
+    },
+    { 
+      icon: Award, 
+      label: 'Silica Survivor', 
+      route: 'silica-game',
+      completed: false,
+      locked: false,
+      isExternalGame: true
     },
     { 
       icon: Award, 
@@ -318,7 +335,18 @@ export default function MinerHome() {
               return (
                 <TouchableOpacity
                   key={index}
-                  onPress={() => !module.locked && (module.route === '/miner/GamingModule' ? setShowInlineGame(true) : router.push(module.route as any))}
+                  onPress={() => {
+                    if (!module.locked) {
+                      if (module.isExternalGame) {
+                        // Open Silica Survivor game
+                        router.push('/miner/SilicaSurvivorGame' as any);
+                      } else if (module.route === '/miner/GamingModule') {
+                        setShowInlineGame(true);
+                      } else {
+                        router.push(module.route as any);
+                      }
+                    }
+                  }}
                   disabled={module.locked}
                   style={[
                     styles.moduleCard,
